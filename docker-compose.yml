@@ -5,7 +5,7 @@ services:
     build: .
     container_name: ham-coordinator
     ports:
-      - "8501:8501"
+      - "8500:8501"
     volumes:
       - ./data:/app/data
     environment:
