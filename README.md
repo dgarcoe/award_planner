@@ -8,8 +8,12 @@ A Streamlit-based web application for coordinating multiple operators activating
 - **Admin Role Management**: Promote/demote operators to/from admin role
 - **Flexible Admin System**: Support for multiple admins (env-based super admin + database admins)
 - **Admin User Management**: Admins create operator accounts and provide credentials
-- **Multi-Language Support**: Full interface translation in English and Spanish
+- **Multi-Language Support**: Full interface translation in English, Spanish, and Galician
 - **Language Selector**: Switch between languages on-the-fly
+- **One Block Per Operator**: Operators can only have one active block at a time (auto-releases previous)
+- **Auto-Release on Logout**: All blocks automatically released when operator logs out
+- **Admin Block Management**: Admins can release any operator's blocks
+- **Timeline Visualization**: Graphic matrix view showing all band/mode combinations and their status
 - **Secure Authentication**: Password-protected accounts with bcrypt encryption
 - **Band/Mode Blocking**: Reserve a band and mode combination while you're active
 - **Real-time Status**: View all currently blocked bands and modes across all operators
@@ -126,7 +130,7 @@ streamlit run app.py
 ### Language Selection
 
 1. Use the language selector in the top-right corner (login page) or top-middle (operator panel)
-2. Choose between English or Español
+2. Choose between English, Español, or Galego
 3. The interface will immediately switch to the selected language
 4. Language preference is maintained during your session
 
@@ -155,11 +159,19 @@ streamlit run app.py
 3. Enter and confirm new password
 4. System displays the new password to give to the operator
 
+#### Manage All Blocks (Admin)
+1. Navigate to "Admin Panel" > "Manage Blocks"
+2. View all active blocks with operator information
+3. Click "Unblock" next to any block to release it
+4. Useful for resolving stuck blocks or helping operators who forgot to unblock
+
 #### View System Statistics
 1. Navigate to "Admin Panel" > "System Stats"
 2. View total operators, active operators, active blocks, and total admins
 
 ### Blocking a Band/Mode
+
+**Important**: Each operator can only have one active block at a time. If you block a new band/mode while already having a block, your previous block will automatically be released.
 
 1. Navigate to the "Block Band/Mode" tab
 2. Select the band you want to use
@@ -182,6 +194,18 @@ streamlit run app.py
    - Number of active operators
    - Number of bands in use
    - Visual chart of band usage
+
+### Timeline Visualization
+
+1. Navigate to the "Timeline" tab
+2. View a matrix showing all band/mode combinations
+3. See which operator is using each combination
+4. "Free" indicates available band/mode combinations
+5. Provides a quick overview of the entire spectrum usage
+
+### Logging Out
+
+When you click the "Logout" button, the system automatically releases all your active blocks. This ensures that frequency allocations don't remain locked when you're no longer active.
 
 ### Changing Your Password (Operators Only)
 
@@ -226,7 +250,8 @@ The SQLite database is stored in the `data/` directory. When using Docker, this 
 
 ## Internationalization
 
-- **Multi-Language Support**: Full interface available in English and Spanish
+- **Multi-Language Support**: Full interface available in English, Spanish, and Galician
+- **Languages**: 🇬🇧 English, 🇪🇸 Español, and Galego
 - **Easy Language Switching**: Toggle between languages with a single click
 - **Session-Based Language Preference**: Language selection maintained during your session
 - **Extensible**: Architecture supports adding more languages easily

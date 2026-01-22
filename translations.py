@@ -130,6 +130,19 @@ TRANSLATIONS = {
         # Language
         'language': 'Language',
         'select_language': 'Select Language',
+
+        # Admin Block Management
+        'tab_manage_blocks': 'Manage Blocks',
+        'manage_all_blocks': 'Manage All Blocks',
+        'manage_blocks_info': 'View and release blocks from any operator',
+        'unblock_selected': 'Unblock',
+        'no_blocks_to_manage': 'No active blocks to manage',
+
+        # Timeline
+        'tab_timeline': 'Timeline',
+        'timeline_title': 'Blocks Visualization',
+        'timeline_info': 'Graphic representation of current band/mode blocks',
+        'free': 'Free',
     },
     'es': {
         # General
@@ -257,12 +270,166 @@ TRANSLATIONS = {
         # Language
         'language': 'Idioma',
         'select_language': 'Seleccionar Idioma',
+
+        # Admin Block Management
+        'tab_manage_blocks': 'Gestionar Bloqueos',
+        'manage_all_blocks': 'Gestionar Todos los Bloqueos',
+        'manage_blocks_info': 'Ver y liberar bloqueos de cualquier operador',
+        'unblock_selected': 'Desbloquear',
+        'no_blocks_to_manage': 'No hay bloqueos activos para gestionar',
+
+        # Timeline
+        'tab_timeline': 'Línea Temporal',
+        'timeline_title': 'Visualización de Bloqueos',
+        'timeline_info': 'Representación gráfica de los bloqueos de banda/modo actuales',
+        'free': 'Libre',
+    },
+    'gl': {
+        # General
+        'app_title': 'Coordinador de Premios de Radio Afeccionados',
+        'welcome': 'Benvido',
+        'admin': 'Administrador',
+        'admin_privileges': 'Privilexios de administrador activos',
+        'logout': 'Pechar Sesión',
+
+        # Login
+        'operator_login': 'Inicio de Sesión de Operador',
+        'callsign': 'Indicativo',
+        'password': 'Contrasinal',
+        'login': 'Iniciar Sesión',
+        'login_button': 'Iniciar Sesión',
+
+        # Errors and messages
+        'error_admin_not_configured': 'Credenciais de administrador non configuradas!',
+        'error_set_env_vars': 'Por favor configure as seguintes variables de contorno:',
+        'error_enter_credentials': 'Por favor introduza indicativo e contrasinal',
+        'error_fill_all_fields': 'Por favor complete todos os campos',
+        'error_passwords_not_match': 'Os contrasinais non coinciden',
+        'error_password_min_length': 'O contrasinal debe ter polo menos 6 caracteres',
+        'success_welcome': 'Benvido',
+
+        # Admin Panel
+        'admin_panel': 'Panel de Administración',
+        'tab_create_operator': 'Crear Operador',
+        'tab_manage_operators': 'Xestionar Operadores',
+        'tab_manage_admins': 'Xestionar Administradores',
+        'tab_reset_password': 'Restablecer Contrasinal',
+        'tab_system_stats': 'Estatísticas do Sistema',
+
+        # Create Operator
+        'create_new_operator': 'Crear Novo Operador',
+        'create_operator_info': 'Cree unha nova conta de operador e proporciónelle as credenciais.',
+        'operator_name': 'Nome do Operador',
+        'confirm_password': 'Confirmar Contrasinal',
+        'create_operator': 'Crear Operador',
+        'credentials_to_provide': 'Credenciais para proporcionar ao operador:',
+        'is_admin': 'Privilexios de administrador',
+        'grant_admin_privileges': 'Conceder privilexios de administrador a este operador',
+
+        # Manage Operators
+        'all_operators': 'Todos os Operadores',
+        'name': 'Nome',
+        'admin_status': 'Admin',
+        'created': 'Creado',
+        'yes': 'Si',
+        'no': 'Non',
+        'delete_operator': 'Eliminar Operador',
+        'delete_operator_warning': 'Eliminar un operador tamén eliminará todos os seus bloqueos activos',
+        'select_operator_to_delete': 'Seleccione o operador a eliminar',
+        'no_operators': 'Non hai operadores no sistema',
+
+        # Manage Admins
+        'manage_admin_roles': 'Xestionar Roles de Administrador',
+        'promote_operator': 'Promover a Administrador',
+        'promote_info': 'Conceder privilexios de administrador a un operador',
+        'select_operator_to_promote': 'Seleccione o operador a promover',
+        'promote': 'Promover a Administrador',
+        'demote_operator': 'Degradar de Administrador',
+        'demote_info': 'Eliminar privilexios de administrador dun operador',
+        'select_operator_to_demote': 'Seleccione o operador a degradar',
+        'demote': 'Degradar de Administrador',
+        'no_operators_to_promote': 'Non hai operadores regulares para promover',
+        'no_operators_to_demote': 'Non hai administradores de base de datos para degradar',
+
+        # Reset Password
+        'reset_operator_password': 'Restablecer Contrasinal do Operador',
+        'reset_password_info': 'Restableza o contrasinal dun operador e proporciónelle as novas credenciais.',
+        'select_operator': 'Seleccionar operador',
+        'new_password': 'Novo Contrasinal',
+        'confirm_new_password': 'Confirmar Novo Contrasinal',
+        'reset_password': 'Restablecer Contrasinal',
+        'new_credentials_for': 'Novas credenciais para',
+        'error_enter_password': 'Por favor introduza un contrasinal',
+
+        # System Stats
+        'system_statistics': 'Estatísticas do Sistema',
+        'total_operators': 'Total de Operadores',
+        'active_operators': 'Operadores Activos',
+        'active_blocks': 'Bloqueos Activos',
+        'total_admins': 'Total de Administradores',
+
+        # Operator Panel Tabs
+        'tab_block': 'Bloquear Banda/Modo',
+        'tab_unblock': 'Desbloquear Banda/Modo',
+        'tab_status': 'Estado Actual',
+        'tab_settings': 'Configuración',
+
+        # Block Band/Mode
+        'block_band_mode': 'Bloquear unha Banda e Modo',
+        'block_info': 'Bloquee unha combinación de banda/modo para evitar que outros operadores a usen mentres está activo.',
+        'select_band': 'Seleccionar Banda',
+        'select_mode': 'Seleccionar Modo',
+        'block': 'Bloquear',
+
+        # Unblock Band/Mode
+        'unblock_band_mode': 'Desbloquear unha Banda e Modo',
+        'unblock_info': 'Libere unha combinación de banda/modo cando remate.',
+        'your_current_blocks': 'Os seus bloqueos actuais:',
+        'unblock': 'Desbloquear',
+        'no_active_blocks': 'Non ten bloqueos activos.',
+
+        # Current Status
+        'current_status': 'Estado Actual de Banda/Modo',
+        'status_info': 'Ver todas as combinacións de banda/modo bloqueadas actualmente.',
+        'band': 'Banda',
+        'mode': 'Modo',
+        'operator': 'Operador',
+        'blocked_at': 'Bloqueado en',
+        'summary': 'Resumo',
+        'total_blocks': 'Total de Bloqueos',
+        'bands_in_use': 'Bandas en Uso',
+        'blocks_by_band': 'Bloqueos por Banda',
+        'no_blocks_active': 'Non hai bandas/modos bloqueados actualmente. Todas as frecuencias están dispoñibles!',
+
+        # Settings
+        'settings': 'Configuración',
+        'change_password': 'Cambiar Contrasinal',
+        'admin_password_env': 'O contrasinal de administrador configúrase mediante variables de contorno (ADMIN_PASSWORD).',
+        'current_password': 'Contrasinal Actual',
+
+        # Language
+        'language': 'Idioma',
+        'select_language': 'Seleccionar Idioma',
+
+        # Admin Block Management
+        'tab_manage_blocks': 'Xestionar Bloqueos',
+        'manage_all_blocks': 'Xestionar Todos os Bloqueos',
+        'manage_blocks_info': 'Ver e liberar bloqueos de calquera operador',
+        'unblock_selected': 'Desbloquear',
+        'no_blocks_to_manage': 'Non hai bloqueos activos para xestionar',
+
+        # Timeline
+        'tab_timeline': 'Liña Temporal',
+        'timeline_title': 'Visualización de Bloqueos',
+        'timeline_info': 'Representación gráfica dos bloqueos de banda/modo actuais',
+        'free': 'Libre',
     }
 }
 
 AVAILABLE_LANGUAGES = {
     'en': 'English',
-    'es': 'Español'
+    'es': 'Español',
+    'gl': 'Galego'
 }
 
 def get_text(key: str, lang: str = 'en') -> str:

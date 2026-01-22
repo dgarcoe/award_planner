@@ -260,12 +260,12 @@ def admin_reset_password(callsign: str, new_password: str) -> Tuple[bool, str]:
         return False, str(e)
 
 def block_band_mode(operator_callsign: str, band: str, mode: str) -> Tuple[bool, str]:
-    """Block a band/mode combination for an operator."""
+    """Block a band/mode combination for an operator. One block per operator."""
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
-        # Check if already blocked
+        # Check if this band/mode is already blocked by someone else
         cursor.execute('''
             SELECT operator_callsign FROM band_mode_blocks
             WHERE band = ? AND mode = ?
@@ -276,7 +276,21 @@ def block_band_mode(operator_callsign: str, band: str, mode: str) -> Tuple[bool,
             conn.close()
             return False, f"Band {band} / Mode {mode} is already blocked by {existing['operator_callsign']}"
 
-        # Block the band/mode
+        # Check if operator already has a block (one block per operator rule)
+        cursor.execute('''
+            SELECT band, mode FROM band_mode_blocks
+            WHERE operator_callsign = ?
+        ''', (operator_callsign.upper(),))
+        existing_block = cursor.fetchone()
+
+        if existing_block:
+            # Auto-unblock the previous block
+            cursor.execute('''
+                DELETE FROM band_mode_blocks
+                WHERE operator_callsign = ?
+            ''', (operator_callsign.upper(),))
+
+        # Block the new band/mode
         cursor.execute('''
             INSERT INTO band_mode_blocks (operator_callsign, band, mode)
             VALUES (?, ?, ?)
@@ -284,6 +298,9 @@ def block_band_mode(operator_callsign: str, band: str, mode: str) -> Tuple[bool,
 
         conn.commit()
         conn.close()
+
+        if existing_block:
+            return True, f"Successfully blocked (previous block {existing_block['band']}/{existing_block['mode']} released)"
         return True, "Successfully blocked"
     except Exception as e:
         print(f"Error blocking band/mode: {e}")
@@ -321,6 +338,66 @@ def unblock_band_mode(operator_callsign: str, band: str, mode: str) -> Tuple[boo
         return True, "Successfully unblocked"
     except Exception as e:
         print(f"Error unblocking band/mode: {e}")
+        return False, str(e)
+
+def unblock_all_for_operator(operator_callsign: str) -> Tuple[bool, str, int]:
+    """Unblock all band/mode combinations for an operator."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Get count of blocks before deleting
+        cursor.execute('''
+            SELECT COUNT(*) as count FROM band_mode_blocks
+            WHERE operator_callsign = ?
+        ''', (operator_callsign.upper(),))
+        count = cursor.fetchone()['count']
+
+        if count == 0:
+            conn.close()
+            return True, "No blocks to release", 0
+
+        # Delete all blocks for this operator
+        cursor.execute('''
+            DELETE FROM band_mode_blocks
+            WHERE operator_callsign = ?
+        ''', (operator_callsign.upper(),))
+
+        conn.commit()
+        conn.close()
+        return True, f"Released {count} block(s)", count
+    except Exception as e:
+        print(f"Error unblocking all: {e}")
+        return False, str(e), 0
+
+def admin_unblock_band_mode(band: str, mode: str) -> Tuple[bool, str]:
+    """Admin unblock any band/mode combination."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Check if blocked
+        cursor.execute('''
+            SELECT operator_callsign FROM band_mode_blocks
+            WHERE band = ? AND mode = ?
+        ''', (band, mode))
+        existing = cursor.fetchone()
+
+        if not existing:
+            conn.close()
+            return False, f"Band {band} / Mode {mode} is not blocked"
+
+        # Unblock the band/mode
+        cursor.execute('''
+            DELETE FROM band_mode_blocks
+            WHERE band = ? AND mode = ?
+        ''', (band, mode))
+
+        conn.commit()
+        conn.close()
+        return True, f"Successfully unblocked {band}/{mode} (was blocked by {existing['operator_callsign']})"
+    except Exception as e:
+        print(f"Error admin unblocking band/mode: {e}")
         return False, str(e)
 
 def get_all_blocks() -> List[dict]:
