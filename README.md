@@ -4,11 +4,15 @@ A Streamlit-based web application for coordinating multiple operators activating
 
 ## Features
 
-- **Operator Registration**: Simple login/registration system using callsign and operator name
+- **Secure Authentication**: Password-protected operator accounts with bcrypt encryption
+- **Admin Access Control**: Dedicated admin panel for user management and approval
+- **Operator Registration**: New operators must be approved by an admin before accessing the system
 - **Band/Mode Blocking**: Reserve a band and mode combination while you're active
 - **Real-time Status**: View all currently blocked bands and modes across all operators
 - **Easy Unblocking**: Release your blocks when finished
+- **User Management**: Admins can approve/reject registrations, revoke access, and reset passwords
 - **Statistics Dashboard**: Visual representation of band usage and active operators
+- **Password Management**: Users can change their own passwords; admins can reset any password
 - **SQLite Database**: Persistent storage of all coordination data
 - **Dockerized**: Easy deployment using Docker
 
@@ -35,9 +39,14 @@ cd award_planner
 docker-compose up -d
 ```
 
-3. Access the application at `http://localhost:8501`
+3. Create the first admin account (run this in the container):
+```bash
+docker-compose exec app python create_admin.py
+```
 
-4. To stop the application:
+4. Access the application at `http://localhost:8501`
+
+5. To stop the application:
 ```bash
 docker-compose down
 ```
@@ -58,21 +67,60 @@ docker run -p 8501:8501 -v $(pwd)/data:/app/data ham-coordinator
 pip install -r requirements.txt
 ```
 
-3. Run the application:
+3. Create the first admin account:
+```bash
+python create_admin.py
+```
+
+4. Run the application:
 ```bash
 streamlit run app.py
 ```
 
-4. Access the application at `http://localhost:8501`
+5. Access the application at `http://localhost:8501`
 
 ## Usage Guide
 
-### First Time Setup
+### First Time Setup (Admin)
 
-1. Open the application in your web browser
-2. Enter your callsign (will be converted to uppercase)
-3. Enter your operator name
-4. Click "Login / Register"
+1. Before starting, create an admin account using the setup script:
+   ```bash
+   python create_admin.py
+   ```
+2. Follow the prompts to enter your callsign, name, and password
+3. Start the application and login with your admin credentials
+
+### Operator Registration
+
+1. New operators click "Register New Account" on the login page
+2. Enter callsign, name, and password (minimum 6 characters)
+3. Submit registration - the account will be pending admin approval
+4. Wait for an admin to approve your registration
+5. Once approved, login with your credentials
+
+### Admin Functions
+
+Admins have access to an additional "Admin Panel" tab with the following features:
+
+#### Approve/Reject Pending Registrations
+1. Navigate to "Admin Panel" > "Pending Approvals"
+2. Review new operator registrations
+3. Click "✓ Approve" to grant access or "✗ Reject" to deny
+
+#### Manage Operators
+1. Navigate to "Admin Panel" > "Manage Operators"
+2. View all operators in the system with their status
+3. Revoke access for approved operators if needed
+
+#### Reset Passwords
+1. Navigate to "Admin Panel" > "Reset Password"
+2. Select the operator whose password needs to be reset
+3. Enter and confirm the new password
+4. The operator can login with the new password immediately
+
+#### View System Statistics
+1. Navigate to "Admin Panel" > "System Stats"
+2. View total operators, approvals, and active blocks
 
 ### Blocking a Band/Mode
 
@@ -98,6 +146,13 @@ streamlit run app.py
    - Number of bands in use
    - Visual chart of band usage
 
+### Changing Your Password
+
+1. Navigate to the "Settings" tab
+2. Enter your current password
+3. Enter and confirm your new password (minimum 6 characters)
+4. Click "Change Password"
+
 ## Data Persistence
 
 The SQLite database is stored in the `data/` directory. When using Docker, this directory is mounted as a volume to ensure data persists across container restarts.
@@ -107,6 +162,11 @@ The SQLite database is stored in the `data/` directory. When using Docker, this 
 ### Operators Table
 - `callsign` (TEXT, PRIMARY KEY): Operator's callsign
 - `operator_name` (TEXT): Operator's name
+- `password_hash` (TEXT): Bcrypt-hashed password
+- `is_admin` (INTEGER): Admin flag (0 or 1)
+- `is_approved` (INTEGER): Approval status (0 or 1)
+- `approved_by` (TEXT): Callsign of admin who approved this operator
+- `approved_at` (TIMESTAMP): When the operator was approved
 - `created_at` (TIMESTAMP): Registration timestamp
 
 ### Band/Mode Blocks Table
@@ -116,6 +176,14 @@ The SQLite database is stored in the `data/` directory. When using Docker, this 
 - `mode` (TEXT): Operating mode (e.g., "SSB")
 - `blocked_at` (TIMESTAMP): When the block was created
 - `UNIQUE(band, mode)`: Ensures only one operator can block each band/mode combination
+
+## Security Features
+
+- **Password Hashing**: All passwords are hashed using bcrypt with automatic salt generation
+- **Admin Approval**: New operator registrations require admin approval before access is granted
+- **Access Control**: Non-approved operators cannot login or access the system
+- **Password Requirements**: Minimum 6 characters for all passwords
+- **Session Management**: Secure session handling via Streamlit's built-in session state
 
 ## Port Configuration
 
