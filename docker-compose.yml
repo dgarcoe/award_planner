@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  ham-coordinator:
+    build: .
+    container_name: ham-coordinator
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DATABASE_PATH=/app/data/ham_coordinator.db
+    restart: unless-stopped
