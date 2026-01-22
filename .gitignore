@@ -64,6 +64,7 @@ db.sqlite3-journal
 # Ham Radio Coordinator specific
 *.db
 data/
+.sessions/
 
 # Flask stuff:
 instance/

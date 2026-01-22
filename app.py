@@ -4,6 +4,12 @@ from datetime import datetime
 import database as db
 import os
 from translations import get_all_texts, AVAILABLE_LANGUAGES
+import plotly.graph_objects as go
+import plotly.express as px
+import time
+import json
+import hashlib
+from pathlib import Path
 
 # Common ham radio bands and modes
 BANDS = ['160m', '80m', '60m', '40m', '30m', '20m', '17m', '15m', '12m', '10m', '6m', '2m', '70cm']
@@ -13,8 +19,63 @@ MODES = ['SSB', 'CW', 'FM', 'RTTY', 'FT8', 'FT4', 'PSK31', 'SSTV', 'AM']
 ADMIN_CALLSIGN = os.getenv('ADMIN_CALLSIGN', '').upper()
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', '')
 
+# Session management
+SESSION_DIR = Path('.sessions')
+SESSION_DIR.mkdir(exist_ok=True)
+
+def generate_session_id(callsign: str, timestamp: float) -> str:
+    """Generate a unique session ID."""
+    data = f"{callsign}{timestamp}{os.urandom(16).hex()}"
+    return hashlib.sha256(data.encode()).hexdigest()
+
+def save_session(session_id: str, data: dict) -> None:
+    """Save session data to file."""
+    try:
+        session_file = SESSION_DIR / f"{session_id}.json"
+        with open(session_file, 'w') as f:
+            json.dump(data, f)
+    except Exception as e:
+        print(f"Error saving session: {e}")
+
+def load_session(session_id: str) -> dict:
+    """Load session data from file."""
+    try:
+        session_file = SESSION_DIR / f"{session_id}.json"
+        if session_file.exists():
+            with open(session_file, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"Error loading session: {e}")
+    return {}
+
+def delete_session(session_id: str) -> None:
+    """Delete session file."""
+    try:
+        session_file = SESSION_DIR / f"{session_id}.json"
+        if session_file.exists():
+            session_file.unlink()
+    except Exception as e:
+        print(f"Error deleting session: {e}")
+
 def init_session_state():
     """Initialize session state variables."""
+    # Check for existing session from query params
+    query_params = st.query_params
+    session_id = query_params.get('sid', None)
+
+    # Try to restore session if not already logged in
+    if session_id and 'session_restored' not in st.session_state:
+        session_data = load_session(session_id)
+        if session_data:
+            st.session_state.logged_in = session_data.get('logged_in', False)
+            st.session_state.callsign = session_data.get('callsign', None)
+            st.session_state.operator_name = session_data.get('operator_name', None)
+            st.session_state.is_admin = session_data.get('is_admin', False)
+            st.session_state.is_env_admin = session_data.get('is_env_admin', False)
+            st.session_state.language = session_data.get('language', 'en')
+            st.session_state.session_id = session_id
+            st.session_state.session_restored = True
+
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
     if 'callsign' not in st.session_state:
@@ -27,6 +88,14 @@ def init_session_state():
         st.session_state.is_env_admin = False
     if 'language' not in st.session_state:
         st.session_state.language = 'en'
+    if 'success_message' not in st.session_state:
+        st.session_state.success_message = None
+    if 'error_message' not in st.session_state:
+        st.session_state.error_message = None
+    if 'auto_refresh' not in st.session_state:
+        st.session_state.auto_refresh = True
+    if 'session_id' not in st.session_state:
+        st.session_state.session_id = None
 
 def authenticate_admin(callsign: str, password: str) -> bool:
     """Check if credentials match admin environment variables."""
@@ -66,11 +135,29 @@ def login_page():
             else:
                 # Check if admin login (env-based)
                 if authenticate_admin(callsign, password):
+                    # Ensure admin exists in database for foreign key constraints
+                    db.ensure_operator_exists(callsign, "Admin", password, is_admin=True)
                     st.session_state.logged_in = True
                     st.session_state.callsign = callsign
                     st.session_state.operator_name = t['admin']
                     st.session_state.is_admin = True
                     st.session_state.is_env_admin = True
+
+                    # Create and save session
+                    session_id = generate_session_id(callsign, time.time())
+                    st.session_state.session_id = session_id
+                    save_session(session_id, {
+                        'logged_in': True,
+                        'callsign': callsign,
+                        'operator_name': t['admin'],
+                        'is_admin': True,
+                        'is_env_admin': True,
+                        'language': st.session_state.language
+                    })
+
+                    # Set session ID in query params
+                    st.query_params['sid'] = session_id
+
                     st.success(f"{t['success_welcome']}, {t['admin']}!")
                     st.rerun()
                 else:
@@ -82,6 +169,22 @@ def login_page():
                         st.session_state.operator_name = operator['operator_name']
                         st.session_state.is_admin = bool(operator.get('is_admin', 0))
                         st.session_state.is_env_admin = False
+
+                        # Create and save session
+                        session_id = generate_session_id(operator['callsign'], time.time())
+                        st.session_state.session_id = session_id
+                        save_session(session_id, {
+                            'logged_in': True,
+                            'callsign': operator['callsign'],
+                            'operator_name': operator['operator_name'],
+                            'is_admin': bool(operator.get('is_admin', 0)),
+                            'is_env_admin': False,
+                            'language': st.session_state.language
+                        })
+
+                        # Set session ID in query params
+                        st.query_params['sid'] = session_id
+
                         st.success(f"{t['success_welcome']}, {operator['operator_name']}!")
                         st.rerun()
                     else:
@@ -299,6 +402,14 @@ def operator_panel():
     st.title(f"🎙️ {t['app_title']}")
     st.subheader(f"{t['welcome']}, {st.session_state.operator_name} ({st.session_state.callsign})")
 
+    # Display pending messages
+    if st.session_state.success_message:
+        st.success(st.session_state.success_message)
+        st.session_state.success_message = None
+    if st.session_state.error_message:
+        st.error(st.session_state.error_message)
+        st.session_state.error_message = None
+
     # Show admin indicator if admin
     if st.session_state.is_admin:
         st.info(f"🔑 {t['admin_privileges']}")
@@ -322,11 +433,22 @@ def operator_panel():
             # Auto-liberate all blocks when logging out
             if st.session_state.callsign:
                 db.unblock_all_for_operator(st.session_state.callsign)
+
+            # Delete session
+            if st.session_state.session_id:
+                delete_session(st.session_state.session_id)
+
+            # Clear session state
             st.session_state.logged_in = False
             st.session_state.callsign = None
             st.session_state.operator_name = None
             st.session_state.is_admin = False
             st.session_state.is_env_admin = False
+            st.session_state.session_id = None
+
+            # Clear query params
+            st.query_params.clear()
+
             st.rerun()
 
     # Main tabs - add admin tab if user is admin
@@ -362,10 +484,11 @@ def operator_panel():
         if st.button(t['block'], type="primary"):
             success, message = db.block_band_mode(st.session_state.callsign, band_to_block, mode_to_block)
             if success:
-                st.success(message)
+                st.session_state.success_message = f"✅ {message}"
                 st.rerun()
             else:
-                st.error(message)
+                st.session_state.error_message = message
+                st.rerun()
 
     with tab2:
         st.header(t['unblock_band_mode'])
@@ -389,16 +512,24 @@ def operator_panel():
                             block['mode']
                         )
                         if success:
-                            st.success(message)
+                            st.session_state.success_message = f"✅ {message}"
                             st.rerun()
                         else:
-                            st.error(message)
+                            st.session_state.error_message = message
+                            st.rerun()
         else:
             st.info(t['no_active_blocks'])
 
     with tab3:
         st.header(t['current_status'])
         st.info(t['status_info'])
+
+        # Auto-refresh checkbox
+        col1, col2 = st.columns([4, 1])
+        with col2:
+            auto_refresh_status = st.checkbox("Auto-refresh", value=st.session_state.auto_refresh, key="status_auto_refresh")
+            if auto_refresh_status != st.session_state.auto_refresh:
+                st.session_state.auto_refresh = auto_refresh_status
 
         all_blocks = db.get_all_blocks()
 
@@ -426,64 +557,121 @@ def operator_panel():
         else:
             st.success(t['no_blocks_active'])
 
+        # Auto-refresh logic
+        if st.session_state.auto_refresh:
+            time.sleep(5)
+            st.rerun()
+
     with tab_timeline:
         st.header(t['timeline_title'])
         st.info(t['timeline_info'])
 
+        # Auto-refresh checkbox
+        col1, col2 = st.columns([4, 1])
+        with col2:
+            auto_refresh = st.checkbox("Auto-refresh", value=st.session_state.auto_refresh, key="timeline_auto_refresh")
+            if auto_refresh != st.session_state.auto_refresh:
+                st.session_state.auto_refresh = auto_refresh
+
         all_blocks = db.get_all_blocks()
 
-        # Create a matrix view of bands vs modes
         # Create a dictionary mapping (band, mode) to operator
         blocks_dict = {(block['band'], block['mode']): block['operator_callsign'] for block in all_blocks}
 
-        # Create data for visualization
-        timeline_data = []
-        for band in BANDS:
-            for mode in MODES:
+        # Create data matrix for heatmap
+        # Get unique operators and assign them colors
+        unique_operators = sorted(set(block['operator_callsign'] for block in all_blocks))
+        operator_colors = {}
+        colors = px.colors.qualitative.Set3  # Use a predefined color palette
+        for idx, op in enumerate(unique_operators):
+            operator_colors[op] = colors[idx % len(colors)]
+
+        # Create matrix data
+        z_data = []  # Values for heatmap (numeric encoding)
+        text_data = []  # Text to display in cells
+        color_data = []  # Colors for each cell
+
+        for mode in MODES:
+            row_z = []
+            row_text = []
+            row_color = []
+            for band in BANDS:
                 key = (band, mode)
                 if key in blocks_dict:
-                    timeline_data.append({
-                        t['band']: band,
-                        t['mode']: mode,
-                        t['operator']: blocks_dict[key],
-                        'Status': blocks_dict[key]
-                    })
+                    operator = blocks_dict[key]
+                    row_z.append(unique_operators.index(operator) + 1)
+                    row_text.append(operator)
+                    row_color.append(operator_colors[operator])
                 else:
-                    timeline_data.append({
-                        t['band']: band,
-                        t['mode']: mode,
-                        t['operator']: t['free'],
-                        'Status': t['free']
-                    })
+                    row_z.append(0)
+                    row_text.append(t['free'])
+                    row_color.append('#90EE90')  # Light green for free
+            z_data.append(row_z)
+            text_data.append(row_text)
+            color_data.append(row_color)
 
-        # Create DataFrame
-        if timeline_data:
-            df_timeline = pd.DataFrame(timeline_data)
+        # Create heatmap using plotly
+        fig = go.Figure()
 
-            # Create a pivot table for better visualization
-            pivot_table = df_timeline.pivot_table(
-                index=t['band'],
-                columns=t['mode'],
-                values='Status',
-                aggfunc='first',
-                fill_value=t['free']
-            )
+        # Add colored rectangles for each cell
+        for i, mode in enumerate(MODES):
+            for j, band in enumerate(BANDS):
+                fig.add_trace(go.Scatter(
+                    x=[j],
+                    y=[i],
+                    mode='markers+text',
+                    marker=dict(
+                        size=40,
+                        color=color_data[i][j],
+                        symbol='square',
+                        line=dict(color='white', width=2)
+                    ),
+                    text=text_data[i][j],
+                    textposition='middle center',
+                    textfont=dict(size=10, color='black'),
+                    showlegend=False,
+                    hovertemplate=f'<b>Band:</b> {band}<br><b>Mode:</b> {mode}<br><b>Status:</b> {text_data[i][j]}<extra></extra>'
+                ))
 
-            # Reorder to match BANDS order
-            pivot_table = pivot_table.reindex(BANDS)
+        # Update layout
+        fig.update_layout(
+            title=t['timeline_title'],
+            xaxis=dict(
+                title=t['band'],
+                tickmode='array',
+                tickvals=list(range(len(BANDS))),
+                ticktext=BANDS,
+                side='bottom'
+            ),
+            yaxis=dict(
+                title=t['mode'],
+                tickmode='array',
+                tickvals=list(range(len(MODES))),
+                ticktext=MODES,
+                autorange='reversed'
+            ),
+            height=500,
+            plot_bgcolor='white',
+            hovermode='closest'
+        )
 
-            # Display as a styled dataframe
-            st.dataframe(pivot_table, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True)
 
-            # Show legend
-            st.subheader("Legend")
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write(f"**{t['free']}**: Available for use")
-            with col2:
-                unique_operators = set(block['operator_callsign'] for block in all_blocks)
-                if unique_operators:
-                    st.write("**Active operators**: " + ", ".join(sorted(unique_operators)))
+        # Show legend
+        st.subheader("Legend")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown(f"🟩 **{t['free']}**: Available for use")
+        with col2:
+            if unique_operators:
+                st.write("**Active operators**:")
+                for op in unique_operators:
+                    st.markdown(f"<span style='color:{operator_colors[op]}'>⬤</span> {op}", unsafe_allow_html=True)
+
+        # Auto-refresh logic
+        if st.session_state.auto_refresh:
+            time.sleep(5)
+            st.rerun()
 
     if tab4 and st.session_state.is_admin:
         with tab4:
