@@ -92,11 +92,12 @@ def admin_panel():
     t = get_all_texts(st.session_state.language)
     st.header(f"🔐 {t['admin_panel']}")
 
-    admin_tab1, admin_tab2, admin_tab3, admin_tab4, admin_tab5 = st.tabs([
+    admin_tab1, admin_tab2, admin_tab3, admin_tab4, admin_tab5, admin_tab6 = st.tabs([
         t['tab_create_operator'],
         t['tab_manage_operators'],
         t['tab_manage_admins'],
         t['tab_reset_password'],
+        t['tab_manage_blocks'],
         t['tab_system_stats']
     ])
 
@@ -249,6 +250,32 @@ def admin_panel():
             st.info(t['no_operators'])
 
     with admin_tab5:
+        st.subheader(t['manage_all_blocks'])
+        st.info(t['manage_blocks_info'])
+
+        all_blocks = db.get_all_blocks()
+
+        if all_blocks:
+            for block in all_blocks:
+                col1, col2, col3, col4 = st.columns([2, 2, 3, 1])
+                with col1:
+                    st.write(f"**{block['band']}**")
+                with col2:
+                    st.write(f"**{block['mode']}**")
+                with col3:
+                    st.write(f"{block['operator_name']} ({block['operator_callsign']})")
+                with col4:
+                    if st.button(t['unblock_selected'], key=f"admin_unblock_{block['id']}"):
+                        success, message = db.admin_unblock_band_mode(block['band'], block['mode'])
+                        if success:
+                            st.success(message)
+                            st.rerun()
+                        else:
+                            st.error(message)
+        else:
+            st.info(t['no_blocks_to_manage'])
+
+    with admin_tab6:
         st.subheader(t['system_statistics'])
         operators = db.get_all_operators()
         blocks = db.get_all_blocks()
@@ -292,6 +319,9 @@ def operator_panel():
             st.rerun()
     with col3:
         if st.button(t['logout']):
+            # Auto-liberate all blocks when logging out
+            if st.session_state.callsign:
+                db.unblock_all_for_operator(st.session_state.callsign)
             st.session_state.logged_in = False
             st.session_state.callsign = None
             st.session_state.operator_name = None
@@ -301,18 +331,20 @@ def operator_panel():
 
     # Main tabs - add admin tab if user is admin
     if st.session_state.is_admin:
-        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        tab1, tab2, tab3, tab_timeline, tab4, tab5 = st.tabs([
             f"📡 {t['tab_block']}",
             f"🔓 {t['tab_unblock']}",
             f"📊 {t['tab_status']}",
+            f"📈 {t['tab_timeline']}",
             f"🔐 {t['admin_panel']}",
             f"⚙️ {t['tab_settings']}"
         ])
     else:
-        tab1, tab2, tab3, tab5 = st.tabs([
+        tab1, tab2, tab3, tab_timeline, tab5 = st.tabs([
             f"📡 {t['tab_block']}",
             f"🔓 {t['tab_unblock']}",
             f"📊 {t['tab_status']}",
+            f"📈 {t['tab_timeline']}",
             f"⚙️ {t['tab_settings']}"
         ])
         tab4 = None
@@ -393,6 +425,65 @@ def operator_panel():
             st.bar_chart(band_counts)
         else:
             st.success(t['no_blocks_active'])
+
+    with tab_timeline:
+        st.header(t['timeline_title'])
+        st.info(t['timeline_info'])
+
+        all_blocks = db.get_all_blocks()
+
+        # Create a matrix view of bands vs modes
+        # Create a dictionary mapping (band, mode) to operator
+        blocks_dict = {(block['band'], block['mode']): block['operator_callsign'] for block in all_blocks}
+
+        # Create data for visualization
+        timeline_data = []
+        for band in BANDS:
+            for mode in MODES:
+                key = (band, mode)
+                if key in blocks_dict:
+                    timeline_data.append({
+                        t['band']: band,
+                        t['mode']: mode,
+                        t['operator']: blocks_dict[key],
+                        'Status': blocks_dict[key]
+                    })
+                else:
+                    timeline_data.append({
+                        t['band']: band,
+                        t['mode']: mode,
+                        t['operator']: t['free'],
+                        'Status': t['free']
+                    })
+
+        # Create DataFrame
+        if timeline_data:
+            df_timeline = pd.DataFrame(timeline_data)
+
+            # Create a pivot table for better visualization
+            pivot_table = df_timeline.pivot_table(
+                index=t['band'],
+                columns=t['mode'],
+                values='Status',
+                aggfunc='first',
+                fill_value=t['free']
+            )
+
+            # Reorder to match BANDS order
+            pivot_table = pivot_table.reindex(BANDS)
+
+            # Display as a styled dataframe
+            st.dataframe(pivot_table, use_container_width=True)
+
+            # Show legend
+            st.subheader("Legend")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write(f"**{t['free']}**: Available for use")
+            with col2:
+                unique_operators = set(block['operator_callsign'] for block in all_blocks)
+                if unique_operators:
+                    st.write("**Active operators**: " + ", ".join(sorted(unique_operators)))
 
     if tab4 and st.session_state.is_admin:
         with tab4:
