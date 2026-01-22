@@ -4,15 +4,14 @@ A Streamlit-based web application for coordinating multiple operators activating
 
 ## Features
 
-- **Secure Authentication**: Password-protected operator accounts with bcrypt encryption
-- **Admin Access Control**: Dedicated admin panel for user management and approval
-- **Operator Registration**: New operators must be approved by an admin before accessing the system
+- **Environment-Based Admin Access**: Admin credentials configured via environment variables
+- **Admin User Management**: Admins create operator accounts and provide credentials
+- **Secure Authentication**: Password-protected accounts with bcrypt encryption
 - **Band/Mode Blocking**: Reserve a band and mode combination while you're active
 - **Real-time Status**: View all currently blocked bands and modes across all operators
 - **Easy Unblocking**: Release your blocks when finished
-- **User Management**: Admins can approve/reject registrations, revoke access, and reset passwords
+- **Password Management**: Users can change their passwords; admins can reset any password
 - **Statistics Dashboard**: Visual representation of band usage and active operators
-- **Password Management**: Users can change their own passwords; admins can reset any password
 - **SQLite Database**: Persistent storage of all coordination data
 - **Dockerized**: Easy deployment using Docker
 
@@ -34,19 +33,28 @@ git clone <repository-url>
 cd award_planner
 ```
 
-2. Build and run with docker-compose:
+2. Create a `.env` file with admin credentials:
+```bash
+cp .env.example .env
+# Edit .env and set your admin credentials
+```
+
+Example `.env` file:
+```
+ADMIN_CALLSIGN=W1ADMIN
+ADMIN_PASSWORD=SecurePassword123
+```
+
+3. Build and run with docker-compose:
 ```bash
 docker-compose up -d
 ```
 
-3. Create the first admin account (run this in the container):
-```bash
-docker-compose exec app python create_admin.py
-```
-
 4. Access the application at `http://localhost:8501`
 
-5. To stop the application:
+5. Login with your admin credentials
+
+6. To stop the application:
 ```bash
 docker-compose down
 ```
@@ -55,7 +63,11 @@ docker-compose down
 
 ```bash
 docker build -t ham-coordinator .
-docker run -p 8501:8501 -v $(pwd)/data:/app/data ham-coordinator
+docker run -p 8501:8501 \
+  -e ADMIN_CALLSIGN=W1ADMIN \
+  -e ADMIN_PASSWORD=SecurePassword123 \
+  -v $(pwd)/data:/app/data \
+  ham-coordinator
 ```
 
 ### Local Installation
@@ -67,9 +79,10 @@ docker run -p 8501:8501 -v $(pwd)/data:/app/data ham-coordinator
 pip install -r requirements.txt
 ```
 
-3. Create the first admin account:
+3. Set environment variables:
 ```bash
-python create_admin.py
+export ADMIN_CALLSIGN=W1ADMIN
+export ADMIN_PASSWORD=SecurePassword123
 ```
 
 4. Run the application:
@@ -81,46 +94,51 @@ streamlit run app.py
 
 ## Usage Guide
 
-### First Time Setup (Admin)
+### Admin Setup
 
-1. Before starting, create an admin account using the setup script:
-   ```bash
-   python create_admin.py
-   ```
-2. Follow the prompts to enter your callsign, name, and password
-3. Start the application and login with your admin credentials
+1. Set admin credentials via environment variables:
+   - `ADMIN_CALLSIGN`: Your admin callsign (e.g., W1ADMIN)
+   - `ADMIN_PASSWORD`: Secure password for admin access
 
-### Operator Registration
+2. Start the application
+3. Login with your admin credentials
 
-1. New operators click "Register New Account" on the login page
-2. Enter callsign, name, and password (minimum 6 characters)
-3. Submit registration - the account will be pending admin approval
-4. Wait for an admin to approve your registration
-5. Once approved, login with your credentials
+### Creating Operators (Admin Only)
+
+1. Login as admin
+2. Navigate to "Admin Panel" > "Create Operator"
+3. Enter the operator's callsign, name, and password
+4. Click "Create Operator"
+5. The system will display the credentials to provide to the operator
+6. Give these credentials to the operator securely
+
+### Operator Login
+
+1. Operators use the credentials provided by the admin
+2. Enter callsign and password on the login page
+3. Click "Login"
 
 ### Admin Functions
 
-Admins have access to an additional "Admin Panel" tab with the following features:
-
-#### Approve/Reject Pending Registrations
-1. Navigate to "Admin Panel" > "Pending Approvals"
-2. Review new operator registrations
-3. Click "✓ Approve" to grant access or "✗ Reject" to deny
+#### Create Operators
+1. Navigate to "Admin Panel" > "Create Operator"
+2. Fill in callsign, name, and password
+3. System displays credentials to give to the operator
 
 #### Manage Operators
 1. Navigate to "Admin Panel" > "Manage Operators"
-2. View all operators in the system with their status
-3. Revoke access for approved operators if needed
+2. View all operators in the system
+3. Delete operators if needed (removes their blocks too)
 
 #### Reset Passwords
 1. Navigate to "Admin Panel" > "Reset Password"
-2. Select the operator whose password needs to be reset
-3. Enter and confirm the new password
-4. The operator can login with the new password immediately
+2. Select the operator
+3. Enter and confirm new password
+4. System displays the new password to give to the operator
 
 #### View System Statistics
 1. Navigate to "Admin Panel" > "System Stats"
-2. View total operators, approvals, and active blocks
+2. View total operators and active blocks
 
 ### Blocking a Band/Mode
 
@@ -146,12 +164,14 @@ Admins have access to an additional "Admin Panel" tab with the following feature
    - Number of bands in use
    - Visual chart of band usage
 
-### Changing Your Password
+### Changing Your Password (Operators Only)
 
 1. Navigate to the "Settings" tab
 2. Enter your current password
 3. Enter and confirm your new password (minimum 6 characters)
 4. Click "Change Password"
+
+Note: Admin password is set via environment variables and cannot be changed in the UI.
 
 ## Data Persistence
 
@@ -163,11 +183,7 @@ The SQLite database is stored in the `data/` directory. When using Docker, this 
 - `callsign` (TEXT, PRIMARY KEY): Operator's callsign
 - `operator_name` (TEXT): Operator's name
 - `password_hash` (TEXT): Bcrypt-hashed password
-- `is_admin` (INTEGER): Admin flag (0 or 1)
-- `is_approved` (INTEGER): Approval status (0 or 1)
-- `approved_by` (TEXT): Callsign of admin who approved this operator
-- `approved_at` (TIMESTAMP): When the operator was approved
-- `created_at` (TIMESTAMP): Registration timestamp
+- `created_at` (TIMESTAMP): Account creation timestamp
 
 ### Band/Mode Blocks Table
 - `id` (INTEGER, PRIMARY KEY): Unique block ID
@@ -179,18 +195,33 @@ The SQLite database is stored in the `data/` directory. When using Docker, this 
 
 ## Security Features
 
-- **Password Hashing**: All passwords are hashed using bcrypt with automatic salt generation
-- **Admin Approval**: New operator registrations require admin approval before access is granted
-- **Access Control**: Non-approved operators cannot login or access the system
+- **Environment-Based Admin**: Admin credentials stored in environment variables, not database
+- **Password Hashing**: All operator passwords hashed using bcrypt with automatic salt generation
+- **Admin-Only User Creation**: Only admins can create operator accounts
 - **Password Requirements**: Minimum 6 characters for all passwords
 - **Session Management**: Secure session handling via Streamlit's built-in session state
+
+## Environment Variables
+
+Required environment variables:
+
+- `ADMIN_CALLSIGN`: Admin callsign (e.g., W1ADMIN)
+- `ADMIN_PASSWORD`: Admin password
+
+Optional environment variables:
+
+- `DATABASE_PATH`: Path to SQLite database file (default: `ham_coordinator.db`)
 
 ## Port Configuration
 
 The application runs on port 8501 by default. To change the port, modify the docker-compose.yml file or use a different port mapping:
 
 ```bash
-docker run -p 8080:8501 -v $(pwd)/data:/app/data ham-coordinator
+docker run -p 8080:8501 \
+  -e ADMIN_CALLSIGN=W1ADMIN \
+  -e ADMIN_PASSWORD=SecurePassword123 \
+  -v $(pwd)/data:/app/data \
+  ham-coordinator
 ```
 
 ## License
