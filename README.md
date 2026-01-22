@@ -4,8 +4,12 @@ A Streamlit-based web application for coordinating multiple operators activating
 
 ## Features
 
-- **Environment-Based Admin Access**: Admin credentials configured via environment variables
+- **Environment-Based Admin Access**: Super admin credentials configured via environment variables
+- **Admin Role Management**: Promote/demote operators to/from admin role
+- **Flexible Admin System**: Support for multiple admins (env-based super admin + database admins)
 - **Admin User Management**: Admins create operator accounts and provide credentials
+- **Multi-Language Support**: Full interface translation in English and Spanish
+- **Language Selector**: Switch between languages on-the-fly
 - **Secure Authentication**: Password-protected accounts with bcrypt encryption
 - **Band/Mode Blocking**: Reserve a band and mode combination while you're active
 - **Real-time Status**: View all currently blocked bands and modes across all operators
@@ -108,9 +112,10 @@ streamlit run app.py
 1. Login as admin
 2. Navigate to "Admin Panel" > "Create Operator"
 3. Enter the operator's callsign, name, and password
-4. Click "Create Operator"
-5. The system will display the credentials to provide to the operator
-6. Give these credentials to the operator securely
+4. (Optional) Check "Grant admin privileges" to create the operator as an admin
+5. Click "Create Operator"
+6. The system will display the credentials to provide to the operator
+7. Give these credentials to the operator securely
 
 ### Operator Login
 
@@ -118,17 +123,31 @@ streamlit run app.py
 2. Enter callsign and password on the login page
 3. Click "Login"
 
+### Language Selection
+
+1. Use the language selector in the top-right corner (login page) or top-middle (operator panel)
+2. Choose between English or Español
+3. The interface will immediately switch to the selected language
+4. Language preference is maintained during your session
+
 ### Admin Functions
 
 #### Create Operators
 1. Navigate to "Admin Panel" > "Create Operator"
 2. Fill in callsign, name, and password
-3. System displays credentials to give to the operator
+3. Check "Grant admin privileges" to create as admin (optional)
+4. System displays credentials to give to the operator
 
 #### Manage Operators
 1. Navigate to "Admin Panel" > "Manage Operators"
-2. View all operators in the system
+2. View all operators in the system with admin status
 3. Delete operators if needed (removes their blocks too)
+
+#### Manage Admin Roles
+1. Navigate to "Admin Panel" > "Manage Admins"
+2. **Promote to Admin**: Select a regular operator and click "Promote to Admin"
+3. **Demote from Admin**: Select an admin operator and click "Demote from Admin"
+4. Note: Env-based super admin cannot be demoted
 
 #### Reset Passwords
 1. Navigate to "Admin Panel" > "Reset Password"
@@ -138,7 +157,7 @@ streamlit run app.py
 
 #### View System Statistics
 1. Navigate to "Admin Panel" > "System Stats"
-2. View total operators and active blocks
+2. View total operators, active operators, active blocks, and total admins
 
 ### Blocking a Band/Mode
 
@@ -183,6 +202,7 @@ The SQLite database is stored in the `data/` directory. When using Docker, this 
 - `callsign` (TEXT, PRIMARY KEY): Operator's callsign
 - `operator_name` (TEXT): Operator's name
 - `password_hash` (TEXT): Bcrypt-hashed password
+- `is_admin` (INTEGER): Admin flag (0 = regular operator, 1 = admin)
 - `created_at` (TIMESTAMP): Account creation timestamp
 
 ### Band/Mode Blocks Table
@@ -195,11 +215,21 @@ The SQLite database is stored in the `data/` directory. When using Docker, this 
 
 ## Security Features
 
-- **Environment-Based Admin**: Admin credentials stored in environment variables, not database
+- **Dual-Level Admin System**:
+  - Super admin via environment variables (cannot be modified or deleted)
+  - Database admins that can be promoted/demoted
 - **Password Hashing**: All operator passwords hashed using bcrypt with automatic salt generation
 - **Admin-Only User Creation**: Only admins can create operator accounts
+- **Admin Role Management**: Promote regular operators to admin or demote admins
 - **Password Requirements**: Minimum 6 characters for all passwords
 - **Session Management**: Secure session handling via Streamlit's built-in session state
+
+## Internationalization
+
+- **Multi-Language Support**: Full interface available in English and Spanish
+- **Easy Language Switching**: Toggle between languages with a single click
+- **Session-Based Language Preference**: Language selection maintained during your session
+- **Extensible**: Architecture supports adding more languages easily
 
 ## Environment Variables
 

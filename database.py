@@ -17,15 +17,22 @@ def init_database():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Create operators table (simplified - no admin/approval fields)
+    # Create operators table with is_admin field
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS operators (
             callsign TEXT PRIMARY KEY,
             operator_name TEXT NOT NULL,
             password_hash TEXT NOT NULL,
+            is_admin INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
+    # Check if is_admin column exists, if not add it (migration)
+    cursor.execute("PRAGMA table_info(operators)")
+    columns = [column[1] for column in cursor.fetchall()]
+    if 'is_admin' not in columns:
+        cursor.execute('ALTER TABLE operators ADD COLUMN is_admin INTEGER DEFAULT 0')
 
     # Create band_mode_blocks table
     cursor.execute('''
@@ -56,7 +63,7 @@ def verify_password(password: str, password_hash: str) -> bool:
         print(f"Error verifying password: {e}")
         return False
 
-def create_operator(callsign: str, operator_name: str, password: str) -> Tuple[bool, str]:
+def create_operator(callsign: str, operator_name: str, password: str, is_admin: bool = False) -> Tuple[bool, str]:
     """Create a new operator account (admin only)."""
     try:
         conn = get_connection()
@@ -64,13 +71,14 @@ def create_operator(callsign: str, operator_name: str, password: str) -> Tuple[b
 
         password_hash = hash_password(password)
         cursor.execute('''
-            INSERT INTO operators (callsign, operator_name, password_hash)
-            VALUES (?, ?, ?)
-        ''', (callsign.upper(), operator_name, password_hash))
+            INSERT INTO operators (callsign, operator_name, password_hash, is_admin)
+            VALUES (?, ?, ?, ?)
+        ''', (callsign.upper(), operator_name, password_hash, 1 if is_admin else 0))
 
         conn.commit()
         conn.close()
-        return True, f"Operator {callsign} created successfully"
+        admin_text = " (admin)" if is_admin else ""
+        return True, f"Operator {callsign} created successfully{admin_text}"
     except sqlite3.IntegrityError:
         return False, "Callsign already exists"
     except Exception as e:
@@ -113,13 +121,63 @@ def get_all_operators() -> List[dict]:
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT callsign, operator_name, created_at
+        SELECT callsign, operator_name, is_admin, created_at
         FROM operators
         ORDER BY created_at DESC
     ''')
     results = cursor.fetchall()
     conn.close()
     return [dict(row) for row in results]
+
+def promote_to_admin(callsign: str) -> Tuple[bool, str]:
+    """Promote an operator to admin."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT callsign, is_admin FROM operators WHERE callsign = ?', (callsign.upper(),))
+        operator = cursor.fetchone()
+
+        if not operator:
+            conn.close()
+            return False, "Operator not found"
+
+        if operator['is_admin']:
+            conn.close()
+            return False, f"{callsign} is already an admin"
+
+        cursor.execute('UPDATE operators SET is_admin = 1 WHERE callsign = ?', (callsign.upper(),))
+        conn.commit()
+        conn.close()
+        return True, f"{callsign} promoted to admin successfully"
+    except Exception as e:
+        print(f"Error promoting operator: {e}")
+        return False, str(e)
+
+def demote_from_admin(callsign: str) -> Tuple[bool, str]:
+    """Demote an operator from admin."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT callsign, is_admin FROM operators WHERE callsign = ?', (callsign.upper(),))
+        operator = cursor.fetchone()
+
+        if not operator:
+            conn.close()
+            return False, "Operator not found"
+
+        if not operator['is_admin']:
+            conn.close()
+            return False, f"{callsign} is not an admin"
+
+        cursor.execute('UPDATE operators SET is_admin = 0 WHERE callsign = ?', (callsign.upper(),))
+        conn.commit()
+        conn.close()
+        return True, f"{callsign} demoted from admin successfully"
+    except Exception as e:
+        print(f"Error demoting operator: {e}")
+        return False, str(e)
 
 def delete_operator(callsign: str) -> Tuple[bool, str]:
     """Delete an operator and their blocks."""
