@@ -4,6 +4,7 @@ from datetime import datetime
 import database as db
 import os
 from translations import get_all_texts, AVAILABLE_LANGUAGES
+from streamlit_autorefresh import st_autorefresh
 
 # Common ham radio bands and modes
 BANDS = ['160m', '80m', '60m', '40m', '30m', '20m', '17m', '15m', '12m', '10m', '6m', '2m', '70cm']
@@ -295,6 +296,9 @@ def admin_panel():
 def operator_panel():
     """Display the operator coordination panel."""
     t = get_all_texts(st.session_state.language)
+
+    # Auto-refresh every 5 seconds to show real-time updates
+    st_autorefresh(interval=5000, key="datarefresh")
 
     st.title(f"🎙️ {t['app_title']}")
     st.subheader(f"{t['welcome']}, {st.session_state.operator_name} ({st.session_state.callsign})")
