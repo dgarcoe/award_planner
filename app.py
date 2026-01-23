@@ -390,35 +390,40 @@ def operator_panel():
     # Award selector
     active_awards = db.get_active_awards()
     if not active_awards:
-        st.error("⚠️ No active awards available. Please contact an administrator to create an award.")
-        st.stop()
+        if st.session_state.is_admin:
+            st.warning("⚠️ No active awards available. Please create or activate an award in the Admin Panel.")
+            st.session_state.current_award_id = None
+        else:
+            st.error("⚠️ No active awards available. Please contact an administrator to create an award.")
+            st.stop()
 
-    # Initialize current_award_id if not set
-    if not st.session_state.current_award_id and active_awards:
-        st.session_state.current_award_id = active_awards[0]['id']
+    if active_awards:
+        # Initialize current_award_id if not set
+        if not st.session_state.current_award_id and active_awards:
+            st.session_state.current_award_id = active_awards[0]['id']
 
-    st.write("---")
-    selected_award = st.selectbox(
-        "🏆 Select Award",
-        options=[award['id'] for award in active_awards],
-        format_func=lambda x: next((a['name'] for a in active_awards if a['id'] == x), ''),
-        index=[award['id'] for award in active_awards].index(st.session_state.current_award_id) if st.session_state.current_award_id in [award['id'] for award in active_awards] else 0,
-        key="award_selector"
-    )
-    if selected_award != st.session_state.current_award_id:
-        st.session_state.current_award_id = selected_award
-        st.rerun()
+        st.write("---")
+        selected_award = st.selectbox(
+            "🏆 Select Award",
+            options=[award['id'] for award in active_awards],
+            format_func=lambda x: next((a['name'] for a in active_awards if a['id'] == x), ''),
+            index=[award['id'] for award in active_awards].index(st.session_state.current_award_id) if st.session_state.current_award_id in [award['id'] for award in active_awards] else 0,
+            key="award_selector"
+        )
+        if selected_award != st.session_state.current_award_id:
+            st.session_state.current_award_id = selected_award
+            st.rerun()
 
-    # Show award details if available
-    current_award = next((a for a in active_awards if a['id'] == st.session_state.current_award_id), None)
-    if current_award and current_award.get('description'):
-        with st.expander("ℹ️ Award Information", expanded=False):
-            st.write(f"**{current_award['name']}**")
-            st.write(current_award['description'])
-            if current_award.get('start_date'):
-                st.write(f"**Start:** {current_award['start_date']}")
-            if current_award.get('end_date'):
-                st.write(f"**End:** {current_award['end_date']}")
+        # Show award details if available
+        current_award = next((a for a in active_awards if a['id'] == st.session_state.current_award_id), None)
+        if current_award and current_award.get('description'):
+            with st.expander("ℹ️ Award Information", expanded=False):
+                st.write(f"**{current_award['name']}**")
+                st.write(current_award['description'])
+                if current_award.get('start_date'):
+                    st.write(f"**Start:** {current_award['start_date']}")
+                if current_award.get('end_date'):
+                    st.write(f"**End:** {current_award['end_date']}")
 
     # Logout and language selector
     col1, col2, col3 = st.columns([4, 1, 1])
@@ -466,144 +471,156 @@ def operator_panel():
 
     with tab1:
         st.header(t['block_band_mode'])
-        st.info(t['block_info'])
 
-        col1, col2 = st.columns(2)
-        with col1:
-            band_to_block = st.selectbox(t['select_band'], BANDS, key="block_band")
-        with col2:
-            mode_to_block = st.selectbox(t['select_mode'], MODES, key="block_mode")
-
-        if st.button(t['block'], type="primary"):
-            success, message = db.block_band_mode(
-                st.session_state.callsign,
-                band_to_block,
-                mode_to_block,
-                st.session_state.current_award_id
-            )
-            if success:
-                st.success(message)
-                st.rerun()
-            else:
-                st.error(message)
-
-        # Show current blocks below
-        st.divider()
-        st.subheader(t['your_current_blocks'])
-
-        my_blocks = db.get_operator_blocks(st.session_state.callsign, st.session_state.current_award_id)
-
-        if my_blocks:
-            for block in my_blocks:
-                col1, col2, col3 = st.columns([2, 2, 1])
-                with col1:
-                    st.write(f"**{block['band']}**")
-                with col2:
-                    st.write(f"**{block['mode']}**")
-                with col3:
-                    if st.button(t['unblock'], key=f"unblock_{block['id']}"):
-                        success, message = db.unblock_band_mode(
-                            st.session_state.callsign,
-                            block['band'],
-                            block['mode'],
-                            st.session_state.current_award_id
-                        )
-                        if success:
-                            st.success(message)
-                            st.rerun()
-                        else:
-                            st.error(message)
+        if not st.session_state.current_award_id:
+            st.warning("⚠️ No active award selected. Please create or activate an award in the Admin Panel.")
         else:
-            st.info(t['no_active_blocks'])
+            st.info(t['block_info'])
+
+            col1, col2 = st.columns(2)
+            with col1:
+                band_to_block = st.selectbox(t['select_band'], BANDS, key="block_band")
+            with col2:
+                mode_to_block = st.selectbox(t['select_mode'], MODES, key="block_mode")
+
+            if st.button(t['block'], type="primary"):
+                success, message = db.block_band_mode(
+                    st.session_state.callsign,
+                    band_to_block,
+                    mode_to_block,
+                    st.session_state.current_award_id
+                )
+                if success:
+                    st.success(message)
+                    st.rerun()
+                else:
+                    st.error(message)
+
+            # Show current blocks below
+            st.divider()
+            st.subheader(t['your_current_blocks'])
+
+            my_blocks = db.get_operator_blocks(st.session_state.callsign, st.session_state.current_award_id)
+
+            if my_blocks:
+                for block in my_blocks:
+                    col1, col2, col3 = st.columns([2, 2, 1])
+                    with col1:
+                        st.write(f"**{block['band']}**")
+                    with col2:
+                        st.write(f"**{block['mode']}**")
+                    with col3:
+                        if st.button(t['unblock'], key=f"unblock_{block['id']}"):
+                            success, message = db.unblock_band_mode(
+                                st.session_state.callsign,
+                                block['band'],
+                                block['mode'],
+                                st.session_state.current_award_id
+                            )
+                            if success:
+                                st.success(message)
+                                st.rerun()
+                            else:
+                                st.error(message)
+            else:
+                st.info(t['no_active_blocks'])
 
     with tab3:
         st.header(t['current_status'])
-        st.info(t['status_info'])
 
-        all_blocks = db.get_all_blocks(st.session_state.current_award_id)
-
-        if all_blocks:
-            df = pd.DataFrame(all_blocks)
-            df = df[['band', 'mode', 'operator_callsign', 'operator_name', 'blocked_at']]
-            df.columns = [t['band'], t['mode'], t['callsign'], t['operator'], t['blocked_at']]
-
-            st.dataframe(df, use_container_width=True, hide_index=True)
-
-            st.subheader(t['summary'])
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric(t['total_blocks'], len(all_blocks))
-            with col2:
-                unique_operators = df[t['callsign']].nunique()
-                st.metric(t['active_operators'], unique_operators)
-            with col3:
-                unique_bands = df[t['band']].nunique()
-                st.metric(t['bands_in_use'], unique_bands)
-
-            st.subheader(t['blocks_by_band'])
-            band_counts = df[t['band']].value_counts()
-            st.bar_chart(band_counts)
+        if not st.session_state.current_award_id:
+            st.warning("⚠️ No active award selected. Please create or activate an award in the Admin Panel.")
         else:
-            st.success(t['no_blocks_active'])
+            st.info(t['status_info'])
+
+            all_blocks = db.get_all_blocks(st.session_state.current_award_id)
+
+            if all_blocks:
+                df = pd.DataFrame(all_blocks)
+                df = df[['band', 'mode', 'operator_callsign', 'operator_name', 'blocked_at']]
+                df.columns = [t['band'], t['mode'], t['callsign'], t['operator'], t['blocked_at']]
+
+                st.dataframe(df, use_container_width=True, hide_index=True)
+
+                st.subheader(t['summary'])
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric(t['total_blocks'], len(all_blocks))
+                with col2:
+                    unique_operators = df[t['callsign']].nunique()
+                    st.metric(t['active_operators'], unique_operators)
+                with col3:
+                    unique_bands = df[t['band']].nunique()
+                    st.metric(t['bands_in_use'], unique_bands)
+
+                st.subheader(t['blocks_by_band'])
+                band_counts = df[t['band']].value_counts()
+                st.bar_chart(band_counts)
+            else:
+                st.success(t['no_blocks_active'])
 
     with tab_timeline:
         st.header(t['timeline_title'])
-        st.info(t['timeline_info'])
 
-        all_blocks = db.get_all_blocks(st.session_state.current_award_id)
+        if not st.session_state.current_award_id:
+            st.warning("⚠️ No active award selected. Please create or activate an award in the Admin Panel.")
+        else:
+            st.info(t['timeline_info'])
 
-        # Create a matrix view of bands vs modes
-        # Create a dictionary mapping (band, mode) to operator
-        blocks_dict = {(block['band'], block['mode']): block['operator_callsign'] for block in all_blocks}
+            all_blocks = db.get_all_blocks(st.session_state.current_award_id)
 
-        # Create data for visualization
-        timeline_data = []
-        for band in BANDS:
-            for mode in MODES:
-                key = (band, mode)
-                if key in blocks_dict:
-                    timeline_data.append({
-                        t['band']: band,
-                        t['mode']: mode,
-                        t['operator']: blocks_dict[key],
-                        'Status': blocks_dict[key]
-                    })
-                else:
-                    timeline_data.append({
-                        t['band']: band,
-                        t['mode']: mode,
-                        t['operator']: t['free'],
-                        'Status': t['free']
-                    })
+            # Create a matrix view of bands vs modes
+            # Create a dictionary mapping (band, mode) to operator
+            blocks_dict = {(block['band'], block['mode']): block['operator_callsign'] for block in all_blocks}
 
-        # Create DataFrame
-        if timeline_data:
-            df_timeline = pd.DataFrame(timeline_data)
+            # Create data for visualization
+            timeline_data = []
+            for band in BANDS:
+                for mode in MODES:
+                    key = (band, mode)
+                    if key in blocks_dict:
+                        timeline_data.append({
+                            t['band']: band,
+                            t['mode']: mode,
+                            t['operator']: blocks_dict[key],
+                            'Status': blocks_dict[key]
+                        })
+                    else:
+                        timeline_data.append({
+                            t['band']: band,
+                            t['mode']: mode,
+                            t['operator']: t['free'],
+                            'Status': t['free']
+                        })
 
-            # Create a pivot table for better visualization
-            pivot_table = df_timeline.pivot_table(
-                index=t['band'],
-                columns=t['mode'],
-                values='Status',
-                aggfunc='first',
-                fill_value=t['free']
-            )
+            # Create DataFrame
+            if timeline_data:
+                df_timeline = pd.DataFrame(timeline_data)
 
-            # Reorder to match BANDS order
-            pivot_table = pivot_table.reindex(BANDS)
+                # Create a pivot table for better visualization
+                pivot_table = df_timeline.pivot_table(
+                    index=t['band'],
+                    columns=t['mode'],
+                    values='Status',
+                    aggfunc='first',
+                    fill_value=t['free']
+                )
 
-            # Display as a styled dataframe
-            st.dataframe(pivot_table, use_container_width=True)
+                # Reorder to match BANDS order
+                pivot_table = pivot_table.reindex(BANDS)
 
-            # Show legend
-            st.subheader("Legend")
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write(f"**{t['free']}**: Available for use")
-            with col2:
-                unique_operators = set(block['operator_callsign'] for block in all_blocks)
-                if unique_operators:
-                    st.write("**Active operators**: " + ", ".join(sorted(unique_operators)))
+                # Display as a styled dataframe
+                st.dataframe(pivot_table, use_container_width=True)
+
+                # Show legend
+                st.subheader("Legend")
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write(f"**{t['free']}**: Available for use")
+                with col2:
+                    unique_operators = set(block['operator_callsign'] for block in all_blocks)
+                    if unique_operators:
+                        st.write("**Active operators**: " + ", ".join(sorted(unique_operators)))
 
     if tab4 and st.session_state.is_admin:
         with tab4:
