@@ -456,14 +456,14 @@ def operator_panel():
     if st.session_state.is_admin:
         tab1, tab_timeline, tab4, tab5 = st.tabs([
             f"📡 {t['tab_block']}",
-            f"🔥 {t['tab_activity_dashboard']}",
+            f"📊 {t['tab_activity_dashboard']}",
             f"🔐 {t['admin_panel']}",
             f"⚙️ {t['tab_settings']}"
         ])
     else:
         tab1, tab_timeline, tab5 = st.tabs([
             f"📡 {t['tab_block']}",
-            f"🔥 {t['tab_activity_dashboard']}",
+            f"📊 {t['tab_activity_dashboard']}",
             f"⚙️ {t['tab_settings']}"
         ])
         tab4 = None
@@ -525,7 +525,7 @@ def operator_panel():
                 st.info(t['no_active_blocks'])
 
     with tab_timeline:
-        st.header(f"🔥 {t['activity_dashboard']}")
+        st.header(f"📊 {t['activity_dashboard']}")
 
         if not st.session_state.current_award_id:
             st.warning(f"⚠️ {t['error_no_award_selected']}")
@@ -575,7 +575,7 @@ def operator_panel():
                 hovertemplate='%{hovertext}<extra></extra>',
                 hovertext=hover_values,
                 texttemplate='%{text}',
-                textfont={"size": 12, "color": "white"},
+                textfont={"size": 12, "color": "black"},
                 colorscale=[
                     [0, '#90EE90'],  # Green for FREE
                     [1, '#FF6B6B']   # Red for BLOCKED
