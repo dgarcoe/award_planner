@@ -6,7 +6,7 @@ Supports multiple languages for all UI text
 TRANSLATIONS = {
     'en': {
         # General
-        'app_title': 'QuendAward: Ham Radio Award Operator Coordination Tool',
+        'app_title': 'QuendAward: Ham Radio Award Operator Coordination',
         'welcome': 'Welcome',
         'admin': 'Administrator',
         'admin_privileges': 'Admin privileges active',
@@ -191,7 +191,7 @@ TRANSLATIONS = {
     },
     'es': {
         # General
-        'app_title': 'QuendAward: Herramienta de Coordinación de Operadores para Premios de Radio Aficionados',
+        'app_title': 'QuendAward: Coordinación de Operadores para Premios de Radio Aficionados',
         'welcome': 'Bienvenido',
         'admin': 'Administrador',
         'admin_privileges': 'Privilegios de administrador activos',
@@ -376,7 +376,7 @@ TRANSLATIONS = {
     },
     'gl': {
         # General
-        'app_title': 'QuendAward: Ferramenta de Coordinación de Operadores para Premios de Radio Aficionados',
+        'app_title': 'QuendAward: Coordinación de Operadores para Premios de Radio Afeccionados',
         'welcome': 'Benvido',
         'admin': 'Administrador',
         'admin_privileges': 'Privilexios de administrador activos',
