@@ -398,28 +398,27 @@ def operator_panel():
         st.session_state.current_award_id = active_awards[0]['id']
 
     st.write("---")
-    award_col1, award_col2 = st.columns([3, 1])
-    with award_col1:
-        selected_award = st.selectbox(
-            "🏆 Select Award",
-            options=[award['id'] for award in active_awards],
-            format_func=lambda x: next((a['name'] for a in active_awards if a['id'] == x), ''),
-            index=[award['id'] for award in active_awards].index(st.session_state.current_award_id) if st.session_state.current_award_id in [award['id'] for award in active_awards] else 0,
-            key="award_selector"
-        )
-        if selected_award != st.session_state.current_award_id:
-            st.session_state.current_award_id = selected_award
-            st.rerun()
-    with award_col2:
-        current_award = next((a for a in active_awards if a['id'] == st.session_state.current_award_id), None)
-        if current_award and current_award.get('description'):
-            with st.popover("ℹ️ Info"):
-                st.write(f"**{current_award['name']}**")
-                st.write(current_award['description'])
-                if current_award.get('start_date'):
-                    st.write(f"**Start:** {current_award['start_date']}")
-                if current_award.get('end_date'):
-                    st.write(f"**End:** {current_award['end_date']}")
+    selected_award = st.selectbox(
+        "🏆 Select Award",
+        options=[award['id'] for award in active_awards],
+        format_func=lambda x: next((a['name'] for a in active_awards if a['id'] == x), ''),
+        index=[award['id'] for award in active_awards].index(st.session_state.current_award_id) if st.session_state.current_award_id in [award['id'] for award in active_awards] else 0,
+        key="award_selector"
+    )
+    if selected_award != st.session_state.current_award_id:
+        st.session_state.current_award_id = selected_award
+        st.rerun()
+
+    # Show award details if available
+    current_award = next((a for a in active_awards if a['id'] == st.session_state.current_award_id), None)
+    if current_award and current_award.get('description'):
+        with st.expander("ℹ️ Award Information", expanded=False):
+            st.write(f"**{current_award['name']}**")
+            st.write(current_award['description'])
+            if current_award.get('start_date'):
+                st.write(f"**Start:** {current_award['start_date']}")
+            if current_award.get('end_date'):
+                st.write(f"**End:** {current_award['end_date']}")
 
     # Logout and language selector
     col1, col2, col3 = st.columns([4, 1, 1])
