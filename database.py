@@ -85,29 +85,6 @@ def create_operator(callsign: str, operator_name: str, password: str, is_admin: 
         print(f"Error creating operator: {e}")
         return False, str(e)
 
-def ensure_operator_exists(callsign: str, operator_name: str, password: str, is_admin: bool = True) -> None:
-    """Ensure an operator exists in the database (for env-based admin)."""
-    try:
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        # Check if operator exists
-        cursor.execute('SELECT callsign FROM operators WHERE callsign = ?', (callsign.upper(),))
-        existing = cursor.fetchone()
-
-        if not existing:
-            # Create the operator
-            password_hash = hash_password(password)
-            cursor.execute('''
-                INSERT INTO operators (callsign, operator_name, password_hash, is_admin)
-                VALUES (?, ?, ?, ?)
-            ''', (callsign.upper(), operator_name, password_hash, 1 if is_admin else 0))
-            conn.commit()
-
-        conn.close()
-    except Exception as e:
-        print(f"Error ensuring operator exists: {e}")
-
 def authenticate_operator(callsign: str, password: str) -> Tuple[bool, str, Optional[dict]]:
     """Authenticate an operator."""
     try:

@@ -13,10 +13,7 @@ A Streamlit-based web application for coordinating multiple operators activating
 - **One Block Per Operator**: Operators can only have one active block at a time (auto-releases previous)
 - **Auto-Release on Logout**: All blocks automatically released when operator logs out
 - **Admin Block Management**: Admins can release any operator's blocks
-- **Timeline Visualization**: Interactive colored graph showing all band/mode combinations with color-coded operators
-- **Auto-Refresh Views**: Real-time updates for status and timeline tabs (5-second intervals)
-- **Session Persistence**: Stay logged in across page refreshes without re-entering credentials
-- **Success Notifications**: Clear visual feedback when blocking or unblocking bands
+- **Timeline Visualization**: Graphic matrix view showing all band/mode combinations and their status
 - **Secure Authentication**: Password-protected accounts with bcrypt encryption
 - **Band/Mode Blocking**: Reserve a band and mode combination while you're active
 - **Real-time Status**: View all currently blocked bands and modes across all operators
@@ -180,8 +177,7 @@ streamlit run app.py
 2. Select the band you want to use
 3. Select the mode you want to use
 4. Click "Block"
-5. A success message will appear at the top of the page confirming the block
-6. If you had a previous block, the message will indicate which one was auto-released
+5. The system will confirm if the block was successful or if it's already in use
 
 ### Unblocking a Band/Mode
 
@@ -193,8 +189,7 @@ streamlit run app.py
 
 1. Navigate to the "Current Status" tab
 2. View all active blocks across all operators
-3. Enable "Auto-refresh" checkbox for real-time updates (refreshes every 5 seconds)
-4. See summary statistics including:
+3. See summary statistics including:
    - Total number of blocks
    - Number of active operators
    - Number of bands in use
@@ -203,14 +198,10 @@ streamlit run app.py
 ### Timeline Visualization
 
 1. Navigate to the "Timeline" tab
-2. View an interactive colored graph showing all band/mode combinations
-3. Each cell is color-coded:
-   - Light green: Available (free)
-   - Different colors: Assigned to specific operators (see legend)
-4. Bands are displayed horizontally across the graph
-5. Hover over cells to see details (band, mode, operator)
-6. Enable "Auto-refresh" checkbox for real-time updates (refreshes every 5 seconds)
-7. Provides a quick visual overview of the entire spectrum usage
+2. View a matrix showing all band/mode combinations
+3. See which operator is using each combination
+4. "Free" indicates available band/mode combinations
+5. Provides a quick overview of the entire spectrum usage
 
 ### Logging Out
 
@@ -255,8 +246,7 @@ The SQLite database is stored in the `data/` directory. When using Docker, this 
 - **Admin-Only User Creation**: Only admins can create operator accounts
 - **Admin Role Management**: Promote regular operators to admin or demote admins
 - **Password Requirements**: Minimum 6 characters for all passwords
-- **Session Management**: Secure session handling with persistence across page refreshes
-- **Session Persistence**: Login sessions survive page refreshes using secure session tokens
+- **Session Management**: Secure session handling via Streamlit's built-in session state
 
 ## Internationalization
 
