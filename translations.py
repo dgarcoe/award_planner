@@ -131,6 +131,12 @@ TRANSLATIONS = {
         'language': 'Language',
         'select_language': 'Select Language',
 
+        # Theme
+        'theme_settings': 'Theme Settings',
+        'select_theme': 'Select Theme',
+        'theme_light': 'Light',
+        'theme_dark': 'Dark',
+
         # Admin Block Management
         'tab_manage_blocks': 'Manage Blocks',
         'manage_all_blocks': 'Manage All Blocks',
@@ -271,6 +277,12 @@ TRANSLATIONS = {
         'language': 'Idioma',
         'select_language': 'Seleccionar Idioma',
 
+        # Theme
+        'theme_settings': 'Configuración de Tema',
+        'select_theme': 'Seleccionar Tema',
+        'theme_light': 'Claro',
+        'theme_dark': 'Oscuro',
+
         # Admin Block Management
         'tab_manage_blocks': 'Gestionar Bloqueos',
         'manage_all_blocks': 'Gestionar Todos los Bloqueos',
@@ -410,6 +422,12 @@ TRANSLATIONS = {
         # Language
         'language': 'Idioma',
         'select_language': 'Seleccionar Idioma',
+
+        # Theme
+        'theme_settings': 'Configuración de Tema',
+        'select_theme': 'Seleccionar Tema',
+        'theme_light': 'Claro',
+        'theme_dark': 'Escuro',
 
         # Admin Block Management
         'tab_manage_blocks': 'Xestionar Bloqueos',
