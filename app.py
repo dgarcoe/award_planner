@@ -5,6 +5,7 @@ import database as db
 import os
 from translations import get_all_texts, AVAILABLE_LANGUAGES
 from streamlit_autorefresh import st_autorefresh
+import plotly.graph_objects as go
 
 # Common ham radio bands and modes
 BANDS = ['160m', '80m', '60m', '40m', '30m', '20m', '17m', '15m', '12m', '10m', '6m', '2m', '70cm']
@@ -531,17 +532,15 @@ def operator_panel():
 
     # Main tabs - add admin tab if user is admin
     if st.session_state.is_admin:
-        tab1, tab3, tab_timeline, tab4, tab5 = st.tabs([
+        tab1, tab_timeline, tab4, tab5 = st.tabs([
             f"📡 {t['tab_block']}",
-            f"📊 {t['tab_status']}",
             "🔥 Activity Dashboard",
             f"🔐 {t['admin_panel']}",
             f"⚙️ {t['tab_settings']}"
         ])
     else:
-        tab1, tab3, tab_timeline, tab5 = st.tabs([
+        tab1, tab_timeline, tab5 = st.tabs([
             f"📡 {t['tab_block']}",
-            f"📊 {t['tab_status']}",
             "🔥 Activity Dashboard",
             f"⚙️ {t['tab_settings']}"
         ])
@@ -603,97 +602,100 @@ def operator_panel():
             else:
                 st.info(t['no_active_blocks'])
 
-    with tab3:
-        st.header(t['current_status'])
-
-        if not st.session_state.current_award_id:
-            st.warning("⚠️ No active award selected. Please create or activate an award in the Admin Panel.")
-        else:
-            st.info(t['status_info'])
-
-            all_blocks = db.get_all_blocks(st.session_state.current_award_id)
-
-            if all_blocks:
-                df = pd.DataFrame(all_blocks)
-                df = df[['band', 'mode', 'operator_callsign', 'operator_name', 'blocked_at']]
-                df.columns = [t['band'], t['mode'], t['callsign'], t['operator'], t['blocked_at']]
-
-                st.dataframe(df, use_container_width=True, hide_index=True)
-
-                st.subheader(t['summary'])
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric(t['total_blocks'], len(all_blocks))
-                with col2:
-                    unique_operators = df[t['callsign']].nunique()
-                    st.metric(t['active_operators'], unique_operators)
-                with col3:
-                    unique_bands = df[t['band']].nunique()
-                    st.metric(t['bands_in_use'], unique_bands)
-
-                st.subheader(t['blocks_by_band'])
-                band_counts = df[t['band']].value_counts()
-                st.bar_chart(band_counts)
-            else:
-                st.success(t['no_blocks_active'])
-
     with tab_timeline:
         st.header("🔥 Activity Dashboard")
 
         if not st.session_state.current_award_id:
             st.warning("⚠️ No active award selected. Please create or activate an award in the Admin Panel.")
         else:
-            st.info("Real-time heatmap showing band/mode availability. 🟢 Green = Available, 🔴 Red = Blocked")
+            st.info("Real-time heatmap showing band/mode availability. Hover over cells for details.")
 
             all_blocks = db.get_all_blocks(st.session_state.current_award_id)
 
-            # Create a matrix view of bands vs modes
-            # Create a dictionary mapping (band, mode) to operator
+            # Create dictionaries for operator and date information
             blocks_dict = {(block['band'], block['mode']): block['operator_callsign'] for block in all_blocks}
+            date_dict = {(block['band'], block['mode']): block['blocked_at'] for block in all_blocks}
+            name_dict = {(block['band'], block['mode']): block['operator_name'] for block in all_blocks}
 
-            # Create pivot table with bands as rows and modes as columns
-            pivot_data = {}
+            # Build matrices for heatmap
+            z_values = []  # For color coding (0 = free, 1 = blocked)
+            text_values = []  # For display text
+            hover_values = []  # For hover information
+
             for band in BANDS:
-                pivot_data[band] = {}
+                z_row = []
+                text_row = []
+                hover_row = []
                 for mode in MODES:
                     key = (band, mode)
                     if key in blocks_dict:
-                        pivot_data[band][mode] = blocks_dict[key]
+                        z_row.append(1)  # Blocked
+                        text_row.append(blocks_dict[key])
+                        hover_text = f"<b>{band} / {mode}</b><br>"
+                        hover_text += f"Operator: {name_dict[key]} ({blocks_dict[key]})<br>"
+                        hover_text += f"Blocked: {date_dict[key]}"
+                        hover_row.append(hover_text)
                     else:
-                        pivot_data[band][mode] = "FREE"
+                        z_row.append(0)  # Free
+                        text_row.append("FREE")
+                        hover_row.append(f"<b>{band} / {mode}</b><br>Status: Available")
 
-            # Create DataFrame from the pivot data
-            df_heatmap = pd.DataFrame.from_dict(pivot_data, orient='index')
-            df_heatmap = df_heatmap[MODES]  # Ensure column order matches MODES
+                z_values.append(z_row)
+                text_values.append(text_row)
+                hover_values.append(hover_row)
 
-            # Style function for the heatmap
-            def style_heatmap(val):
-                if val == "FREE":
-                    return 'background-color: #90EE90; color: black; font-weight: bold'  # Light green
-                else:
-                    return 'background-color: #FF6B6B; color: white; font-weight: bold'  # Light red
+            # Create Plotly heatmap
+            fig = go.Figure(data=go.Heatmap(
+                z=z_values,
+                x=MODES,
+                y=BANDS,
+                text=text_values,
+                hovertemplate='%{hovertext}<extra></extra>',
+                hovertext=hover_values,
+                texttemplate='%{text}',
+                textfont={"size": 12, "color": "white"},
+                colorscale=[
+                    [0, '#90EE90'],  # Green for FREE
+                    [1, '#FF6B6B']   # Red for BLOCKED
+                ],
+                showscale=False,
+                xgap=2,
+                ygap=2
+            ))
 
-            # Apply styling
-            styled_df = df_heatmap.style.applymap(style_heatmap)
+            # Update layout
+            fig.update_layout(
+                title="Band/Mode Availability Matrix",
+                xaxis_title="Mode",
+                yaxis_title="Band",
+                height=600,
+                margin=dict(l=80, r=20, t=60, b=60),
+                font=dict(size=12),
+                plot_bgcolor='white',
+                xaxis=dict(side='top')
+            )
 
             # Display the heatmap
-            st.dataframe(styled_df, use_container_width=True, height=600)
+            st.plotly_chart(fig, use_container_width=True)
 
-            # Show legend and active operators
+            # Show summary statistics
             st.divider()
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
             with col1:
-                st.markdown("**Legend:**")
-                st.markdown("🟢 **FREE** = Available for use")
-                st.markdown("🔴 **Callsign** = Blocked by operator")
+                st.metric("Total Blocks", len(all_blocks))
             with col2:
                 unique_operators = set(block['operator_callsign'] for block in all_blocks)
-                if unique_operators:
-                    st.markdown("**Active Operators:**")
-                    st.write(", ".join(sorted(unique_operators)))
-                else:
-                    st.markdown("**Active Operators:**")
-                    st.write("None")
+                st.metric("Active Operators", len(unique_operators))
+            with col3:
+                unique_bands = set(block['band'] for block in all_blocks)
+                st.metric("Bands in Use", len(unique_bands))
+
+            # Blocks by band chart
+            if all_blocks:
+                st.subheader("Blocks by Band")
+                df = pd.DataFrame(all_blocks)
+                band_counts = df['band'].value_counts().reindex(BANDS, fill_value=0)
+                st.bar_chart(band_counts)
 
     if tab4 and st.session_state.is_admin:
         with tab4:
