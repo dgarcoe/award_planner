@@ -1,31 +1,27 @@
-# QuendAward: Ham Radio Award Operator Coordination Tool
+# Ham Radio Award Coordinator
 
-A Streamlit-based web application for coordinating multiple operators activating the same callsign in ham radio awards. This tool helps teams avoid conflicts by allowing operators to block and unblock band/mode combinations, manage multiple awards, and visualize real-time activity.
+A Streamlit-based web application for coordinating multiple operators activating the same callsign in a ham radio award. This tool helps teams avoid conflicts by allowing operators to block and unblock band/mode combinations.
 
 ## Features
 
-- **Award Management**: Create and manage multiple awards with start/end dates and descriptions
-- **Award Selection**: Operators can select which award they want to work on
-- **Activity Dashboard**: Real-time heatmap showing band/mode availability with interactive visualizations
 - **Environment-Based Admin Access**: Super admin credentials configured via environment variables
 - **Admin Role Management**: Promote/demote operators to/from admin role
 - **Flexible Admin System**: Support for multiple admins (env-based super admin + database admins)
 - **Admin User Management**: Admins create operator accounts and provide credentials
-- **Multi-Language Support**: Full interface translation in English, Spanish, and Galician (default)
+- **Multi-Language Support**: Full interface translation in English, Spanish, and Galician
 - **Language Selector**: Switch between languages on-the-fly
 - **One Block Per Operator**: Operators can only have one active block at a time (auto-releases previous)
 - **Auto-Release on Logout**: All blocks automatically released when operator logs out
 - **Admin Block Management**: Admins can release any operator's blocks
-- **Timeline Visualization**: Interactive heatmap showing all band/mode combinations and their status
-- **Statistics Dashboard**: Visual charts and metrics for band usage and operator activity
+- **Timeline Visualization**: Graphic matrix view showing all band/mode combinations and their status
 - **Secure Authentication**: Password-protected accounts with bcrypt encryption
 - **Band/Mode Blocking**: Reserve a band and mode combination while you're active
 - **Real-time Status**: View all currently blocked bands and modes across all operators
 - **Easy Unblocking**: Release your blocks when finished
 - **Password Management**: Users can change their passwords; admins can reset any password
+- **Statistics Dashboard**: Visual representation of band usage and active operators
 - **SQLite Database**: Persistent storage of all coordination data
 - **Dockerized**: Easy deployment using Docker
-- **Clean Code Architecture**: Modular design with separated concerns for easy maintenance
 
 ## Supported Bands
 
@@ -33,31 +29,7 @@ A Streamlit-based web application for coordinating multiple operators activating
 
 ## Supported Modes
 
-CW, SSB, FT4, FT8, RTTY, PSK
-
-## Code Architecture
-
-The application follows clean code principles with a modular architecture:
-
-```
-award_planner/
-├── app.py                 # Main application entry point (289 lines)
-├── config.py              # Configuration constants (22 lines)
-├── charts.py              # Chart creation functions (117 lines)
-├── ui_components.py       # Reusable UI components (172 lines)
-├── admin_functions.py     # Admin panel functions (287 lines)
-├── database.py            # Database operations
-├── translations.py        # Multi-language translations
-└── data/                  # SQLite database storage
-```
-
-### Module Responsibilities
-
-- **config.py**: Constants (bands, modes, colors, credentials)
-- **charts.py**: Plotly chart generation (heatmap, bar charts)
-- **ui_components.py**: Reusable UI components (selectors, dashboards)
-- **admin_functions.py**: Admin panel tab implementations
-- **app.py**: Application orchestration and page routing
+SSB, CW, FM, RTTY, FT8, FT4, PSK31, SSTV, AM
 
 ## Installation & Usage
 
@@ -88,7 +60,7 @@ docker-compose up -d
 
 4. Access the application at `http://localhost:8501`
 
-5. Login with your admin credentials (interface will be in Galician by default)
+5. Login with your admin credentials
 
 6. To stop the application:
 ```bash
@@ -98,12 +70,12 @@ docker-compose down
 ### Using Docker manually
 
 ```bash
-docker build -t quendaward .
+docker build -t ham-coordinator .
 docker run -p 8501:8501 \
   -e ADMIN_CALLSIGN=W1ADMIN \
   -e ADMIN_PASSWORD=SecurePassword123 \
   -v $(pwd)/data:/app/data \
-  quendaward
+  ham-coordinator
 ```
 
 ### Local Installation
@@ -137,16 +109,7 @@ streamlit run app.py
    - `ADMIN_PASSWORD`: Secure password for admin access
 
 2. Start the application
-3. Login with your admin credentials (default language is Galician)
-
-### Creating Awards (Admin Only)
-
-1. Login as admin
-2. Navigate to "Admin Panel" > "Manage Awards"
-3. Enter award name, description, start date, and end date
-4. Click "Create Award"
-5. Toggle award status (Active/Inactive) as needed
-6. Only active awards are visible to operators
+3. Login with your admin credentials
 
 ### Creating Operators (Admin Only)
 
@@ -163,7 +126,6 @@ streamlit run app.py
 1. Operators use the credentials provided by the admin
 2. Enter callsign and password on the login page
 3. Click "Login"
-4. Select the award you want to work on
 
 ### Language Selection
 
@@ -171,7 +133,6 @@ streamlit run app.py
 2. Choose between English, Español, or Galego
 3. The interface will immediately switch to the selected language
 4. Language preference is maintained during your session
-5. Default language is Galician (Galego)
 
 ### Admin Functions
 
@@ -200,17 +161,9 @@ streamlit run app.py
 
 #### Manage All Blocks (Admin)
 1. Navigate to "Admin Panel" > "Manage Blocks"
-2. Filter blocks by award
-3. View all active blocks with operator information
-4. Click "Unblock" next to any block to release it
-5. Useful for resolving stuck blocks or helping operators who forgot to unblock
-
-#### Manage Awards (Admin)
-1. Navigate to "Admin Panel" > "Manage Awards"
-2. Create new awards with name, description, and date range
-3. Toggle award status (Active/Inactive)
-4. Delete awards if needed
-5. Only active awards are visible to operators
+2. View all active blocks with operator information
+3. Click "Unblock" next to any block to release it
+4. Useful for resolving stuck blocks or helping operators who forgot to unblock
 
 #### View System Statistics
 1. Navigate to "Admin Panel" > "System Stats"
@@ -221,34 +174,34 @@ streamlit run app.py
 **Important**: Each operator can only have one active block at a time. If you block a new band/mode while already having a block, your previous block will automatically be released.
 
 1. Navigate to the "Block Band/Mode" tab
-2. Select the award you want to work on
-3. Select the band you want to use
-4. Select the mode you want to use
-5. Click "Block"
-6. The system will confirm if the block was successful or if it's already in use
+2. Select the band you want to use
+3. Select the mode you want to use
+4. Click "Block"
+5. The system will confirm if the block was successful or if it's already in use
 
 ### Unblocking a Band/Mode
 
-1. Navigate to the "Block Band/Mode" tab
-2. You'll see a list of your active blocks below the blocking section
+1. Navigate to the "Unblock Band/Mode" tab
+2. You'll see a list of your active blocks
 3. Click "Unblock" next to the band/mode you want to release
 
-### Activity Dashboard
+### Viewing Current Status
 
-1. Navigate to the "Activity Dashboard" tab (📊)
-2. View the interactive heatmap showing:
-   - **Green cells**: Available band/mode combinations (shows "Libre"/"Free")
-   - **Red cells**: Blocked band/mode combinations (shows operator callsign)
-3. Hover over cells to see detailed information:
-   - Band and mode
-   - Operator name and callsign (if blocked)
-   - Time when block was created
-4. View summary statistics:
+1. Navigate to the "Current Status" tab
+2. View all active blocks across all operators
+3. See summary statistics including:
    - Total number of blocks
    - Number of active operators
    - Number of bands in use
-5. View the "Blocks by Band" chart showing distribution across bands
-6. Dashboard auto-refreshes every 5 seconds for real-time updates
+   - Visual chart of band usage
+
+### Timeline Visualization
+
+1. Navigate to the "Timeline" tab
+2. View a matrix showing all band/mode combinations
+3. See which operator is using each combination
+4. "Free" indicates available band/mode combinations
+5. Provides a quick overview of the entire spectrum usage
 
 ### Logging Out
 
@@ -261,7 +214,7 @@ When you click the "Logout" button, the system automatically releases all your a
 3. Enter and confirm your new password (minimum 6 characters)
 4. Click "Change Password"
 
-Note: Env-based admin password is set via environment variables and cannot be changed in the UI.
+Note: Admin password is set via environment variables and cannot be changed in the UI.
 
 ## Data Persistence
 
@@ -282,17 +235,7 @@ The SQLite database is stored in the `data/` directory. When using Docker, this 
 - `band` (TEXT): Ham radio band (e.g., "20m")
 - `mode` (TEXT): Operating mode (e.g., "SSB")
 - `blocked_at` (TIMESTAMP): When the block was created
-- `award_id` (INTEGER): Foreign key to awards table
-- `UNIQUE(band, mode, award_id)`: Ensures only one operator can block each band/mode combination per award
-
-### Awards Table
-- `id` (INTEGER, PRIMARY KEY): Unique award ID
-- `name` (TEXT): Award name
-- `description` (TEXT): Award description
-- `start_date` (TEXT): Award start date
-- `end_date` (TEXT): Award end date
-- `is_active` (INTEGER): Active flag (0 = inactive, 1 = active)
-- `created_at` (TIMESTAMP): Award creation timestamp
+- `UNIQUE(band, mode)`: Ensures only one operator can block each band/mode combination
 
 ## Security Features
 
@@ -304,16 +247,13 @@ The SQLite database is stored in the `data/` directory. When using Docker, this 
 - **Admin Role Management**: Promote regular operators to admin or demote admins
 - **Password Requirements**: Minimum 6 characters for all passwords
 - **Session Management**: Secure session handling via Streamlit's built-in session state
-- **Award Isolation**: Blocks are isolated per award to prevent conflicts
 
 ## Internationalization
 
 - **Multi-Language Support**: Full interface available in English, Spanish, and Galician
-- **Default Language**: Galician (Galego) 🎯
-- **Languages Available**: 🇬🇧 English, 🇪🇸 Español, 🇬🇱 Galego
+- **Languages**: 🇬🇧 English, 🇪🇸 Español, and Galego
 - **Easy Language Switching**: Toggle between languages with a single click
 - **Session-Based Language Preference**: Language selection maintained during your session
-- **Fully Translated**: All UI elements, menus, messages, and labels are translated
 - **Extensible**: Architecture supports adding more languages easily
 
 ## Environment Variables
@@ -336,25 +276,7 @@ docker run -p 8080:8501 \
   -e ADMIN_CALLSIGN=W1ADMIN \
   -e ADMIN_PASSWORD=SecurePassword123 \
   -v $(pwd)/data:/app/data \
-  quendaward
-```
-
-## Development
-
-### Code Organization
-
-The codebase follows clean code principles:
-
-- **Separation of Concerns**: Each module has a single responsibility
-- **DRY Principle**: Reusable components reduce code duplication
-- **Modularity**: Easy to test and maintain individual components
-- **Clear Naming**: Descriptive function and variable names
-- **Documentation**: Docstrings for all major functions
-
-### Running Tests
-
-```bash
-python -m pytest
+  ham-coordinator
 ```
 
 ## License
