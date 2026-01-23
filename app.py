@@ -331,18 +331,16 @@ def operator_panel():
 
     # Main tabs - add admin tab if user is admin
     if st.session_state.is_admin:
-        tab1, tab2, tab3, tab_timeline, tab4, tab5 = st.tabs([
+        tab1, tab3, tab_timeline, tab4, tab5 = st.tabs([
             f"📡 {t['tab_block']}",
-            f"🔓 {t['tab_unblock']}",
             f"📊 {t['tab_status']}",
             f"📈 {t['tab_timeline']}",
             f"🔐 {t['admin_panel']}",
             f"⚙️ {t['tab_settings']}"
         ])
     else:
-        tab1, tab2, tab3, tab_timeline, tab5 = st.tabs([
+        tab1, tab3, tab_timeline, tab5 = st.tabs([
             f"📡 {t['tab_block']}",
-            f"🔓 {t['tab_unblock']}",
             f"📊 {t['tab_status']}",
             f"📈 {t['tab_timeline']}",
             f"⚙️ {t['tab_settings']}"
@@ -367,14 +365,13 @@ def operator_panel():
             else:
                 st.error(message)
 
-    with tab2:
-        st.header(t['unblock_band_mode'])
-        st.info(t['unblock_info'])
+        # Show current blocks below
+        st.divider()
+        st.subheader(t['your_current_blocks'])
 
         my_blocks = db.get_operator_blocks(st.session_state.callsign)
 
         if my_blocks:
-            st.write(f"**{t['your_current_blocks']}**")
             for block in my_blocks:
                 col1, col2, col3 = st.columns([2, 2, 1])
                 with col1:
