@@ -456,7 +456,7 @@ def operator_panel():
         tab1, tab3, tab_timeline, tab4, tab5 = st.tabs([
             f"📡 {t['tab_block']}",
             f"📊 {t['tab_status']}",
-            f"📈 {t['tab_timeline']}",
+            "🔥 Activity Dashboard",
             f"🔐 {t['admin_panel']}",
             f"⚙️ {t['tab_settings']}"
         ])
@@ -464,7 +464,7 @@ def operator_panel():
         tab1, tab3, tab_timeline, tab5 = st.tabs([
             f"📡 {t['tab_block']}",
             f"📊 {t['tab_status']}",
-            f"📈 {t['tab_timeline']}",
+            "🔥 Activity Dashboard",
             f"⚙️ {t['tab_settings']}"
         ])
         tab4 = None
@@ -560,12 +560,12 @@ def operator_panel():
                 st.success(t['no_blocks_active'])
 
     with tab_timeline:
-        st.header(t['timeline_title'])
+        st.header("🔥 Activity Dashboard")
 
         if not st.session_state.current_award_id:
             st.warning("⚠️ No active award selected. Please create or activate an award in the Admin Panel.")
         else:
-            st.info(t['timeline_info'])
+            st.info("Real-time heatmap showing band/mode availability. 🟢 Green = Available, 🔴 Red = Blocked")
 
             all_blocks = db.get_all_blocks(st.session_state.current_award_id)
 
@@ -573,54 +573,49 @@ def operator_panel():
             # Create a dictionary mapping (band, mode) to operator
             blocks_dict = {(block['band'], block['mode']): block['operator_callsign'] for block in all_blocks}
 
-            # Create data for visualization
-            timeline_data = []
+            # Create pivot table with bands as rows and modes as columns
+            pivot_data = {}
             for band in BANDS:
+                pivot_data[band] = {}
                 for mode in MODES:
                     key = (band, mode)
                     if key in blocks_dict:
-                        timeline_data.append({
-                            t['band']: band,
-                            t['mode']: mode,
-                            t['operator']: blocks_dict[key],
-                            'Status': blocks_dict[key]
-                        })
+                        pivot_data[band][mode] = blocks_dict[key]
                     else:
-                        timeline_data.append({
-                            t['band']: band,
-                            t['mode']: mode,
-                            t['operator']: t['free'],
-                            'Status': t['free']
-                        })
+                        pivot_data[band][mode] = "FREE"
 
-            # Create DataFrame
-            if timeline_data:
-                df_timeline = pd.DataFrame(timeline_data)
+            # Create DataFrame from the pivot data
+            df_heatmap = pd.DataFrame.from_dict(pivot_data, orient='index')
+            df_heatmap = df_heatmap[MODES]  # Ensure column order matches MODES
 
-                # Create a pivot table for better visualization
-                pivot_table = df_timeline.pivot_table(
-                    index=t['band'],
-                    columns=t['mode'],
-                    values='Status',
-                    aggfunc='first',
-                    fill_value=t['free']
-                )
+            # Style function for the heatmap
+            def style_heatmap(val):
+                if val == "FREE":
+                    return 'background-color: #90EE90; color: black; font-weight: bold'  # Light green
+                else:
+                    return 'background-color: #FF6B6B; color: white; font-weight: bold'  # Light red
 
-                # Reorder to match BANDS order
-                pivot_table = pivot_table.reindex(BANDS)
+            # Apply styling
+            styled_df = df_heatmap.style.applymap(style_heatmap)
 
-                # Display as a styled dataframe
-                st.dataframe(pivot_table, use_container_width=True)
+            # Display the heatmap
+            st.dataframe(styled_df, use_container_width=True, height=600)
 
-                # Show legend
-                st.subheader("Legend")
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.write(f"**{t['free']}**: Available for use")
-                with col2:
-                    unique_operators = set(block['operator_callsign'] for block in all_blocks)
-                    if unique_operators:
-                        st.write("**Active operators**: " + ", ".join(sorted(unique_operators)))
+            # Show legend and active operators
+            st.divider()
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("**Legend:**")
+                st.markdown("🟢 **FREE** = Available for use")
+                st.markdown("🔴 **Callsign** = Blocked by operator")
+            with col2:
+                unique_operators = set(block['operator_callsign'] for block in all_blocks)
+                if unique_operators:
+                    st.markdown("**Active Operators:**")
+                    st.write(", ".join(sorted(unique_operators)))
+                else:
+                    st.markdown("**Active Operators:**")
+                    st.write("None")
 
     if tab4 and st.session_state.is_admin:
         with tab4:
