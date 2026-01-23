@@ -31,6 +31,8 @@ def init_session_state():
         st.session_state.language = 'en'
     if 'current_award_id' not in st.session_state:
         st.session_state.current_award_id = None
+    if 'theme' not in st.session_state:
+        st.session_state.theme = 'light'
 
 def authenticate_admin(callsign: str, password: str) -> bool:
     """Check if credentials match admin environment variables."""
@@ -38,8 +40,55 @@ def authenticate_admin(callsign: str, password: str) -> bool:
         return False
     return callsign.upper() == ADMIN_CALLSIGN and password == ADMIN_PASSWORD
 
+def apply_theme():
+    """Apply the selected theme using CSS injection."""
+    theme = st.session_state.get('theme', 'light')
+
+    if theme == 'dark':
+        # Dark theme CSS
+        st.markdown("""
+        <style>
+            :root {
+                --background-color: #0e1117;
+                --secondary-background-color: #262730;
+                --text-color: #fafafa;
+            }
+            .stApp {
+                background-color: #0e1117;
+                color: #fafafa;
+            }
+            .stTextInput input, .stSelectbox select, .stTextArea textarea {
+                background-color: #262730;
+                color: #fafafa;
+            }
+            .stButton button {
+                background-color: #262730;
+                color: #fafafa;
+            }
+            .stDataFrame {
+                background-color: #262730;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+    else:
+        # Light theme CSS (default)
+        st.markdown("""
+        <style>
+            :root {
+                --background-color: #ffffff;
+                --secondary-background-color: #f0f2f6;
+                --text-color: #31333f;
+            }
+            .stApp {
+                background-color: #ffffff;
+                color: #31333f;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+
 def login_page():
     """Display the login page."""
+    apply_theme()
     t = get_all_texts(st.session_state.language)
 
     st.title(f"🎙️ {t['app_title']}")
@@ -376,6 +425,7 @@ def admin_panel():
 
 def operator_panel():
     """Display the operator coordination panel."""
+    apply_theme()
     t = get_all_texts(st.session_state.language)
 
     # Auto-refresh every 5 seconds to show real-time updates
@@ -656,6 +706,27 @@ def operator_panel():
                             st.success(message)
                         else:
                             st.error(message)
+
+        # Theme selector
+        st.divider()
+        st.subheader(t['theme_settings'])
+
+        theme_options = {
+            'light': t['theme_light'],
+            'dark': t['theme_dark']
+        }
+
+        selected_theme = st.selectbox(
+            t['select_theme'],
+            options=list(theme_options.keys()),
+            format_func=lambda x: theme_options[x],
+            index=list(theme_options.keys()).index(st.session_state.theme),
+            key="theme_selector"
+        )
+
+        if selected_theme != st.session_state.theme:
+            st.session_state.theme = selected_theme
+            st.rerun()
 
 def main():
     """Main application entry point."""
