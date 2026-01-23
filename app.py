@@ -619,8 +619,21 @@ def operator_panel():
                 df = pd.DataFrame(all_blocks)
                 band_counts = df['band'].value_counts()
                 # Ensure bands are ordered according to BANDS list
-                ordered_counts = pd.Series([band_counts.get(band, 0) for band in BANDS], index=BANDS)
-                st.bar_chart(ordered_counts)
+                ordered_counts = [band_counts.get(band, 0) for band in BANDS]
+
+                # Create Plotly bar chart with fixed order
+                fig_bar = go.Figure(data=[
+                    go.Bar(x=BANDS, y=ordered_counts)
+                ])
+                fig_bar.update_layout(
+                    xaxis_title=t['band_label'],
+                    yaxis_title=t['total_blocks_label'],
+                    height=400,
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(type='category')
+                )
+                st.plotly_chart(fig_bar, use_container_width=True)
 
     if tab4 and st.session_state.is_admin:
         with tab4:
