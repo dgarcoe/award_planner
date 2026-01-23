@@ -31,12 +31,67 @@ def init_session_state():
         st.session_state.language = 'en'
     if 'current_award_id' not in st.session_state:
         st.session_state.current_award_id = None
+    if 'theme' not in st.session_state:
+        st.session_state.theme = 'light'
 
 def authenticate_admin(callsign: str, password: str) -> bool:
     """Check if credentials match admin environment variables."""
     if not ADMIN_CALLSIGN or not ADMIN_PASSWORD:
         return False
     return callsign.upper() == ADMIN_CALLSIGN and password == ADMIN_PASSWORD
+
+def apply_theme():
+    """Apply custom CSS for theme based on session state."""
+    if st.session_state.theme == 'dark':
+        st.markdown("""
+        <style>
+        /* Dark theme */
+        .stApp {
+            background-color: #0e1117;
+            color: #fafafa;
+        }
+        .stMarkdown, .stText {
+            color: #fafafa !important;
+        }
+        .stDataFrame, .stTable {
+            background-color: #262730;
+        }
+        div[data-testid="stMetricValue"] {
+            color: #fafafa;
+        }
+        .stButton>button {
+            background-color: #262730;
+            color: #fafafa;
+            border: 1px solid #404040;
+        }
+        .stButton>button:hover {
+            background-color: #404040;
+            border-color: #606060;
+        }
+        .stSelectbox, .stTextInput, .stTextArea {
+            background-color: #262730;
+            color: #fafafa;
+        }
+        div[data-baseweb="select"] > div {
+            background-color: #262730;
+            color: #fafafa;
+        }
+        .stAlert {
+            background-color: #262730;
+            color: #fafafa;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <style>
+        /* Light theme (default) */
+        .stApp {
+            background-color: #ffffff;
+            color: #31333F;
+        }
+        </style>
+        """, unsafe_allow_html=True)
 
 def login_page():
     """Display the login page."""
@@ -45,8 +100,8 @@ def login_page():
     st.title(f"🎙️ {t['app_title']}")
     st.subheader(t['operator_login'])
 
-    # Language selector
-    col1, col2 = st.columns([4, 1])
+    # Language and theme selectors
+    col1, col2, col3 = st.columns([3, 1, 1])
     with col2:
         lang = st.selectbox(
             t['language'],
@@ -57,6 +112,17 @@ def login_page():
         )
         if lang != st.session_state.language:
             st.session_state.language = lang
+            st.rerun()
+    with col3:
+        theme = st.selectbox(
+            t['theme'],
+            options=['light', 'dark'],
+            format_func=lambda x: t['light_theme'] if x == 'light' else t['dark_theme'],
+            index=0 if st.session_state.theme == 'light' else 1,
+            key="theme_selector_login"
+        )
+        if theme != st.session_state.theme:
+            st.session_state.theme = theme
             st.rerun()
 
     with st.form("login_form"):
@@ -426,8 +492,8 @@ def operator_panel():
                 if current_award.get('end_date'):
                     st.write(f"**End:** {current_award['end_date']}")
 
-    # Logout and language selector
-    col1, col2, col3 = st.columns([4, 1, 1])
+    # Logout, language and theme selectors
+    col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
     with col2:
         lang = st.selectbox(
             t['language'],
@@ -441,6 +507,18 @@ def operator_panel():
             st.session_state.language = lang
             st.rerun()
     with col3:
+        theme = st.selectbox(
+            t['theme'],
+            options=['light', 'dark'],
+            format_func=lambda x: t['light_theme'] if x == 'light' else t['dark_theme'],
+            index=0 if st.session_state.theme == 'light' else 1,
+            key="theme_selector_panel",
+            label_visibility="collapsed"
+        )
+        if theme != st.session_state.theme:
+            st.session_state.theme = theme
+            st.rerun()
+    with col4:
         if st.button(t['logout']):
             # Auto-liberate all blocks when logging out
             if st.session_state.callsign:
@@ -660,13 +738,16 @@ def operator_panel():
 def main():
     """Main application entry point."""
     st.set_page_config(
-        page_title="Ham Radio Award Coordinator",
+        page_title="Quendaward",
         page_icon="🎙️",
         layout="wide"
     )
 
     # Initialize session state
     init_session_state()
+
+    # Apply theme
+    apply_theme()
 
     # Check if admin credentials are configured
     if not ADMIN_CALLSIGN or not ADMIN_PASSWORD:
