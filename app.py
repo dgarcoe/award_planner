@@ -28,6 +28,8 @@ def init_session_state():
         st.session_state.is_env_admin = False
     if 'language' not in st.session_state:
         st.session_state.language = 'en'
+    if 'current_award_id' not in st.session_state:
+        st.session_state.current_award_id = None
 
 def authenticate_admin(callsign: str, password: str) -> bool:
     """Check if credentials match admin environment variables."""
@@ -93,13 +95,14 @@ def admin_panel():
     t = get_all_texts(st.session_state.language)
     st.header(f"🔐 {t['admin_panel']}")
 
-    admin_tab1, admin_tab2, admin_tab3, admin_tab4, admin_tab5, admin_tab6 = st.tabs([
+    admin_tab1, admin_tab2, admin_tab3, admin_tab4, admin_tab5, admin_tab6, admin_tab7 = st.tabs([
         t['tab_create_operator'],
         t['tab_manage_operators'],
         t['tab_manage_admins'],
         t['tab_reset_password'],
         t['tab_manage_blocks'],
-        t['tab_system_stats']
+        t['tab_system_stats'],
+        "🏆 Manage Awards"
     ])
 
     with admin_tab1:
@@ -254,7 +257,19 @@ def admin_panel():
         st.subheader(t['manage_all_blocks'])
         st.info(t['manage_blocks_info'])
 
-        all_blocks = db.get_all_blocks()
+        # Award filter for admin
+        all_awards_admin = db.get_all_awards()
+        if all_awards_admin:
+            selected_admin_award = st.selectbox(
+                "Filter by Award",
+                options=[award['id'] for award in all_awards_admin],
+                format_func=lambda x: next((a['name'] for a in all_awards_admin if a['id'] == x), ''),
+                key="admin_award_filter"
+            )
+            all_blocks = db.get_all_blocks(selected_admin_award)
+        else:
+            all_blocks = []
+            st.warning("No awards exist yet")
 
         if all_blocks:
             for block in all_blocks:
@@ -267,7 +282,7 @@ def admin_panel():
                     st.write(f"{block['operator_name']} ({block['operator_callsign']})")
                 with col4:
                     if st.button(t['unblock_selected'], key=f"admin_unblock_{block['id']}"):
-                        success, message = db.admin_unblock_band_mode(block['band'], block['mode'])
+                        success, message = db.admin_unblock_band_mode(block['band'], block['mode'], block['award_id'])
                         if success:
                             st.success(message)
                             st.rerun()
@@ -293,6 +308,71 @@ def admin_panel():
             total_admins = len([op for op in operators if op['is_admin']])
             st.metric(t['total_admins'], total_admins)
 
+    with admin_tab7:
+        st.subheader("🏆 Award Management")
+        st.info("Create and manage awards. Operators can select which award they want to work on.")
+
+        # Create new award
+        st.subheader("Create New Award")
+        with st.form("create_award_form"):
+            award_name = st.text_input("Award Name", max_chars=100, key="new_award_name")
+            award_description = st.text_area("Description", max_chars=500, key="new_award_desc")
+            col1, col2 = st.columns(2)
+            with col1:
+                start_date = st.date_input("Start Date", key="new_award_start")
+            with col2:
+                end_date = st.date_input("End Date", key="new_award_end")
+
+            submit = st.form_submit_button("Create Award", type="primary")
+
+            if submit:
+                if not award_name:
+                    st.error("Award name is required")
+                else:
+                    start_str = start_date.strftime("%Y-%m-%d") if start_date else ""
+                    end_str = end_date.strftime("%Y-%m-%d") if end_date else ""
+                    success, message = db.create_award(award_name, award_description, start_str, end_str)
+                    if success:
+                        st.success(message)
+                        st.rerun()
+                    else:
+                        st.error(message)
+
+        st.divider()
+
+        # List and manage existing awards
+        st.subheader("Existing Awards")
+        awards = db.get_all_awards()
+
+        if awards:
+            for award in awards:
+                with st.expander(f"{'✅' if award['is_active'] else '❌'} {award['name']}", expanded=False):
+                    st.write(f"**Description:** {award['description'] or 'No description'}")
+                    st.write(f"**Start Date:** {award['start_date'] or 'Not set'}")
+                    st.write(f"**End Date:** {award['end_date'] or 'Not set'}")
+                    st.write(f"**Status:** {'Active' if award['is_active'] else 'Inactive'}")
+                    st.write(f"**Created:** {award['created_at']}")
+
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("Toggle Status", key=f"toggle_award_{award['id']}"):
+                            success, message = db.toggle_award_status(award['id'])
+                            if success:
+                                st.success(message)
+                                st.rerun()
+                            else:
+                                st.error(message)
+                    with col2:
+                        if st.button("Delete Award", key=f"delete_award_{award['id']}", type="secondary"):
+                            success, message = db.delete_award(award['id'])
+                            if success:
+                                st.success(message)
+                                st.rerun()
+                            else:
+                                st.error(message)
+        else:
+            st.info("No awards created yet")
+
 def operator_panel():
     """Display the operator coordination panel."""
     t = get_all_texts(st.session_state.language)
@@ -306,6 +386,40 @@ def operator_panel():
     # Show admin indicator if admin
     if st.session_state.is_admin:
         st.info(f"🔑 {t['admin_privileges']}")
+
+    # Award selector
+    active_awards = db.get_active_awards()
+    if not active_awards:
+        st.error("⚠️ No active awards available. Please contact an administrator to create an award.")
+        st.stop()
+
+    # Initialize current_award_id if not set
+    if not st.session_state.current_award_id and active_awards:
+        st.session_state.current_award_id = active_awards[0]['id']
+
+    st.write("---")
+    award_col1, award_col2 = st.columns([3, 1])
+    with award_col1:
+        selected_award = st.selectbox(
+            "🏆 Select Award",
+            options=[award['id'] for award in active_awards],
+            format_func=lambda x: next((a['name'] for a in active_awards if a['id'] == x), ''),
+            index=[award['id'] for award in active_awards].index(st.session_state.current_award_id) if st.session_state.current_award_id in [award['id'] for award in active_awards] else 0,
+            key="award_selector"
+        )
+        if selected_award != st.session_state.current_award_id:
+            st.session_state.current_award_id = selected_award
+            st.rerun()
+    with award_col2:
+        current_award = next((a for a in active_awards if a['id'] == st.session_state.current_award_id), None)
+        if current_award and current_award.get('description'):
+            with st.popover("ℹ️ Info"):
+                st.write(f"**{current_award['name']}**")
+                st.write(current_award['description'])
+                if current_award.get('start_date'):
+                    st.write(f"**Start:** {current_award['start_date']}")
+                if current_award.get('end_date'):
+                    st.write(f"**End:** {current_award['end_date']}")
 
     # Logout and language selector
     col1, col2, col3 = st.columns([4, 1, 1])
@@ -362,7 +476,12 @@ def operator_panel():
             mode_to_block = st.selectbox(t['select_mode'], MODES, key="block_mode")
 
         if st.button(t['block'], type="primary"):
-            success, message = db.block_band_mode(st.session_state.callsign, band_to_block, mode_to_block)
+            success, message = db.block_band_mode(
+                st.session_state.callsign,
+                band_to_block,
+                mode_to_block,
+                st.session_state.current_award_id
+            )
             if success:
                 st.success(message)
                 st.rerun()
@@ -373,7 +492,7 @@ def operator_panel():
         st.divider()
         st.subheader(t['your_current_blocks'])
 
-        my_blocks = db.get_operator_blocks(st.session_state.callsign)
+        my_blocks = db.get_operator_blocks(st.session_state.callsign, st.session_state.current_award_id)
 
         if my_blocks:
             for block in my_blocks:
@@ -387,7 +506,8 @@ def operator_panel():
                         success, message = db.unblock_band_mode(
                             st.session_state.callsign,
                             block['band'],
-                            block['mode']
+                            block['mode'],
+                            st.session_state.current_award_id
                         )
                         if success:
                             st.success(message)
@@ -401,7 +521,7 @@ def operator_panel():
         st.header(t['current_status'])
         st.info(t['status_info'])
 
-        all_blocks = db.get_all_blocks()
+        all_blocks = db.get_all_blocks(st.session_state.current_award_id)
 
         if all_blocks:
             df = pd.DataFrame(all_blocks)
@@ -431,7 +551,7 @@ def operator_panel():
         st.header(t['timeline_title'])
         st.info(t['timeline_info'])
 
-        all_blocks = db.get_all_blocks()
+        all_blocks = db.get_all_blocks(st.session_state.current_award_id)
 
         # Create a matrix view of bands vs modes
         # Create a dictionary mapping (band, mode) to operator
