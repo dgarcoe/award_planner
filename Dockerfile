@@ -8,6 +8,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
 COPY app.py .
+COPY config.py .
+COPY charts.py .
+COPY ui_components.py .
+COPY admin_functions.py .
 COPY database.py .
 COPY translations.py .
 
