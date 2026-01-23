@@ -34,18 +34,80 @@ def init_database():
     if 'is_admin' not in columns:
         cursor.execute('ALTER TABLE operators ADD COLUMN is_admin INTEGER DEFAULT 0')
 
+    # Create awards table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS awards (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT,
+            start_date TEXT,
+            end_date TEXT,
+            is_active INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     # Create band_mode_blocks table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS band_mode_blocks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             operator_callsign TEXT NOT NULL,
+            award_id INTEGER NOT NULL,
             band TEXT NOT NULL,
             mode TEXT NOT NULL,
             blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (operator_callsign) REFERENCES operators (callsign),
-            UNIQUE(band, mode)
+            FOREIGN KEY (award_id) REFERENCES awards (id),
+            UNIQUE(award_id, band, mode)
         )
     ''')
+
+    # Migration: Check if award_id column exists in band_mode_blocks
+    cursor.execute("PRAGMA table_info(band_mode_blocks)")
+    columns = [column[1] for column in cursor.fetchall()]
+    if 'award_id' not in columns:
+        # Need to recreate table since SQLite doesn't support modifying constraints
+        # First, check if there's a default award
+        cursor.execute('SELECT id FROM awards WHERE name = ?', ('Default Award',))
+        default_award = cursor.fetchone()
+
+        if not default_award:
+            # Create default award
+            cursor.execute('''
+                INSERT INTO awards (name, description, is_active)
+                VALUES (?, ?, 1)
+            ''', ('Default Award', 'Auto-created award for existing blocks'))
+            default_award_id = cursor.lastrowid
+        else:
+            default_award_id = default_award[0]
+
+        # Backup existing blocks
+        cursor.execute('SELECT * FROM band_mode_blocks')
+        existing_blocks = cursor.fetchall()
+
+        # Drop and recreate table with new schema
+        cursor.execute('DROP TABLE band_mode_blocks')
+        cursor.execute('''
+            CREATE TABLE band_mode_blocks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                operator_callsign TEXT NOT NULL,
+                award_id INTEGER NOT NULL,
+                band TEXT NOT NULL,
+                mode TEXT NOT NULL,
+                blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (operator_callsign) REFERENCES operators (callsign),
+                FOREIGN KEY (award_id) REFERENCES awards (id),
+                UNIQUE(award_id, band, mode)
+            )
+        ''')
+
+        # Restore blocks with default award_id
+        for block in existing_blocks:
+            cursor.execute('''
+                INSERT INTO band_mode_blocks (id, operator_callsign, award_id, band, mode, blocked_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (block['id'], block['operator_callsign'], default_award_id,
+                  block['band'], block['mode'], block['blocked_at']))
 
     conn.commit()
     conn.close()
@@ -259,42 +321,42 @@ def admin_reset_password(callsign: str, new_password: str) -> Tuple[bool, str]:
         print(f"Error resetting password: {e}")
         return False, str(e)
 
-def block_band_mode(operator_callsign: str, band: str, mode: str) -> Tuple[bool, str]:
-    """Block a band/mode combination for an operator. One block per operator."""
+def block_band_mode(operator_callsign: str, band: str, mode: str, award_id: int) -> Tuple[bool, str]:
+    """Block a band/mode combination for an operator within an award. One block per operator per award."""
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
-        # Check if this band/mode is already blocked by someone else
+        # Check if this band/mode is already blocked by someone else in this award
         cursor.execute('''
             SELECT operator_callsign FROM band_mode_blocks
-            WHERE band = ? AND mode = ?
-        ''', (band, mode))
+            WHERE band = ? AND mode = ? AND award_id = ?
+        ''', (band, mode, award_id))
         existing = cursor.fetchone()
 
         if existing:
             conn.close()
             return False, f"Band {band} / Mode {mode} is already blocked by {existing['operator_callsign']}"
 
-        # Check if operator already has a block (one block per operator rule)
+        # Check if operator already has a block in this award (one block per operator per award rule)
         cursor.execute('''
             SELECT band, mode FROM band_mode_blocks
-            WHERE operator_callsign = ?
-        ''', (operator_callsign.upper(),))
+            WHERE operator_callsign = ? AND award_id = ?
+        ''', (operator_callsign.upper(), award_id))
         existing_block = cursor.fetchone()
 
         if existing_block:
             # Auto-unblock the previous block
             cursor.execute('''
                 DELETE FROM band_mode_blocks
-                WHERE operator_callsign = ?
-            ''', (operator_callsign.upper(),))
+                WHERE operator_callsign = ? AND award_id = ?
+            ''', (operator_callsign.upper(), award_id))
 
         # Block the new band/mode
         cursor.execute('''
-            INSERT INTO band_mode_blocks (operator_callsign, band, mode)
-            VALUES (?, ?, ?)
-        ''', (operator_callsign.upper(), band, mode))
+            INSERT INTO band_mode_blocks (operator_callsign, award_id, band, mode)
+            VALUES (?, ?, ?, ?)
+        ''', (operator_callsign.upper(), award_id, band, mode))
 
         conn.commit()
         conn.close()
@@ -306,17 +368,17 @@ def block_band_mode(operator_callsign: str, band: str, mode: str) -> Tuple[bool,
         print(f"Error blocking band/mode: {e}")
         return False, str(e)
 
-def unblock_band_mode(operator_callsign: str, band: str, mode: str) -> Tuple[bool, str]:
-    """Unblock a band/mode combination."""
+def unblock_band_mode(operator_callsign: str, band: str, mode: str, award_id: int) -> Tuple[bool, str]:
+    """Unblock a band/mode combination for a specific award."""
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
-        # Check if blocked by this operator
+        # Check if blocked by this operator in this award
         cursor.execute('''
             SELECT operator_callsign FROM band_mode_blocks
-            WHERE band = ? AND mode = ?
-        ''', (band, mode))
+            WHERE band = ? AND mode = ? AND award_id = ?
+        ''', (band, mode, award_id))
         existing = cursor.fetchone()
 
         if not existing:
@@ -330,8 +392,8 @@ def unblock_band_mode(operator_callsign: str, band: str, mode: str) -> Tuple[boo
         # Unblock the band/mode
         cursor.execute('''
             DELETE FROM band_mode_blocks
-            WHERE band = ? AND mode = ? AND operator_callsign = ?
-        ''', (band, mode, operator_callsign.upper()))
+            WHERE band = ? AND mode = ? AND operator_callsign = ? AND award_id = ?
+        ''', (band, mode, operator_callsign.upper(), award_id))
 
         conn.commit()
         conn.close()
@@ -340,28 +402,40 @@ def unblock_band_mode(operator_callsign: str, band: str, mode: str) -> Tuple[boo
         print(f"Error unblocking band/mode: {e}")
         return False, str(e)
 
-def unblock_all_for_operator(operator_callsign: str) -> Tuple[bool, str, int]:
-    """Unblock all band/mode combinations for an operator."""
+def unblock_all_for_operator(operator_callsign: str, award_id: Optional[int] = None) -> Tuple[bool, str, int]:
+    """Unblock all band/mode combinations for an operator, optionally for a specific award."""
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
         # Get count of blocks before deleting
-        cursor.execute('''
-            SELECT COUNT(*) as count FROM band_mode_blocks
-            WHERE operator_callsign = ?
-        ''', (operator_callsign.upper(),))
+        if award_id:
+            cursor.execute('''
+                SELECT COUNT(*) as count FROM band_mode_blocks
+                WHERE operator_callsign = ? AND award_id = ?
+            ''', (operator_callsign.upper(), award_id))
+        else:
+            cursor.execute('''
+                SELECT COUNT(*) as count FROM band_mode_blocks
+                WHERE operator_callsign = ?
+            ''', (operator_callsign.upper(),))
         count = cursor.fetchone()['count']
 
         if count == 0:
             conn.close()
             return True, "No blocks to release", 0
 
-        # Delete all blocks for this operator
-        cursor.execute('''
-            DELETE FROM band_mode_blocks
-            WHERE operator_callsign = ?
-        ''', (operator_callsign.upper(),))
+        # Delete blocks for this operator
+        if award_id:
+            cursor.execute('''
+                DELETE FROM band_mode_blocks
+                WHERE operator_callsign = ? AND award_id = ?
+            ''', (operator_callsign.upper(), award_id))
+        else:
+            cursor.execute('''
+                DELETE FROM band_mode_blocks
+                WHERE operator_callsign = ?
+            ''', (operator_callsign.upper(),))
 
         conn.commit()
         conn.close()
@@ -370,8 +444,8 @@ def unblock_all_for_operator(operator_callsign: str) -> Tuple[bool, str, int]:
         print(f"Error unblocking all: {e}")
         return False, str(e), 0
 
-def admin_unblock_band_mode(band: str, mode: str) -> Tuple[bool, str]:
-    """Admin unblock any band/mode combination."""
+def admin_unblock_band_mode(band: str, mode: str, award_id: int) -> Tuple[bool, str]:
+    """Admin unblock any band/mode combination for a specific award."""
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -379,8 +453,8 @@ def admin_unblock_band_mode(band: str, mode: str) -> Tuple[bool, str]:
         # Check if blocked
         cursor.execute('''
             SELECT operator_callsign FROM band_mode_blocks
-            WHERE band = ? AND mode = ?
-        ''', (band, mode))
+            WHERE band = ? AND mode = ? AND award_id = ?
+        ''', (band, mode, award_id))
         existing = cursor.fetchone()
 
         if not existing:
@@ -390,8 +464,8 @@ def admin_unblock_band_mode(band: str, mode: str) -> Tuple[bool, str]:
         # Unblock the band/mode
         cursor.execute('''
             DELETE FROM band_mode_blocks
-            WHERE band = ? AND mode = ?
-        ''', (band, mode))
+            WHERE band = ? AND mode = ? AND award_id = ?
+        ''', (band, mode, award_id))
 
         conn.commit()
         conn.close()
@@ -400,29 +474,177 @@ def admin_unblock_band_mode(band: str, mode: str) -> Tuple[bool, str]:
         print(f"Error admin unblocking band/mode: {e}")
         return False, str(e)
 
-def get_all_blocks() -> List[dict]:
-    """Get all current band/mode blocks."""
+def get_all_blocks(award_id: Optional[int] = None) -> List[dict]:
+    """Get all current band/mode blocks, optionally filtered by award."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    if award_id:
+        cursor.execute('''
+            SELECT b.*, o.operator_name
+            FROM band_mode_blocks b
+            JOIN operators o ON b.operator_callsign = o.callsign
+            WHERE b.award_id = ?
+            ORDER BY b.band, b.mode
+        ''', (award_id,))
+    else:
+        cursor.execute('''
+            SELECT b.*, o.operator_name
+            FROM band_mode_blocks b
+            JOIN operators o ON b.operator_callsign = o.callsign
+            ORDER BY b.band, b.mode
+        ''')
+    results = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in results]
+
+def get_operator_blocks(operator_callsign: str, award_id: Optional[int] = None) -> List[dict]:
+    """Get all blocks for a specific operator, optionally filtered by award."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    if award_id:
+        cursor.execute('''
+            SELECT * FROM band_mode_blocks
+            WHERE operator_callsign = ? AND award_id = ?
+            ORDER BY band, mode
+        ''', (operator_callsign.upper(), award_id))
+    else:
+        cursor.execute('''
+            SELECT * FROM band_mode_blocks
+            WHERE operator_callsign = ?
+            ORDER BY band, mode
+        ''', (operator_callsign.upper(),))
+    results = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in results]
+
+# Award Management Functions
+
+def create_award(name: str, description: str = "", start_date: str = "", end_date: str = "") -> Tuple[bool, str]:
+    """Create a new award."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            INSERT INTO awards (name, description, start_date, end_date)
+            VALUES (?, ?, ?, ?)
+        ''', (name, description, start_date, end_date))
+
+        conn.commit()
+        conn.close()
+        return True, f"Award '{name}' created successfully"
+    except sqlite3.IntegrityError:
+        return False, "Award name already exists"
+    except Exception as e:
+        print(f"Error creating award: {e}")
+        return False, str(e)
+
+def get_all_awards() -> List[dict]:
+    """Get all awards."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT b.*, o.operator_name
-        FROM band_mode_blocks b
-        JOIN operators o ON b.operator_callsign = o.callsign
-        ORDER BY b.band, b.mode
+        SELECT * FROM awards
+        ORDER BY created_at DESC
     ''')
     results = cursor.fetchall()
     conn.close()
     return [dict(row) for row in results]
 
-def get_operator_blocks(operator_callsign: str) -> List[dict]:
-    """Get all blocks for a specific operator."""
+def get_active_awards() -> List[dict]:
+    """Get only active awards."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT * FROM band_mode_blocks
-        WHERE operator_callsign = ?
-        ORDER BY band, mode
-    ''', (operator_callsign.upper(),))
+        SELECT * FROM awards
+        WHERE is_active = 1
+        ORDER BY created_at DESC
+    ''')
     results = cursor.fetchall()
     conn.close()
     return [dict(row) for row in results]
+
+def get_award_by_id(award_id: int) -> Optional[dict]:
+    """Get a specific award by ID."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM awards WHERE id = ?', (award_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return dict(result) if result else None
+
+def update_award(award_id: int, name: str, description: str, start_date: str, end_date: str) -> Tuple[bool, str]:
+    """Update an existing award."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            UPDATE awards
+            SET name = ?, description = ?, start_date = ?, end_date = ?
+            WHERE id = ?
+        ''', (name, description, start_date, end_date, award_id))
+
+        if cursor.rowcount == 0:
+            conn.close()
+            return False, "Award not found"
+
+        conn.commit()
+        conn.close()
+        return True, f"Award '{name}' updated successfully"
+    except sqlite3.IntegrityError:
+        return False, "Award name already exists"
+    except Exception as e:
+        print(f"Error updating award: {e}")
+        return False, str(e)
+
+def toggle_award_status(award_id: int) -> Tuple[bool, str]:
+    """Toggle award active status."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT is_active, name FROM awards WHERE id = ?', (award_id,))
+        award = cursor.fetchone()
+
+        if not award:
+            conn.close()
+            return False, "Award not found"
+
+        new_status = 0 if award['is_active'] else 1
+        cursor.execute('UPDATE awards SET is_active = ? WHERE id = ?', (new_status, award_id))
+
+        conn.commit()
+        conn.close()
+
+        status_text = "activated" if new_status else "deactivated"
+        return True, f"Award '{award['name']}' {status_text}"
+    except Exception as e:
+        print(f"Error toggling award status: {e}")
+        return False, str(e)
+
+def delete_award(award_id: int) -> Tuple[bool, str]:
+    """Delete an award and all its associated blocks."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT name FROM awards WHERE id = ?', (award_id,))
+        award = cursor.fetchone()
+
+        if not award:
+            conn.close()
+            return False, "Award not found"
+
+        # Delete all blocks associated with this award
+        cursor.execute('DELETE FROM band_mode_blocks WHERE award_id = ?', (award_id,))
+
+        # Delete the award
+        cursor.execute('DELETE FROM awards WHERE id = ?', (award_id,))
+
+        conn.commit()
+        conn.close()
+        return True, f"Award '{award['name']}' and all associated blocks deleted"
+    except Exception as e:
+        print(f"Error deleting award: {e}")
+        return False, str(e)
