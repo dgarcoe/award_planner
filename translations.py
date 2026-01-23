@@ -1,16 +1,21 @@
 """
-Translations module for Ham Radio Award Coordinator
+Translations module for Quendaward
 Supports multiple languages for all UI text
 """
 
 TRANSLATIONS = {
     'en': {
         # General
-        'app_title': 'Ham Radio Award Coordinator',
+        'app_title': 'Quendaward',
         'welcome': 'Welcome',
         'admin': 'Administrator',
         'admin_privileges': 'Admin privileges active',
         'logout': 'Logout',
+
+        # Theme
+        'theme': 'Theme',
+        'light_theme': 'Light',
+        'dark_theme': 'Dark',
 
         # Login
         'operator_login': 'Operator Login',
@@ -146,11 +151,16 @@ TRANSLATIONS = {
     },
     'es': {
         # General
-        'app_title': 'Coordinador de Premios de Radio Aficionados',
+        'app_title': 'Quendaward',
         'welcome': 'Bienvenido',
         'admin': 'Administrador',
         'admin_privileges': 'Privilegios de administrador activos',
         'logout': 'Cerrar Sesión',
+
+        # Theme
+        'theme': 'Tema',
+        'light_theme': 'Claro',
+        'dark_theme': 'Oscuro',
 
         # Login
         'operator_login': 'Inicio de Sesión de Operador',
@@ -286,11 +296,16 @@ TRANSLATIONS = {
     },
     'gl': {
         # General
-        'app_title': 'Coordinador de Premios de Radio Afeccionados',
+        'app_title': 'Quendaward',
         'welcome': 'Benvido',
         'admin': 'Administrador',
         'admin_privileges': 'Privilexios de administrador activos',
         'logout': 'Pechar Sesión',
+
+        # Theme
+        'theme': 'Tema',
+        'light_theme': 'Claro',
+        'dark_theme': 'Escuro',
 
         # Login
         'operator_login': 'Inicio de Sesión de Operador',
