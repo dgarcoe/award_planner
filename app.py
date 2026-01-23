@@ -593,7 +593,8 @@ def operator_panel():
                 height=600,
                 margin=dict(l=80, r=20, t=60, b=60),
                 font=dict(size=12),
-                plot_bgcolor='white',
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
                 xaxis=dict(side='top')
             )
 
