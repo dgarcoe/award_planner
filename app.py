@@ -617,8 +617,10 @@ def operator_panel():
             if all_blocks:
                 st.subheader(t['blocks_by_band_label'])
                 df = pd.DataFrame(all_blocks)
-                band_counts = df['band'].value_counts().reindex(BANDS, fill_value=0)
-                st.bar_chart(band_counts)
+                band_counts = df['band'].value_counts()
+                # Ensure bands are ordered according to BANDS list
+                ordered_counts = pd.Series([band_counts.get(band, 0) for band in BANDS], index=BANDS)
+                st.bar_chart(ordered_counts)
 
     if tab4 and st.session_state.is_admin:
         with tab4:
