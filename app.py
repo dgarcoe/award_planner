@@ -7,7 +7,7 @@ from translations import get_all_texts, AVAILABLE_LANGUAGES
 
 # Common ham radio bands and modes
 BANDS = ['160m', '80m', '60m', '40m', '30m', '20m', '17m', '15m', '12m', '10m', '6m', '2m', '70cm']
-MODES = ['SSB', 'CW', 'FM', 'RTTY', 'FT8', 'FT4', 'PSK31', 'SSTV', 'AM']
+MODES = ['CW', 'SSB', 'FT4', 'FT8', 'RTTY', 'PSK']
 
 # Admin credentials from environment variables
 ADMIN_CALLSIGN = os.getenv('ADMIN_CALLSIGN', '').upper()
