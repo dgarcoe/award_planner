@@ -2,4 +2,3 @@ streamlit==1.31.0
 pandas==2.2.0
 bcrypt==4.1.2
 streamlit-autorefresh==1.0.1
-plotly==5.18.0
