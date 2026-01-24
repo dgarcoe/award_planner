@@ -5,6 +5,66 @@ from translations import AVAILABLE_LANGUAGES
 import database as db
 
 
+@st.dialog("📡 Block Band/Mode")
+def _show_block_modal(t, callsign, band, mode, award_id):
+    """
+    Show modal dialog to confirm blocking a band/mode combination.
+
+    Args:
+        t: Translations dictionary
+        callsign: Operator's callsign
+        band: Band to block
+        mode: Mode to block
+        award_id: Current award ID
+    """
+    st.write(f"### {t.get('confirm_block', 'Do you want to block')} {band}/{mode}?")
+    st.write("")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button(f"✅ {t.get('confirm', 'Confirm')}", key="modal_confirm_block", type="primary", use_container_width=True):
+            success, message = db.block_band_mode(callsign, band, mode, award_id)
+            if success:
+                st.success(message)
+                st.session_state.modal_result = 'success'
+                st.rerun()
+            else:
+                st.error(message)
+    with col2:
+        if st.button(f"❌ {t.get('cancel', 'Cancel')}", key="modal_cancel_block", use_container_width=True):
+            st.rerun()
+
+
+@st.dialog("🔓 Unblock Band/Mode")
+def _show_unblock_modal(t, callsign, band, mode, award_id):
+    """
+    Show modal dialog to confirm unblocking a band/mode combination.
+
+    Args:
+        t: Translations dictionary
+        callsign: Operator's callsign
+        band: Band to unblock
+        mode: Mode to unblock
+        award_id: Current award ID
+    """
+    st.write(f"### {t.get('confirm_unblock', 'Do you want to unblock')} {band}/{mode}?")
+    st.write("")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button(f"✅ {t.get('confirm', 'Confirm')}", key="modal_confirm_unblock", type="primary", use_container_width=True):
+            success, message = db.unblock_band_mode(callsign, band, mode, award_id)
+            if success:
+                st.success(message)
+                st.session_state.modal_result = 'success'
+                st.rerun()
+            else:
+                st.error(message)
+    with col2:
+        if st.button(f"❌ {t.get('cancel', 'Cancel')}", key="modal_cancel_unblock", use_container_width=True):
+            st.rerun()
+
+
 def render_language_selector(t, key_suffix=""):
     """
     Render a language selector dropdown.
@@ -185,69 +245,17 @@ def render_activity_dashboard(t, award_id, callsign=None):
         # Check if this combination is blocked
         block_info = next((b for b in all_blocks if b['band'] == clicked_band and b['mode'] == clicked_mode), None)
 
-        # Use session state to track confirmation dialogs
-        if 'confirm_action' not in st.session_state:
-            st.session_state.confirm_action = None
-
         if block_info:
             # Cell is blocked
             if block_info['operator_callsign'] == callsign:
-                # User's own block - offer to unblock
-                st.session_state.confirm_action = {
-                    'type': 'unblock',
-                    'band': clicked_band,
-                    'mode': clicked_mode
-                }
+                # User's own block - show unblock modal
+                _show_unblock_modal(t, callsign, clicked_band, clicked_mode, award_id)
             else:
                 # Someone else's block
                 st.warning(f"⚠️ {clicked_band}/{clicked_mode} {t.get('already_blocked_by', 'is already blocked by')} {block_info['operator_name']} ({block_info['operator_callsign']})")
         else:
-            # Cell is free - offer to block
-            st.session_state.confirm_action = {
-                'type': 'block',
-                'band': clicked_band,
-                'mode': clicked_mode
-            }
-
-    # Show confirmation dialog if action is pending
-    if callsign and st.session_state.get('confirm_action'):
-        action = st.session_state.confirm_action
-
-        if action['type'] == 'block':
-            st.info(f"📡 {t.get('confirm_block', 'Do you want to block')} {action['band']}/{action['mode']}?")
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button(f"✅ {t.get('confirm', 'Confirm')}", key="confirm_block", type="primary"):
-                    success, message = db.block_band_mode(callsign, action['band'], action['mode'], award_id)
-                    if success:
-                        st.success(message)
-                        st.session_state.confirm_action = None
-                        st.rerun()
-                    else:
-                        st.error(message)
-                        st.session_state.confirm_action = None
-            with col2:
-                if st.button(f"❌ {t.get('cancel', 'Cancel')}", key="cancel_block"):
-                    st.session_state.confirm_action = None
-                    st.rerun()
-
-        elif action['type'] == 'unblock':
-            st.info(f"🔓 {t.get('confirm_unblock', 'Do you want to unblock')} {action['band']}/{action['mode']}?")
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button(f"✅ {t.get('confirm', 'Confirm')}", key="confirm_unblock", type="primary"):
-                    success, message = db.unblock_band_mode(callsign, action['band'], action['mode'], award_id)
-                    if success:
-                        st.success(message)
-                        st.session_state.confirm_action = None
-                        st.rerun()
-                    else:
-                        st.error(message)
-                        st.session_state.confirm_action = None
-            with col2:
-                if st.button(f"❌ {t.get('cancel', 'Cancel')}", key="cancel_unblock"):
-                    st.session_state.confirm_action = None
-                    st.rerun()
+            # Cell is free - show block modal
+            _show_block_modal(t, callsign, clicked_band, clicked_mode, award_id)
 
     # Show summary statistics
     st.divider()
