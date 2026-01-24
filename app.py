@@ -195,20 +195,7 @@ def operator_panel():
     if st.session_state.is_admin:
         st.info(f"🔑 {t['admin_privileges']}")
 
-    # Award selector
-    active_awards = db.get_active_awards()
-    if not active_awards:
-        if st.session_state.is_admin:
-            st.warning(f"⚠️ {t['error_no_awards_admin']}")
-            st.session_state.current_award_id = None
-        else:
-            st.error(f"⚠️ {t['error_no_awards_operator']}")
-            st.stop()
-
-    if active_awards:
-        render_award_selector(active_awards, t)
-
-    # Logout and language selector
+     # Logout and language selector
     col1, col2, col3 = st.columns([4, 1, 1])
     with col2:
         render_language_selector(t, key_suffix="_panel")
@@ -223,6 +210,19 @@ def operator_panel():
             st.session_state.is_admin = False
             st.session_state.is_env_admin = False
             st.rerun()
+
+    # Award selector
+    active_awards = db.get_active_awards()
+    if not active_awards:
+        if st.session_state.is_admin:
+            st.warning(f"⚠️ {t['error_no_awards_admin']}")
+            st.session_state.current_award_id = None
+        else:
+            st.error(f"⚠️ {t['error_no_awards_operator']}")
+            st.stop()
+
+    if active_awards:
+        render_award_selector(active_awards, t)
 
     # Main tabs - add admin tab if user is admin
     if st.session_state.is_admin:
