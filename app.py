@@ -191,23 +191,6 @@ def operator_panel():
     st.title(f"🎙️ {t['app_title']}")
     st.subheader(f"{t['welcome']}, {st.session_state.operator_name} ({st.session_state.callsign})")
 
-    # Show admin indicator if admin
-    if st.session_state.is_admin:
-        st.info(f"🔑 {t['admin_privileges']}")
-
-    # Special callsign selector
-    active_awards = db.get_active_awards()
-    if not active_awards:
-        if st.session_state.is_admin:
-            st.warning(f"⚠️ {t['error_no_special_callsigns_admin']}")
-            st.session_state.current_award_id = None
-        else:
-            st.error(f"⚠️ {t['error_no_special_callsigns_operator']}")
-            st.stop()
-
-    if active_awards:
-        render_award_selector(active_awards, t)
-
     # Logout and language selector
     col1, col2, col3 = st.columns([4, 1, 1])
     with col2:
@@ -223,6 +206,19 @@ def operator_panel():
             st.session_state.is_admin = False
             st.session_state.is_env_admin = False
             st.rerun()
+
+    # Special callsign selector
+    active_awards = db.get_active_awards()
+    if not active_awards:
+        if st.session_state.is_admin:
+            st.warning(f"⚠️ {t['error_no_special_callsigns_admin']}")
+            st.session_state.current_award_id = None
+        else:
+            st.error(f"⚠️ {t['error_no_special_callsigns_operator']}")
+            st.stop()
+
+    if active_awards:
+        render_award_selector(active_awards, t)
 
     # Main tabs - add admin tab if user is admin
     if st.session_state.is_admin:
