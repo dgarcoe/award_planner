@@ -23,7 +23,6 @@ from translations import get_all_texts, AVAILABLE_LANGUAGES
 from ui_components import (
     render_language_selector,
     render_award_selector,
-    render_block_unblock_section,
     render_activity_dashboard
 )
 
@@ -227,33 +226,27 @@ def operator_panel():
 
     # Main tabs - add admin tab if user is admin
     if st.session_state.is_admin:
-        tab1, tab_timeline, tab4, tab5 = st.tabs([
-            f"📡 {t['tab_block']}",
+        tab_dashboard, tab_admin, tab_settings = st.tabs([
             f"📊 {t['tab_activity_dashboard']}",
             f"🔐 {t['admin_panel']}",
             f"⚙️ {t['tab_settings']}"
         ])
     else:
-        tab1, tab_timeline, tab5 = st.tabs([
-            f"📡 {t['tab_block']}",
+        tab_dashboard, tab_settings = st.tabs([
             f"📊 {t['tab_activity_dashboard']}",
             f"⚙️ {t['tab_settings']}"
         ])
-        tab4 = None
+        tab_admin = None
 
-    with tab1:
-        st.header(t['block_band_mode'])
-        render_block_unblock_section(t, st.session_state.callsign, st.session_state.current_award_id)
-
-    with tab_timeline:
+    with tab_dashboard:
         st.header(f"📊 {t['activity_dashboard']}")
         render_activity_dashboard(t, st.session_state.current_award_id, st.session_state.callsign)
 
-    if tab4 and st.session_state.is_admin:
-        with tab4:
+    if tab_admin and st.session_state.is_admin:
+        with tab_admin:
             admin_panel()
 
-    with tab5:
+    with tab_settings:
         render_settings_tab(t)
 
 
