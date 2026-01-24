@@ -14,6 +14,7 @@ COPY ui_components.py .
 COPY admin_functions.py .
 COPY database.py .
 COPY translations.py .
+COPY mobile_styles.py .
 
 # Create directory for database persistence
 RUN mkdir -p /app/data
