@@ -142,7 +142,7 @@ def render_activity_dashboard(t, award_id, callsign=None):
         None
     """
     from charts import create_availability_heatmap, create_blocks_by_band_chart
-    from plotly_events import plotly_events
+    from streamlit_plotly_events import plotly_events
     from config import BANDS, MODES
 
     if not award_id:
