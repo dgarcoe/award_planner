@@ -159,6 +159,30 @@ TRANSLATIONS = {
         # Language
         'language': 'Language',
         'select_language': 'Select Language',
+
+        # Database Management
+        'tab_database': 'Database',
+        'database_management': 'Database Management',
+        'database_management_info': 'Backup and restore your database. Regular backups are recommended to prevent data loss.',
+        'database_info': 'Database Information',
+        'total_special_callsigns': 'Special Callsigns',
+        'total_blocks': 'Total Blocks',
+        'database_size': 'Database Size',
+        'backup_database': 'Backup Database',
+        'backup_info': 'Download a complete backup of the database including all operators, special callsigns, and blocks.',
+        'download_backup': 'Create Backup',
+        'click_to_download': 'Click to Download Backup',
+        'backup_ready': 'Backup created successfully! Click the button above to download.',
+        'backup_error': 'Error creating backup',
+        'restore_database': 'Restore Database',
+        'restore_warning': '⚠️ Warning: Restoring a database will replace ALL current data. This action cannot be undone. Make sure to backup your current database first.',
+        'upload_backup_file': 'Upload backup file (.db)',
+        'file_selected': 'File selected',
+        'confirm_restore_checkbox': 'I understand that this will replace all current data',
+        'restore_now': 'Restore Database Now',
+        'restore_success': 'Database restored successfully!',
+        'restore_relogin': 'Please log in again to continue.',
+        'restore_error': 'Error restoring database',
     },
     'es': {
         # General
@@ -315,6 +339,30 @@ TRANSLATIONS = {
         # Language
         'language': 'Idioma',
         'select_language': 'Seleccionar Idioma',
+
+        # Database Management
+        'tab_database': 'Base de Datos',
+        'database_management': 'Gestión de Base de Datos',
+        'database_management_info': 'Copia de seguridad y restauración de la base de datos. Se recomiendan copias de seguridad regulares para prevenir la pérdida de datos.',
+        'database_info': 'Información de la Base de Datos',
+        'total_special_callsigns': 'Indicativos Especiales',
+        'total_blocks': 'Total de Bloqueos',
+        'database_size': 'Tamaño de la Base de Datos',
+        'backup_database': 'Copia de Seguridad',
+        'backup_info': 'Descargue una copia de seguridad completa de la base de datos incluyendo todos los operadores, indicativos especiales y bloqueos.',
+        'download_backup': 'Crear Copia de Seguridad',
+        'click_to_download': 'Clic para Descargar Copia',
+        'backup_ready': '¡Copia de seguridad creada correctamente! Haga clic en el botón de arriba para descargar.',
+        'backup_error': 'Error al crear la copia de seguridad',
+        'restore_database': 'Restaurar Base de Datos',
+        'restore_warning': '⚠️ Advertencia: Restaurar una base de datos reemplazará TODOS los datos actuales. Esta acción no se puede deshacer. Asegúrese de hacer una copia de seguridad de su base de datos actual primero.',
+        'upload_backup_file': 'Subir archivo de copia de seguridad (.db)',
+        'file_selected': 'Archivo seleccionado',
+        'confirm_restore_checkbox': 'Entiendo que esto reemplazará todos los datos actuales',
+        'restore_now': 'Restaurar Base de Datos Ahora',
+        'restore_success': '¡Base de datos restaurada correctamente!',
+        'restore_relogin': 'Por favor inicie sesión de nuevo para continuar.',
+        'restore_error': 'Error al restaurar la base de datos',
     },
     'gl': {
         # General
@@ -471,6 +519,30 @@ TRANSLATIONS = {
         # Language
         'language': 'Idioma',
         'select_language': 'Seleccionar Idioma',
+
+        # Database Management
+        'tab_database': 'Base de Datos',
+        'database_management': 'Xestión de Base de Datos',
+        'database_management_info': 'Copia de seguridade e restauración da base de datos. Recoméndanse copias de seguridade regulares para previr a perda de datos.',
+        'database_info': 'Información da Base de Datos',
+        'total_special_callsigns': 'Indicativos Especiais',
+        'total_blocks': 'Total de Bloqueos',
+        'database_size': 'Tamaño da Base de Datos',
+        'backup_database': 'Copia de Seguridade',
+        'backup_info': 'Descargue unha copia de seguridade completa da base de datos incluíndo todos os operadores, indicativos especiais e bloqueos.',
+        'download_backup': 'Crear Copia de Seguridade',
+        'click_to_download': 'Clic para Descargar Copia',
+        'backup_ready': 'Copia de seguridade creada correctamente! Faga clic no botón de arriba para descargar.',
+        'backup_error': 'Erro ao crear a copia de seguridade',
+        'restore_database': 'Restaurar Base de Datos',
+        'restore_warning': '⚠️ Advertencia: Restaurar unha base de datos substituirá TODOS os datos actuais. Esta acción non se pode desfacer. Asegúrese de facer unha copia de seguridade da súa base de datos actual primeiro.',
+        'upload_backup_file': 'Subir arquivo de copia de seguridade (.db)',
+        'file_selected': 'Arquivo seleccionado',
+        'confirm_restore_checkbox': 'Entendo que isto substituirá todos os datos actuais',
+        'restore_now': 'Restaurar Base de Datos Agora',
+        'restore_success': 'Base de datos restaurada correctamente!',
+        'restore_relogin': 'Por favor inicie sesión de novo para continuar.',
+        'restore_error': 'Erro ao restaurar a base de datos',
     }
 }
 

@@ -34,7 +34,8 @@ from admin_functions import (
     render_reset_password_tab,
     render_manage_blocks_tab,
     render_system_stats_tab,
-    render_award_management_tab
+    render_award_management_tab,
+    render_database_management_tab
 )
 
 # Import mobile styles
@@ -115,14 +116,15 @@ def admin_panel():
     """Display the admin management panel."""
     t = get_all_texts(st.session_state.language)
 
-    admin_tab1, admin_tab2, admin_tab3, admin_tab4, admin_tab5, admin_tab6, admin_tab7 = st.tabs([
+    admin_tab1, admin_tab2, admin_tab3, admin_tab4, admin_tab5, admin_tab6, admin_tab7, admin_tab8 = st.tabs([
         t['tab_create_operator'],
         t['tab_manage_operators'],
         t['tab_manage_admins'],
         t['tab_reset_password'],
         t['tab_manage_blocks'],
         t['tab_system_stats'],
-        f"🏆 {t['tab_manage_special_callsigns']}"
+        f"🏆 {t['tab_manage_special_callsigns']}",
+        f"💾 {t['tab_database']}"
     ])
 
     with admin_tab1:
@@ -145,6 +147,9 @@ def admin_panel():
 
     with admin_tab7:
         render_award_management_tab(t)
+
+    with admin_tab8:
+        render_database_management_tab(t)
 
 
 def render_settings_tab(t):

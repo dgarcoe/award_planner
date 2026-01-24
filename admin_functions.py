@@ -285,3 +285,87 @@ def render_award_management_tab(t):
                             st.error(message)
     else:
         st.info(t['no_special_callsigns_created'])
+
+
+def render_database_management_tab(t):
+    """Render the database backup and restore tab."""
+    from datetime import datetime
+
+    st.subheader(f"💾 {t['database_management']}")
+    st.info(t['database_management_info'])
+
+    # Database info section
+    st.subheader(t['database_info'])
+    db_info = db.get_database_info()
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric(t['total_operators'], db_info['operators_count'])
+    with col2:
+        st.metric(t['total_special_callsigns'], db_info['awards_count'])
+    with col3:
+        st.metric(t['total_blocks'], db_info['blocks_count'])
+    with col4:
+        # Format file size
+        size_kb = db_info['file_size'] / 1024
+        if size_kb < 1024:
+            size_str = f"{size_kb:.1f} KB"
+        else:
+            size_str = f"{size_kb/1024:.1f} MB"
+        st.metric(t['database_size'], size_str)
+
+    st.divider()
+
+    # Backup section
+    st.subheader(t['backup_database'])
+    st.info(t['backup_info'])
+
+    if st.button(t['download_backup'], type="primary"):
+        try:
+            backup_data = db.get_database_backup()
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"quendaward_backup_{timestamp}.db"
+
+            st.download_button(
+                label=t['click_to_download'],
+                data=backup_data,
+                file_name=filename,
+                mime="application/x-sqlite3",
+                key="download_db_backup"
+            )
+            st.success(t['backup_ready'])
+        except Exception as e:
+            st.error(f"{t['backup_error']}: {str(e)}")
+
+    st.divider()
+
+    # Restore section
+    st.subheader(t['restore_database'])
+    st.warning(t['restore_warning'])
+
+    uploaded_file = st.file_uploader(
+        t['upload_backup_file'],
+        type=['db'],
+        key="restore_db_upload"
+    )
+
+    if uploaded_file is not None:
+        st.info(f"{t['file_selected']}: {uploaded_file.name} ({uploaded_file.size / 1024:.1f} KB)")
+
+        # Confirmation checkbox
+        confirm_restore = st.checkbox(t['confirm_restore_checkbox'], key="confirm_restore")
+
+        if confirm_restore:
+            if st.button(t['restore_now'], type="secondary"):
+                try:
+                    backup_data = uploaded_file.read()
+                    success, message = db.restore_database_from_backup(backup_data)
+
+                    if success:
+                        st.success(t['restore_success'])
+                        st.info(t['restore_relogin'])
+                        st.rerun()
+                    else:
+                        st.error(f"{t['restore_error']}: {message}")
+                except Exception as e:
+                    st.error(f"{t['restore_error']}: {str(e)}")
