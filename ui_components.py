@@ -209,8 +209,6 @@ def render_activity_dashboard(t, award_id, callsign=None):
         st.warning(f"⚠️ {t['error_no_special_callsign_selected']}")
         return
 
-    st.info(t['activity_dashboard_info'])
-
     all_blocks = db.get_all_blocks(award_id)
 
     # Display heatmap with click events
