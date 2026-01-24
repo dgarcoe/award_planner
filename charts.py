@@ -24,16 +24,19 @@ def create_availability_heatmap(all_blocks, t):
     z_values = []  # For color coding (0 = free, 1 = blocked)
     text_values = []  # For display text
     hover_values = []  # For hover information
+    text_colors = []  # For text colors (different for free vs blocked)
 
     for band in BANDS:
         z_row = []
         text_row = []
         hover_row = []
+        color_row = []
         for mode in MODES:
             key = (band, mode)
             if key in blocks_dict:
                 z_row.append(1)  # Blocked
                 text_row.append(blocks_dict[key])
+                color_row.append('white')  # White text on red background
                 hover_text = f"<b>{band} / {mode}</b><br>"
                 hover_text += f"{t['operator']}: {name_dict[key]} ({blocks_dict[key]})<br>"
                 hover_text += f"{t['blocked_at']}: {date_dict[key]}"
@@ -41,22 +44,21 @@ def create_availability_heatmap(all_blocks, t):
             else:
                 z_row.append(0)  # Free
                 text_row.append(t['free_status'])
+                color_row.append('black')  # Black text on green background
                 hover_row.append(f"<b>{band} / {mode}</b><br>{t['status_available']}")
 
         z_values.append(z_row)
         text_values.append(text_row)
         hover_values.append(hover_row)
+        text_colors.append(color_row)
 
     # Create Plotly heatmap
     fig = go.Figure(data=go.Heatmap(
         z=z_values,
         x=MODES,
         y=BANDS,
-        text=text_values,
         hovertemplate='%{hovertext}<extra></extra>',
         hovertext=hover_values,
-        texttemplate='%{text}',
-        textfont={"size": 14, "color": "black", "family": "Arial, sans-serif"},
         colorscale=[
             [0, CHART_COLOR_FREE],  # Green for FREE
             [1, CHART_COLOR_BLOCKED]   # Red for BLOCKED
@@ -65,6 +67,26 @@ def create_availability_heatmap(all_blocks, t):
         xgap=2,
         ygap=2
     ))
+
+    # Add text annotations with appropriate colors for each cell
+    annotations = []
+    for i, band in enumerate(BANDS):
+        for j, mode in enumerate(MODES):
+            annotations.append(
+                dict(
+                    x=mode,
+                    y=band,
+                    text=text_values[i][j],
+                    showarrow=False,
+                    font=dict(
+                        size=13,
+                        color=text_colors[i][j],
+                        family="Arial, sans-serif"
+                    ),
+                    xref='x',
+                    yref='y'
+                )
+            )
 
     # Update layout
     fig.update_layout(
@@ -77,7 +99,8 @@ def create_availability_heatmap(all_blocks, t):
         plot_bgcolor=CHART_BACKGROUND,
         paper_bgcolor=CHART_BACKGROUND,
         xaxis=dict(side='top'),
-        autosize=True
+        autosize=True,
+        annotations=annotations
     )
 
     return fig
