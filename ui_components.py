@@ -128,18 +128,22 @@ def render_block_unblock_section(t, callsign, award_id):
         st.info(t['no_active_blocks'])
 
 
-def render_activity_dashboard(t, award_id):
+def render_activity_dashboard(t, award_id, callsign=None):
     """
     Render the activity dashboard with heatmap and statistics.
+    Includes interactive click-to-block/unblock functionality.
 
     Args:
         t: Translations dictionary
         award_id: Current award ID
+        callsign: Current user's callsign (optional, for click handling)
 
     Returns:
         None
     """
     from charts import create_availability_heatmap, create_blocks_by_band_chart
+    from plotly_events import plotly_events
+    from config import BANDS, MODES
 
     if not award_id:
         st.warning(f"⚠️ {t['error_no_award_selected']}")
@@ -149,9 +153,85 @@ def render_activity_dashboard(t, award_id):
 
     all_blocks = db.get_all_blocks(award_id)
 
-    # Display heatmap
+    # Display heatmap with click events
     fig = create_availability_heatmap(all_blocks, t)
-    st.plotly_chart(fig, use_container_width=True)
+
+    # Use plotly_events to capture clicks
+    selected_points = plotly_events(fig, click_event=True, hover_event=False, select_event=False, override_height=650)
+
+    # Handle click events
+    if selected_points and callsign:
+        point = selected_points[0]
+        # Get the clicked band and mode
+        clicked_band = BANDS[point['y']]
+        clicked_mode = MODES[point['x']]
+
+        # Check if this combination is blocked
+        block_info = next((b for b in all_blocks if b['band'] == clicked_band and b['mode'] == clicked_mode), None)
+
+        # Use session state to track confirmation dialogs
+        if 'confirm_action' not in st.session_state:
+            st.session_state.confirm_action = None
+
+        if block_info:
+            # Cell is blocked
+            if block_info['operator_callsign'] == callsign:
+                # User's own block - offer to unblock
+                st.session_state.confirm_action = {
+                    'type': 'unblock',
+                    'band': clicked_band,
+                    'mode': clicked_mode
+                }
+            else:
+                # Someone else's block
+                st.warning(f"⚠️ {clicked_band}/{clicked_mode} {t.get('already_blocked_by', 'is already blocked by')} {block_info['operator_name']} ({block_info['operator_callsign']})")
+        else:
+            # Cell is free - offer to block
+            st.session_state.confirm_action = {
+                'type': 'block',
+                'band': clicked_band,
+                'mode': clicked_mode
+            }
+
+    # Show confirmation dialog if action is pending
+    if callsign and st.session_state.get('confirm_action'):
+        action = st.session_state.confirm_action
+
+        if action['type'] == 'block':
+            st.info(f"📡 {t.get('confirm_block', 'Do you want to block')} {action['band']}/{action['mode']}?")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(f"✅ {t.get('confirm', 'Confirm')}", key="confirm_block", type="primary"):
+                    success, message = db.block_band_mode(callsign, action['band'], action['mode'], award_id)
+                    if success:
+                        st.success(message)
+                        st.session_state.confirm_action = None
+                        st.rerun()
+                    else:
+                        st.error(message)
+                        st.session_state.confirm_action = None
+            with col2:
+                if st.button(f"❌ {t.get('cancel', 'Cancel')}", key="cancel_block"):
+                    st.session_state.confirm_action = None
+                    st.rerun()
+
+        elif action['type'] == 'unblock':
+            st.info(f"🔓 {t.get('confirm_unblock', 'Do you want to unblock')} {action['band']}/{action['mode']}?")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(f"✅ {t.get('confirm', 'Confirm')}", key="confirm_unblock", type="primary"):
+                    success, message = db.unblock_band_mode(callsign, action['band'], action['mode'], award_id)
+                    if success:
+                        st.success(message)
+                        st.session_state.confirm_action = None
+                        st.rerun()
+                    else:
+                        st.error(message)
+                        st.session_state.confirm_action = None
+            with col2:
+                if st.button(f"❌ {t.get('cancel', 'Cancel')}", key="cancel_unblock"):
+                    st.session_state.confirm_action = None
+                    st.rerun()
 
     # Show summary statistics
     st.divider()

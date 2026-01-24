@@ -247,7 +247,7 @@ def operator_panel():
 
     with tab_timeline:
         st.header(f"📊 {t['activity_dashboard']}")
-        render_activity_dashboard(t, st.session_state.current_award_id)
+        render_activity_dashboard(t, st.session_state.current_award_id, st.session_state.callsign)
 
     if tab4 and st.session_state.is_admin:
         with tab4:

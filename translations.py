@@ -188,6 +188,13 @@ TRANSLATIONS = {
         'active_operators_label': 'Active Operators',
         'bands_in_use_label': 'Bands in Use',
         'blocks_by_band_label': 'Blocks by Band',
+
+        # Click-to-block/unblock
+        'already_blocked_by': 'is already blocked by',
+        'confirm_block': 'Do you want to block',
+        'confirm_unblock': 'Do you want to unblock',
+        'confirm': 'Confirm',
+        'cancel': 'Cancel',
     },
     'es': {
         # General
@@ -373,6 +380,13 @@ TRANSLATIONS = {
         'active_operators_label': 'Operadores Activos',
         'bands_in_use_label': 'Bandas en Uso',
         'blocks_by_band_label': 'Bloqueos por Banda',
+
+        # Click-to-block/unblock
+        'already_blocked_by': 'ya está bloqueado por',
+        'confirm_block': '¿Desea bloquear',
+        'confirm_unblock': '¿Desea desbloquear',
+        'confirm': 'Confirmar',
+        'cancel': 'Cancelar',
     },
     'gl': {
         # General
@@ -558,6 +572,13 @@ TRANSLATIONS = {
         'active_operators_label': 'Operadores Activos',
         'bands_in_use_label': 'Bandas en Uso',
         'blocks_by_band_label': 'Bloqueos por Banda',
+
+        # Click-to-block/unblock
+        'already_blocked_by': 'xa está bloqueado por',
+        'confirm_block': 'Desexa bloquear',
+        'confirm_unblock': 'Desexa desbloquear',
+        'confirm': 'Confirmar',
+        'cancel': 'Cancelar',
     }
 }
 
