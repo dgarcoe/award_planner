@@ -56,14 +56,15 @@ def create_availability_heatmap(all_blocks, t):
         hovertemplate='%{hovertext}<extra></extra>',
         hovertext=hover_values,
         texttemplate='%{text}',
-        textfont={"size": 12, "color": "black"},
+        textfont={"size": 14, "color": "black", "family": "Arial, sans-serif"},
         colorscale=[
             [0, CHART_COLOR_FREE],  # Green for FREE
             [1, CHART_COLOR_BLOCKED]   # Red for BLOCKED
         ],
         showscale=False,
         xgap=2,
-        ygap=2
+        ygap=2,
+        textangle=0
     ))
 
     # Update layout
@@ -71,12 +72,13 @@ def create_availability_heatmap(all_blocks, t):
         title=t['band_mode_matrix'],
         xaxis_title=t['mode_label'],
         yaxis_title=t['band_label'],
-        height=600,
+        height=650,
         margin=dict(l=80, r=20, t=60, b=60),
         font=dict(size=12),
         plot_bgcolor=CHART_BACKGROUND,
         paper_bgcolor=CHART_BACKGROUND,
-        xaxis=dict(side='top')
+        xaxis=dict(side='top'),
+        autosize=True
     )
 
     return fig

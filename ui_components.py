@@ -157,14 +157,30 @@ def render_activity_dashboard(t, award_id, callsign=None):
     fig = create_availability_heatmap(all_blocks, t)
 
     # Use plotly_events to capture clicks
-    selected_points = plotly_events(fig, click_event=True, hover_event=False, select_event=False, override_height=650)
+    selected_points = plotly_events(
+        fig,
+        click_event=True,
+        hover_event=False,
+        select_event=False,
+        override_height=650,
+        override_width="100%"
+    )
 
     # Handle click events
     if selected_points and callsign:
         point = selected_points[0]
-        # Get the clicked band and mode
-        clicked_band = BANDS[point['y']]
-        clicked_mode = MODES[point['x']]
+        # Get the clicked band and mode from pointIndex
+        # plotly_events returns pointIndex as [y, x] for heatmaps
+        if 'pointIndex' in point:
+            y_idx = point['pointIndex'][0]
+            x_idx = point['pointIndex'][1]
+        else:
+            # Fallback to x, y if pointIndex not available
+            y_idx = point.get('y', 0)
+            x_idx = point.get('x', 0)
+
+        clicked_band = BANDS[y_idx]
+        clicked_mode = MODES[x_idx]
 
         # Check if this combination is blocked
         block_info = next((b for b in all_blocks if b['band'] == clicked_band and b['mode'] == clicked_mode), None)
