@@ -114,7 +114,6 @@ def login_page():
 def admin_panel():
     """Display the admin management panel."""
     t = get_all_texts(st.session_state.language)
-    st.header(f"🔐 {t['admin_panel']}")
 
     admin_tab1, admin_tab2, admin_tab3, admin_tab4, admin_tab5, admin_tab6, admin_tab7 = st.tabs([
         t['tab_create_operator'],
@@ -150,7 +149,6 @@ def admin_panel():
 
 def render_settings_tab(t):
     """Render the settings tab."""
-    st.header(t['settings'])
 
     # Admin cannot change password if env-based admin
     if st.session_state.is_env_admin:
@@ -238,7 +236,6 @@ def operator_panel():
         tab_admin = None
 
     with tab_dashboard:
-        st.header(f"📊 {t['activity_dashboard']}")
         render_activity_dashboard(t, st.session_state.current_award_id, st.session_state.callsign)
 
     if tab_admin and st.session_state.is_admin:
