@@ -91,7 +91,7 @@ def render_language_selector(t, key_suffix=""):
 
 def render_award_selector(active_awards, t):
     """
-    Render award selector dropdown and award information expander.
+    Render special callsign selector dropdown and information expander.
 
     Args:
         active_awards: List of active award dictionaries
@@ -105,7 +105,7 @@ def render_award_selector(active_awards, t):
 
     st.write("---")
     selected_award = st.selectbox(
-        f"🏆 {t['select_award']}",
+        f"🏆 {t['select_special_callsign']}",
         options=[award['id'] for award in active_awards],
         format_func=lambda x: next((a['name'] for a in active_awards if a['id'] == x), ''),
         index=[award['id'] for award in active_awards].index(st.session_state.current_award_id)
@@ -117,10 +117,10 @@ def render_award_selector(active_awards, t):
         st.session_state.current_award_id = selected_award
         st.rerun()
 
-    # Show award details if available
+    # Show special callsign details if available
     current_award = next((a for a in active_awards if a['id'] == st.session_state.current_award_id), None)
     if current_award and current_award.get('description'):
-        with st.expander(f"ℹ️ {t['award_information']}", expanded=False):
+        with st.expander(f"ℹ️ {t['special_callsign_information']}", expanded=False):
             st.write(f"**{current_award['name']}**")
             st.write(current_award['description'])
             if current_award.get('start_date'):
@@ -144,7 +144,7 @@ def render_block_unblock_section(t, callsign, award_id):
     from config import BANDS, MODES
 
     if not award_id:
-        st.warning(f"⚠️ {t['error_no_award_selected']}")
+        st.warning(f"⚠️ {t['error_no_special_callsign_selected']}")
         return
 
     st.info(t['block_info'])
@@ -206,7 +206,7 @@ def render_activity_dashboard(t, award_id, callsign=None):
     from config import BANDS, MODES
 
     if not award_id:
-        st.warning(f"⚠️ {t['error_no_award_selected']}")
+        st.warning(f"⚠️ {t['error_no_special_callsign_selected']}")
         return
 
     st.info(t['activity_dashboard_info'])

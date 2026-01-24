@@ -1,12 +1,12 @@
 """
-Translations module for Ham Radio Award Coordinator
+Translations module for QuendAward - Special Callsign Operator Coordination Tool
 Supports multiple languages for all UI text
 """
 
 TRANSLATIONS = {
     'en': {
         # General
-        'app_title': 'QuendAward: Ham Radio Award Operator Coordination Tool',
+        'app_title': 'QuendAward: Special Callsign Operator Coordination Tool',
         'welcome': 'Welcome',
         'admin': 'Administrator',
         'admin_privileges': 'Admin privileges active',
@@ -54,108 +54,68 @@ TRANSLATIONS = {
         'yes': 'Yes',
         'no': 'No',
         'delete_operator': 'Delete Operator',
-        'delete_operator_warning': 'Deleting an operator will also remove all of their active blocks',
+        'delete_operator_warning': '⚠️ Warning: Deleting an operator will remove all their blocks and is irreversible.',
         'select_operator_to_delete': 'Select operator to delete',
         'no_operators': 'No operators in the system',
 
         # Manage Admins
         'manage_admin_roles': 'Manage Admin Roles',
-        'promote_operator': 'Promote to Admin',
-        'promote_info': 'Grant admin privileges to an operator',
+        'promote_operator': 'Promote Operator to Admin',
+        'promote_info': 'Give an operator admin privileges. They will be able to manage operators and special callsigns.',
         'select_operator_to_promote': 'Select operator to promote',
         'promote': 'Promote to Admin',
-        'demote_operator': 'Demote from Admin',
-        'demote_info': 'Remove admin privileges from an operator',
-        'select_operator_to_demote': 'Select operator to demote',
+        'no_operators_to_promote': 'All operators are already admins',
+        'demote_operator': 'Demote Operator from Admin',
+        'demote_info': 'Remove admin privileges from an operator. They will become a regular operator.',
+        'select_operator_to_demote': 'Select admin to demote',
         'demote': 'Demote from Admin',
-        'no_operators_to_promote': 'No regular operators to promote',
-        'no_operators_to_demote': 'No database admins to demote',
+        'no_operators_to_demote': 'No admin operators to demote',
 
         # Reset Password
         'reset_operator_password': 'Reset Operator Password',
-        'reset_password_info': "Reset an operator's password and provide them with the new credentials.",
-        'select_operator': 'Select operator',
+        'reset_password_info': 'Reset the password for any operator.',
+        'select_operator': 'Select Operator',
         'new_password': 'New Password',
         'confirm_new_password': 'Confirm New Password',
         'reset_password': 'Reset Password',
         'new_credentials_for': 'New credentials for',
         'error_enter_password': 'Please enter a password',
 
-        # System Stats
+        # Manage Blocks
+        'tab_manage_blocks': 'Manage Blocks',
+        'manage_all_blocks': 'Manage All Blocks',
+        'manage_blocks_info': 'View and manage all active band/mode blocks across all operators.',
+        'operator': 'Operator',
+        'blocked_at': 'Blocked at',
+        'unblock_selected': 'Unblock',
+        'no_blocks_to_manage': 'No active blocks',
+
+        # System Statistics
         'system_statistics': 'System Statistics',
         'total_operators': 'Total Operators',
         'active_operators': 'Active Operators',
         'active_blocks': 'Active Blocks',
         'total_admins': 'Total Admins',
 
-        # Operator Panel Tabs
-        'tab_block': 'Block Band/Mode',
-        'tab_unblock': 'Unblock Band/Mode',
-        'tab_status': 'Current Status',
-        'tab_settings': 'Settings',
-
-        # Block Band/Mode
-        'block_band_mode': 'Block a Band and Mode',
-        'block_info': "Block a band/mode combination to prevent other operators from using it while you're active.",
-        'select_band': 'Select Band',
-        'select_mode': 'Select Mode',
-        'block': 'Block',
-
-        # Unblock Band/Mode
-        'unblock_band_mode': 'Unblock a Band and Mode',
-        'unblock_info': "Release a band/mode combination when you're finished.",
-        'your_current_blocks': 'Your current blocks:',
-        'unblock': 'Unblock',
-        'no_active_blocks': "You don't have any active blocks.",
-
-        # Current Status
-        'current_status': 'Current Band/Mode Status',
-        'status_info': 'View all currently blocked band/mode combinations.',
-        'band': 'Band',
-        'mode': 'Mode',
-        'operator': 'Operator',
-        'blocked_at': 'Blocked At',
-        'summary': 'Summary',
-        'total_blocks': 'Total Blocks',
-        'bands_in_use': 'Bands in Use',
-        'blocks_by_band': 'Blocks by Band',
-        'no_blocks_active': 'No bands/modes are currently blocked. All frequencies are available!',
-
         # Settings
+        'tab_settings': 'Settings',
         'settings': 'Settings',
         'change_password': 'Change Password',
-        'admin_password_env': 'Admin password is configured via environment variables (ADMIN_PASSWORD).',
         'current_password': 'Current Password',
+        'admin_password_env': 'Administrator password is configured via environment variables and cannot be changed here.',
 
-        # Language
-        'language': 'Language',
-        'select_language': 'Select Language',
-
-        # Admin Block Management
-        'tab_manage_blocks': 'Manage Blocks',
-        'manage_all_blocks': 'Manage All Blocks',
-        'manage_blocks_info': 'View and release blocks from any operator',
-        'unblock_selected': 'Unblock',
-        'no_blocks_to_manage': 'No active blocks to manage',
-
-        # Timeline
-        'tab_timeline': 'Timeline',
-        'timeline_title': 'Blocks Visualization',
-        'timeline_info': 'Graphic representation of current band/mode blocks',
-        'free': 'Free',
-
-        # Award Management
-        'tab_manage_awards': 'Manage Awards',
-        'award_management': 'Award Management',
-        'award_management_info': 'Create and manage awards. Operators can select which award they want to work on.',
-        'create_new_award': 'Create New Award',
-        'award_name': 'Award Name',
+        # Special Callsign Management
+        'tab_manage_special_callsigns': 'Manage Special Callsigns',
+        'special_callsign_management': 'Special Callsign Management',
+        'special_callsign_management_info': 'Create and manage special callsigns. Operators can select which special callsign they want to work on.',
+        'create_new_special_callsign': 'Create New Special Callsign',
+        'special_callsign_name': 'Special Callsign Name',
         'description': 'Description',
         'start_date': 'Start Date',
         'end_date': 'End Date',
-        'create_award': 'Create Award',
-        'error_award_name_required': 'Award name is required',
-        'existing_awards': 'Existing Awards',
+        'create_special_callsign': 'Create Special Callsign',
+        'error_special_callsign_name_required': 'Special callsign name is required',
+        'existing_special_callsigns': 'Existing Special Callsigns',
         'no_description': 'No description',
         'not_set': 'Not set',
         'status': 'Status',
@@ -163,22 +123,22 @@ TRANSLATIONS = {
         'inactive': 'Inactive',
         'created_label': 'Created',
         'toggle_status': 'Toggle Status',
-        'delete_award': 'Delete Award',
-        'no_awards_created': 'No awards created yet',
-        'error_no_awards_admin': 'No active awards available. Please create or activate an award in the Admin Panel.',
-        'error_no_awards_operator': 'No active awards available. Please contact an administrator to create an award.',
-        'select_award': 'Select Award',
-        'award_information': 'Award Information',
+        'delete_special_callsign': 'Delete Special Callsign',
+        'no_special_callsigns_created': 'No special callsigns created yet',
+        'error_no_special_callsigns_admin': 'No active special callsigns available. Please create or activate a special callsign in the Admin Panel.',
+        'error_no_special_callsigns_operator': 'No active special callsigns available. Please contact an administrator to create a special callsign.',
+        'select_special_callsign': 'Select Special Callsign',
+        'special_callsign_information': 'Special Callsign Information',
         'start_label': 'Start',
         'end_label': 'End',
-        'filter_by_award': 'Filter by Award',
-        'no_awards_exist': 'No awards exist yet',
+        'filter_by_special_callsign': 'Filter by Special Callsign',
+        'no_special_callsigns_exist': 'No special callsigns exist yet',
 
         # Activity Dashboard
         'tab_activity_dashboard': 'Activity Dashboard',
         'activity_dashboard': 'Activity Dashboard',
-        'error_no_award_selected': 'No active award selected. Please create or activate an award in the Admin Panel.',
-        'activity_dashboard_info': 'Real-time heatmap showing band/mode availability. Hover over cells for details.',
+        'error_no_special_callsign_selected': 'No active special callsign selected. Please create or activate a special callsign in the Admin Panel.',
+        'activity_dashboard_info': 'Real-time heatmap showing band/mode availability. Click on cells to block/unblock. Hover for details.',
         'free_status': 'Free',
         'status_available': 'Status: Available',
         'band_mode_matrix': 'Band/Mode Availability Matrix',
@@ -195,25 +155,29 @@ TRANSLATIONS = {
         'confirm_unblock': 'Do you want to unblock',
         'confirm': 'Confirm',
         'cancel': 'Cancel',
+
+        # Language
+        'language': 'Language',
+        'select_language': 'Select Language',
     },
     'es': {
         # General
-        'app_title': 'QuendAward: Herramienta de Coordinación de Operadores para Premios de Radio Aficionados',
+        'app_title': 'QuendAward: Herramienta de Coordinación de Operadores para Indicativos Especiales',
         'welcome': 'Bienvenido',
         'admin': 'Administrador',
         'admin_privileges': 'Privilegios de administrador activos',
-        'logout': 'Cerrar Sesión',
+        'logout': 'Cerrar sesión',
 
         # Login
         'operator_login': 'Inicio de Sesión de Operador',
         'callsign': 'Indicativo',
         'password': 'Contraseña',
-        'login': 'Iniciar Sesión',
-        'login_button': 'Iniciar Sesión',
+        'login': 'Iniciar sesión',
+        'login_button': 'Iniciar sesión',
 
         # Errors and messages
         'error_admin_not_configured': '¡Credenciales de administrador no configuradas!',
-        'error_set_env_vars': 'Por favor configure las siguientes variables de entorno:',
+        'error_set_env_vars': 'Por favor establezca las siguientes variables de entorno:',
         'error_enter_credentials': 'Por favor ingrese indicativo y contraseña',
         'error_fill_all_fields': 'Por favor complete todos los campos',
         'error_passwords_not_match': 'Las contraseñas no coinciden',
@@ -230,7 +194,7 @@ TRANSLATIONS = {
 
         # Create Operator
         'create_new_operator': 'Crear Nuevo Operador',
-        'create_operator_info': 'Cree una nueva cuenta de operador y proporcione las credenciales.',
+        'create_operator_info': 'Cree una nueva cuenta de operador y proporciónele sus credenciales.',
         'operator_name': 'Nombre del Operador',
         'confirm_password': 'Confirmar Contraseña',
         'create_operator': 'Crear Operador',
@@ -246,108 +210,68 @@ TRANSLATIONS = {
         'yes': 'Sí',
         'no': 'No',
         'delete_operator': 'Eliminar Operador',
-        'delete_operator_warning': 'Eliminar un operador también eliminará todos sus bloqueos activos',
-        'select_operator_to_delete': 'Seleccione el operador a eliminar',
+        'delete_operator_warning': '⚠️ Advertencia: Eliminar un operador eliminará todos sus bloqueos y es irreversible.',
+        'select_operator_to_delete': 'Seleccione operador para eliminar',
         'no_operators': 'No hay operadores en el sistema',
 
         # Manage Admins
         'manage_admin_roles': 'Gestionar Roles de Administrador',
-        'promote_operator': 'Promover a Administrador',
-        'promote_info': 'Otorgar privilegios de administrador a un operador',
-        'select_operator_to_promote': 'Seleccione el operador a promover',
+        'promote_operator': 'Promover Operador a Administrador',
+        'promote_info': 'Otorgar privilegios de administrador a un operador. Podrá gestionar operadores e indicativos especiales.',
+        'select_operator_to_promote': 'Seleccione operador para promover',
         'promote': 'Promover a Administrador',
-        'demote_operator': 'Degradar de Administrador',
-        'demote_info': 'Eliminar privilegios de administrador de un operador',
-        'select_operator_to_demote': 'Seleccione el operador a degradar',
+        'no_operators_to_promote': 'Todos los operadores ya son administradores',
+        'demote_operator': 'Degradar Operador de Administrador',
+        'demote_info': 'Quitar privilegios de administrador a un operador. Se convertirá en un operador regular.',
+        'select_operator_to_demote': 'Seleccione administrador para degradar',
         'demote': 'Degradar de Administrador',
-        'no_operators_to_promote': 'No hay operadores regulares para promover',
-        'no_operators_to_demote': 'No hay administradores de base de datos para degradar',
+        'no_operators_to_demote': 'No hay operadores administradores para degradar',
 
         # Reset Password
-        'reset_operator_password': 'Restablecer Contraseña del Operador',
-        'reset_password_info': 'Restablezca la contraseña de un operador y proporciónele las nuevas credenciales.',
-        'select_operator': 'Seleccionar operador',
+        'reset_operator_password': 'Restablecer Contraseña de Operador',
+        'reset_password_info': 'Restablezca la contraseña de cualquier operador.',
+        'select_operator': 'Seleccione Operador',
         'new_password': 'Nueva Contraseña',
         'confirm_new_password': 'Confirmar Nueva Contraseña',
         'reset_password': 'Restablecer Contraseña',
         'new_credentials_for': 'Nuevas credenciales para',
         'error_enter_password': 'Por favor ingrese una contraseña',
 
-        # System Stats
+        # Manage Blocks
+        'tab_manage_blocks': 'Gestionar Bloqueos',
+        'manage_all_blocks': 'Gestionar Todos los Bloqueos',
+        'manage_blocks_info': 'Ver y gestionar todos los bloqueos de banda/modo activos de todos los operadores.',
+        'operator': 'Operador',
+        'blocked_at': 'Bloqueado el',
+        'unblock_selected': 'Desbloquear',
+        'no_blocks_to_manage': 'No hay bloqueos activos',
+
+        # System Statistics
         'system_statistics': 'Estadísticas del Sistema',
         'total_operators': 'Total de Operadores',
         'active_operators': 'Operadores Activos',
         'active_blocks': 'Bloqueos Activos',
         'total_admins': 'Total de Administradores',
 
-        # Operator Panel Tabs
-        'tab_block': 'Bloquear Banda/Modo',
-        'tab_unblock': 'Desbloquear Banda/Modo',
-        'tab_status': 'Estado Actual',
-        'tab_settings': 'Configuración',
-
-        # Block Band/Mode
-        'block_band_mode': 'Bloquear una Banda y Modo',
-        'block_info': 'Bloquee una combinación de banda/modo para evitar que otros operadores la usen mientras está activo.',
-        'select_band': 'Seleccionar Banda',
-        'select_mode': 'Seleccionar Modo',
-        'block': 'Bloquear',
-
-        # Unblock Band/Mode
-        'unblock_band_mode': 'Desbloquear una Banda y Modo',
-        'unblock_info': 'Libere una combinación de banda/modo cuando haya terminado.',
-        'your_current_blocks': 'Sus bloqueos actuales:',
-        'unblock': 'Desbloquear',
-        'no_active_blocks': 'No tiene bloqueos activos.',
-
-        # Current Status
-        'current_status': 'Estado Actual de Banda/Modo',
-        'status_info': 'Ver todas las combinaciones de banda/modo bloqueadas actualmente.',
-        'band': 'Banda',
-        'mode': 'Modo',
-        'operator': 'Operador',
-        'blocked_at': 'Bloqueado en',
-        'summary': 'Resumen',
-        'total_blocks': 'Total de Bloqueos',
-        'bands_in_use': 'Bandas en Uso',
-        'blocks_by_band': 'Bloqueos por Banda',
-        'no_blocks_active': '¡No hay bandas/modos bloqueados actualmente. Todas las frecuencias están disponibles!',
-
         # Settings
+        'tab_settings': 'Configuración',
         'settings': 'Configuración',
         'change_password': 'Cambiar Contraseña',
-        'admin_password_env': 'La contraseña de administrador se configura mediante variables de entorno (ADMIN_PASSWORD).',
         'current_password': 'Contraseña Actual',
+        'admin_password_env': 'La contraseña del administrador está configurada mediante variables de entorno y no se puede cambiar aquí.',
 
-        # Language
-        'language': 'Idioma',
-        'select_language': 'Seleccionar Idioma',
-
-        # Admin Block Management
-        'tab_manage_blocks': 'Gestionar Bloqueos',
-        'manage_all_blocks': 'Gestionar Todos los Bloqueos',
-        'manage_blocks_info': 'Ver y liberar bloqueos de cualquier operador',
-        'unblock_selected': 'Desbloquear',
-        'no_blocks_to_manage': 'No hay bloqueos activos para gestionar',
-
-        # Timeline
-        'tab_timeline': 'Línea Temporal',
-        'timeline_title': 'Visualización de Bloqueos',
-        'timeline_info': 'Representación gráfica de los bloqueos de banda/modo actuales',
-        'free': 'Libre',
-
-        # Award Management
-        'tab_manage_awards': 'Gestionar Premios',
-        'award_management': 'Gestión de Premios',
-        'award_management_info': 'Crear y gestionar premios. Los operadores pueden seleccionar en qué premio quieren trabajar.',
-        'create_new_award': 'Crear Nuevo Premio',
-        'award_name': 'Nombre del Premio',
+        # Special Callsign Management
+        'tab_manage_special_callsigns': 'Gestionar Indicativos Especiales',
+        'special_callsign_management': 'Gestión de Indicativos Especiales',
+        'special_callsign_management_info': 'Crear y gestionar indicativos especiales. Los operadores pueden seleccionar en qué indicativo especial quieren trabajar.',
+        'create_new_special_callsign': 'Crear Nuevo Indicativo Especial',
+        'special_callsign_name': 'Nombre del Indicativo Especial',
         'description': 'Descripción',
         'start_date': 'Fecha de Inicio',
         'end_date': 'Fecha de Fin',
-        'create_award': 'Crear Premio',
-        'error_award_name_required': 'El nombre del premio es obligatorio',
-        'existing_awards': 'Premios Existentes',
+        'create_special_callsign': 'Crear Indicativo Especial',
+        'error_special_callsign_name_required': 'El nombre del indicativo especial es obligatorio',
+        'existing_special_callsigns': 'Indicativos Especiales Existentes',
         'no_description': 'Sin descripción',
         'not_set': 'No establecido',
         'status': 'Estado',
@@ -355,22 +279,22 @@ TRANSLATIONS = {
         'inactive': 'Inactivo',
         'created_label': 'Creado',
         'toggle_status': 'Cambiar Estado',
-        'delete_award': 'Eliminar Premio',
-        'no_awards_created': 'No se han creado premios todavía',
-        'error_no_awards_admin': 'No hay premios activos disponibles. Por favor cree o active un premio en el Panel de Administración.',
-        'error_no_awards_operator': 'No hay premios activos disponibles. Por favor contacte con un administrador para crear un premio.',
-        'select_award': 'Seleccionar Premio',
-        'award_information': 'Información del Premio',
+        'delete_special_callsign': 'Eliminar Indicativo Especial',
+        'no_special_callsigns_created': 'No se han creado indicativos especiales todavía',
+        'error_no_special_callsigns_admin': 'No hay indicativos especiales activos disponibles. Por favor cree o active un indicativo especial en el Panel de Administración.',
+        'error_no_special_callsigns_operator': 'No hay indicativos especiales activos disponibles. Por favor contacte con un administrador para crear un indicativo especial.',
+        'select_special_callsign': 'Seleccionar Indicativo Especial',
+        'special_callsign_information': 'Información del Indicativo Especial',
         'start_label': 'Inicio',
         'end_label': 'Fin',
-        'filter_by_award': 'Filtrar por Premio',
-        'no_awards_exist': 'No existen premios todavía',
+        'filter_by_special_callsign': 'Filtrar por Indicativo Especial',
+        'no_special_callsigns_exist': 'No existen indicativos especiales todavía',
 
         # Activity Dashboard
         'tab_activity_dashboard': 'Panel de Actividad',
         'activity_dashboard': 'Panel de Actividad',
-        'error_no_award_selected': 'No hay premio activo seleccionado. Por favor cree o active un premio en el Panel de Administración.',
-        'activity_dashboard_info': 'Mapa de calor en tiempo real mostrando la disponibilidad de banda/modo. Pase el cursor sobre las celdas para ver detalles.',
+        'error_no_special_callsign_selected': 'No hay indicativo especial activo seleccionado. Por favor cree o active un indicativo especial en el Panel de Administración.',
+        'activity_dashboard_info': 'Mapa de calor en tiempo real mostrando la disponibilidad de banda/modo. Haga clic en las celdas para bloquear/desbloquear. Pase el cursor para ver detalles.',
         'free_status': 'Libre',
         'status_available': 'Estado: Disponible',
         'band_mode_matrix': 'Matriz de Disponibilidad de Banda/Modo',
@@ -387,26 +311,30 @@ TRANSLATIONS = {
         'confirm_unblock': '¿Desea desbloquear',
         'confirm': 'Confirmar',
         'cancel': 'Cancelar',
+
+        # Language
+        'language': 'Idioma',
+        'select_language': 'Seleccionar Idioma',
     },
     'gl': {
         # General
-        'app_title': 'QuendAward: Ferramenta de Coordinación de Operadores para Premios de Radio Aficionados',
+        'app_title': 'QuendAward: Ferramenta de Coordinación de Operadores para Indicativos Especiais',
         'welcome': 'Benvido',
         'admin': 'Administrador',
         'admin_privileges': 'Privilexios de administrador activos',
-        'logout': 'Pechar Sesión',
+        'logout': 'Pechar sesión',
 
         # Login
         'operator_login': 'Inicio de Sesión de Operador',
         'callsign': 'Indicativo',
         'password': 'Contrasinal',
-        'login': 'Iniciar Sesión',
-        'login_button': 'Iniciar Sesión',
+        'login': 'Iniciar sesión',
+        'login_button': 'Iniciar sesión',
 
         # Errors and messages
         'error_admin_not_configured': 'Credenciais de administrador non configuradas!',
-        'error_set_env_vars': 'Por favor configure as seguintes variables de contorno:',
-        'error_enter_credentials': 'Por favor introduza indicativo e contrasinal',
+        'error_set_env_vars': 'Por favor estableza as seguintes variables de contorno:',
+        'error_enter_credentials': 'Por favor ingrese indicativo e contrasinal',
         'error_fill_all_fields': 'Por favor complete todos os campos',
         'error_passwords_not_match': 'Os contrasinais non coinciden',
         'error_password_min_length': 'O contrasinal debe ter polo menos 6 caracteres',
@@ -422,13 +350,13 @@ TRANSLATIONS = {
 
         # Create Operator
         'create_new_operator': 'Crear Novo Operador',
-        'create_operator_info': 'Cree unha nova conta de operador e proporciónelle as credenciais.',
+        'create_operator_info': 'Cree unha nova conta de operador e proporciónelle as súas credenciais.',
         'operator_name': 'Nome do Operador',
         'confirm_password': 'Confirmar Contrasinal',
         'create_operator': 'Crear Operador',
         'credentials_to_provide': 'Credenciais para proporcionar ao operador:',
         'is_admin': 'Privilexios de administrador',
-        'grant_admin_privileges': 'Conceder privilexios de administrador a este operador',
+        'grant_admin_privileges': 'Outorgar privilexios de administrador a este operador',
 
         # Manage Operators
         'all_operators': 'Todos os Operadores',
@@ -438,108 +366,68 @@ TRANSLATIONS = {
         'yes': 'Si',
         'no': 'Non',
         'delete_operator': 'Eliminar Operador',
-        'delete_operator_warning': 'Eliminar un operador tamén eliminará todos os seus bloqueos activos',
-        'select_operator_to_delete': 'Seleccione o operador a eliminar',
+        'delete_operator_warning': '⚠️ Advertencia: Eliminar un operador eliminará todos os seus bloqueos e é irreversible.',
+        'select_operator_to_delete': 'Seleccione operador para eliminar',
         'no_operators': 'Non hai operadores no sistema',
 
         # Manage Admins
         'manage_admin_roles': 'Xestionar Roles de Administrador',
-        'promote_operator': 'Promover a Administrador',
-        'promote_info': 'Conceder privilexios de administrador a un operador',
-        'select_operator_to_promote': 'Seleccione o operador a promover',
+        'promote_operator': 'Promover Operador a Administrador',
+        'promote_info': 'Outorgar privilexios de administrador a un operador. Poderá xestionar operadores e indicativos especiais.',
+        'select_operator_to_promote': 'Seleccione operador para promover',
         'promote': 'Promover a Administrador',
-        'demote_operator': 'Degradar de Administrador',
-        'demote_info': 'Eliminar privilexios de administrador dun operador',
-        'select_operator_to_demote': 'Seleccione o operador a degradar',
+        'no_operators_to_promote': 'Todos os operadores xa son administradores',
+        'demote_operator': 'Degradar Operador de Administrador',
+        'demote_info': 'Quitar privilexios de administrador a un operador. Converterase nun operador regular.',
+        'select_operator_to_demote': 'Seleccione administrador para degradar',
         'demote': 'Degradar de Administrador',
-        'no_operators_to_promote': 'Non hai operadores regulares para promover',
-        'no_operators_to_demote': 'Non hai administradores de base de datos para degradar',
+        'no_operators_to_demote': 'Non hai operadores administradores para degradar',
 
         # Reset Password
-        'reset_operator_password': 'Restablecer Contrasinal do Operador',
-        'reset_password_info': 'Restableza o contrasinal dun operador e proporciónelle as novas credenciais.',
-        'select_operator': 'Seleccionar operador',
+        'reset_operator_password': 'Restablecer Contrasinal de Operador',
+        'reset_password_info': 'Restabeza o contrasinal de calquera operador.',
+        'select_operator': 'Seleccione Operador',
         'new_password': 'Novo Contrasinal',
         'confirm_new_password': 'Confirmar Novo Contrasinal',
         'reset_password': 'Restablecer Contrasinal',
         'new_credentials_for': 'Novas credenciais para',
-        'error_enter_password': 'Por favor introduza un contrasinal',
+        'error_enter_password': 'Por favor ingrese un contrasinal',
 
-        # System Stats
+        # Manage Blocks
+        'tab_manage_blocks': 'Xestionar Bloqueos',
+        'manage_all_blocks': 'Xestionar Todos os Bloqueos',
+        'manage_blocks_info': 'Ver e xestionar todos os bloqueos de banda/modo activos de todos os operadores.',
+        'operator': 'Operador',
+        'blocked_at': 'Bloqueado o',
+        'unblock_selected': 'Desbloquear',
+        'no_blocks_to_manage': 'Non hai bloqueos activos',
+
+        # System Statistics
         'system_statistics': 'Estatísticas do Sistema',
         'total_operators': 'Total de Operadores',
         'active_operators': 'Operadores Activos',
         'active_blocks': 'Bloqueos Activos',
         'total_admins': 'Total de Administradores',
 
-        # Operator Panel Tabs
-        'tab_block': 'Bloquear Banda/Modo',
-        'tab_unblock': 'Desbloquear Banda/Modo',
-        'tab_status': 'Estado Actual',
-        'tab_settings': 'Configuración',
-
-        # Block Band/Mode
-        'block_band_mode': 'Bloquear unha Banda e Modo',
-        'block_info': 'Bloquee unha combinación de banda/modo para evitar que outros operadores a usen mentres está activo.',
-        'select_band': 'Seleccionar Banda',
-        'select_mode': 'Seleccionar Modo',
-        'block': 'Bloquear',
-
-        # Unblock Band/Mode
-        'unblock_band_mode': 'Desbloquear unha Banda e Modo',
-        'unblock_info': 'Libere unha combinación de banda/modo cando remate.',
-        'your_current_blocks': 'Os seus bloqueos actuais:',
-        'unblock': 'Desbloquear',
-        'no_active_blocks': 'Non ten bloqueos activos.',
-
-        # Current Status
-        'current_status': 'Estado Actual de Banda/Modo',
-        'status_info': 'Ver todas as combinacións de banda/modo bloqueadas actualmente.',
-        'band': 'Banda',
-        'mode': 'Modo',
-        'operator': 'Operador',
-        'blocked_at': 'Bloqueado en',
-        'summary': 'Resumo',
-        'total_blocks': 'Total de Bloqueos',
-        'bands_in_use': 'Bandas en Uso',
-        'blocks_by_band': 'Bloqueos por Banda',
-        'no_blocks_active': 'Non hai bandas/modos bloqueados actualmente. Todas as frecuencias están dispoñibles!',
-
         # Settings
+        'tab_settings': 'Configuración',
         'settings': 'Configuración',
         'change_password': 'Cambiar Contrasinal',
-        'admin_password_env': 'O contrasinal de administrador configúrase mediante variables de contorno (ADMIN_PASSWORD).',
         'current_password': 'Contrasinal Actual',
+        'admin_password_env': 'O contrasinal do administrador está configurado mediante variables de contorno e non se pode cambiar aquí.',
 
-        # Language
-        'language': 'Idioma',
-        'select_language': 'Seleccionar Idioma',
-
-        # Admin Block Management
-        'tab_manage_blocks': 'Xestionar Bloqueos',
-        'manage_all_blocks': 'Xestionar Todos os Bloqueos',
-        'manage_blocks_info': 'Ver e liberar bloqueos de calquera operador',
-        'unblock_selected': 'Desbloquear',
-        'no_blocks_to_manage': 'Non hai bloqueos activos para xestionar',
-
-        # Timeline
-        'tab_timeline': 'Liña Temporal',
-        'timeline_title': 'Visualización de Bloqueos',
-        'timeline_info': 'Representación gráfica dos bloqueos de banda/modo actuais',
-        'free': 'Libre',
-
-        # Award Management
-        'tab_manage_awards': 'Xestionar Premios',
-        'award_management': 'Xestión de Premios',
-        'award_management_info': 'Crear e xestionar premios. Os operadores poden seleccionar en que premio queren traballar.',
-        'create_new_award': 'Crear Novo Premio',
-        'award_name': 'Nome do Premio',
+        # Special Callsign Management
+        'tab_manage_special_callsigns': 'Xestionar Indicativos Especiais',
+        'special_callsign_management': 'Xestión de Indicativos Especiais',
+        'special_callsign_management_info': 'Crear e xestionar indicativos especiais. Os operadores poden seleccionar en que indicativo especial queren traballar.',
+        'create_new_special_callsign': 'Crear Novo Indicativo Especial',
+        'special_callsign_name': 'Nome do Indicativo Especial',
         'description': 'Descrición',
         'start_date': 'Data de Inicio',
         'end_date': 'Data de Fin',
-        'create_award': 'Crear Premio',
-        'error_award_name_required': 'O nome do premio é obrigatorio',
-        'existing_awards': 'Premios Existentes',
+        'create_special_callsign': 'Crear Indicativo Especial',
+        'error_special_callsign_name_required': 'O nome do indicativo especial é obrigatorio',
+        'existing_special_callsigns': 'Indicativos Especiais Existentes',
         'no_description': 'Sen descrición',
         'not_set': 'Non establecido',
         'status': 'Estado',
@@ -547,22 +435,22 @@ TRANSLATIONS = {
         'inactive': 'Inactivo',
         'created_label': 'Creado',
         'toggle_status': 'Cambiar Estado',
-        'delete_award': 'Eliminar Premio',
-        'no_awards_created': 'Non se crearon premios aínda',
-        'error_no_awards_admin': 'Non hai premios activos dispoñibles. Por favor cree ou active un premio no Panel de Administración.',
-        'error_no_awards_operator': 'Non hai premios activos dispoñibles. Por favor contacte cun administrador para crear un premio.',
-        'select_award': 'Seleccionar Premio',
-        'award_information': 'Información do Premio',
+        'delete_special_callsign': 'Eliminar Indicativo Especial',
+        'no_special_callsigns_created': 'Non se crearon indicativos especiais aínda',
+        'error_no_special_callsigns_admin': 'Non hai indicativos especiais activos dispoñibles. Por favor cree ou active un indicativo especial no Panel de Administración.',
+        'error_no_special_callsigns_operator': 'Non hai indicativos especiais activos dispoñibles. Por favor contacte cun administrador para crear un indicativo especial.',
+        'select_special_callsign': 'Seleccionar Indicativo Especial',
+        'special_callsign_information': 'Información do Indicativo Especial',
         'start_label': 'Inicio',
         'end_label': 'Fin',
-        'filter_by_award': 'Filtrar por Premio',
-        'no_awards_exist': 'Non existen premios aínda',
+        'filter_by_special_callsign': 'Filtrar por Indicativo Especial',
+        'no_special_callsigns_exist': 'Non existen indicativos especiais aínda',
 
         # Activity Dashboard
         'tab_activity_dashboard': 'Panel de Actividade',
         'activity_dashboard': 'Panel de Actividade',
-        'error_no_award_selected': 'Non hai premio activo seleccionado. Por favor cree ou active un premio no Panel de Administración.',
-        'activity_dashboard_info': 'Mapa de calor en tempo real mostrando a dispoñibilidade de banda/modo. Pase o cursor sobre as celas para ver detalles.',
+        'error_no_special_callsign_selected': 'Non hai indicativo especial activo seleccionado. Por favor cree ou active un indicativo especial no Panel de Administración.',
+        'activity_dashboard_info': 'Mapa de calor en tempo real mostrando a dispoñibilidade de banda/modo. Faga clic nas celas para bloquear/desbloquear. Pase o cursor para ver detalles.',
         'free_status': 'Libre',
         'status_available': 'Estado: Dispoñible',
         'band_mode_matrix': 'Matriz de Dispoñibilidade de Banda/Modo',
@@ -579,6 +467,10 @@ TRANSLATIONS = {
         'confirm_unblock': 'Desexa desbloquear',
         'confirm': 'Confirmar',
         'cancel': 'Cancelar',
+
+        # Language
+        'language': 'Idioma',
+        'select_language': 'Seleccionar Idioma',
     }
 }
 
@@ -589,13 +481,9 @@ AVAILABLE_LANGUAGES = {
 }
 
 def get_text(key: str, lang: str = 'en') -> str:
-    """Get translated text for a given key and language."""
-    if lang not in TRANSLATIONS:
-        lang = 'en'
-    return TRANSLATIONS[lang].get(key, key)
+    """Get a single translation string."""
+    return TRANSLATIONS.get(lang, {}).get(key, key)
 
 def get_all_texts(lang: str = 'en') -> dict:
-    """Get all translated texts for a language."""
-    if lang not in TRANSLATIONS:
-        lang = 'en'
-    return TRANSLATIONS[lang]
+    """Get all translations for a language."""
+    return TRANSLATIONS.get(lang, TRANSLATIONS['en'])

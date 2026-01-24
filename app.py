@@ -120,7 +120,7 @@ def admin_panel():
         t['tab_reset_password'],
         t['tab_manage_blocks'],
         t['tab_system_stats'],
-        f"🏆 {t['tab_manage_awards']}"
+        f"🏆 {t['tab_manage_special_callsigns']}"
     ])
 
     with admin_tab1:
@@ -195,7 +195,20 @@ def operator_panel():
     if st.session_state.is_admin:
         st.info(f"🔑 {t['admin_privileges']}")
 
-     # Logout and language selector
+    # Special callsign selector
+    active_awards = db.get_active_awards()
+    if not active_awards:
+        if st.session_state.is_admin:
+            st.warning(f"⚠️ {t['error_no_special_callsigns_admin']}")
+            st.session_state.current_award_id = None
+        else:
+            st.error(f"⚠️ {t['error_no_special_callsigns_operator']}")
+            st.stop()
+
+    if active_awards:
+        render_award_selector(active_awards, t)
+
+    # Logout and language selector
     col1, col2, col3 = st.columns([4, 1, 1])
     with col2:
         render_language_selector(t, key_suffix="_panel")
@@ -210,19 +223,6 @@ def operator_panel():
             st.session_state.is_admin = False
             st.session_state.is_env_admin = False
             st.rerun()
-
-    # Award selector
-    active_awards = db.get_active_awards()
-    if not active_awards:
-        if st.session_state.is_admin:
-            st.warning(f"⚠️ {t['error_no_awards_admin']}")
-            st.session_state.current_award_id = None
-        else:
-            st.error(f"⚠️ {t['error_no_awards_operator']}")
-            st.stop()
-
-    if active_awards:
-        render_award_selector(active_awards, t)
 
     # Main tabs - add admin tab if user is admin
     if st.session_state.is_admin:
@@ -253,7 +253,7 @@ def operator_panel():
 def main():
     """Main application entry point."""
     st.set_page_config(
-        page_title="QuendAward: Ham Radio Award Operator Coordination Tool",
+        page_title="QuendAward: Special Callsign Operator Coordination Tool",
         page_icon="🎙️",
         layout="wide"
     )

@@ -166,11 +166,11 @@ def render_manage_blocks_tab(t):
     st.subheader(t['manage_all_blocks'])
     st.info(t['manage_blocks_info'])
 
-    # Award filter for admin
+    # Special callsign filter for admin
     all_awards_admin = db.get_all_awards()
     if all_awards_admin:
         selected_admin_award = st.selectbox(
-            t['filter_by_award'],
+            t['filter_by_special_callsign'],
             options=[award['id'] for award in all_awards_admin],
             format_func=lambda x: next((a['name'] for a in all_awards_admin if a['id'] == x), ''),
             key="admin_award_filter"
@@ -178,7 +178,7 @@ def render_manage_blocks_tab(t):
         all_blocks = db.get_all_blocks(selected_admin_award)
     else:
         all_blocks = []
-        st.warning(t['no_awards_exist'])
+        st.warning(t['no_special_callsigns_exist'])
 
     if all_blocks:
         for block in all_blocks:
@@ -221,14 +221,14 @@ def render_system_stats_tab(t):
 
 
 def render_award_management_tab(t):
-    """Render the award management tab."""
-    st.subheader(f"🏆 {t['award_management']}")
-    st.info(t['award_management_info'])
+    """Render the special callsign management tab."""
+    st.subheader(f"🏆 {t['special_callsign_management']}")
+    st.info(t['special_callsign_management_info'])
 
-    # Create new award
-    st.subheader(t['create_new_award'])
+    # Create new special callsign
+    st.subheader(t['create_new_special_callsign'])
     with st.form("create_award_form"):
-        award_name = st.text_input(t['award_name'], max_chars=100, key="new_award_name")
+        award_name = st.text_input(t['special_callsign_name'], max_chars=100, key="new_award_name")
         award_description = st.text_area(t['description'], max_chars=500, key="new_award_desc")
         col1, col2 = st.columns(2)
         with col1:
@@ -236,11 +236,11 @@ def render_award_management_tab(t):
         with col2:
             end_date = st.date_input(t['end_date'], key="new_award_end")
 
-        submit = st.form_submit_button(t['create_award'], type="primary")
+        submit = st.form_submit_button(t['create_special_callsign'], type="primary")
 
         if submit:
             if not award_name:
-                st.error(t['error_award_name_required'])
+                st.error(t['error_special_callsign_name_required'])
             else:
                 start_str = start_date.strftime("%Y-%m-%d") if start_date else ""
                 end_str = end_date.strftime("%Y-%m-%d") if end_date else ""
@@ -253,8 +253,8 @@ def render_award_management_tab(t):
 
     st.divider()
 
-    # List and manage existing awards
-    st.subheader(t['existing_awards'])
+    # List and manage existing special callsigns
+    st.subheader(t['existing_special_callsigns'])
     awards = db.get_all_awards()
 
     if awards:
@@ -276,7 +276,7 @@ def render_award_management_tab(t):
                         else:
                             st.error(message)
                 with col2:
-                    if st.button(t['delete_award'], key=f"delete_award_{award['id']}", type="secondary"):
+                    if st.button(t['delete_special_callsign'], key=f"delete_award_{award['id']}", type="secondary"):
                         success, message = db.delete_award(award['id'])
                         if success:
                             st.success(message)
@@ -284,4 +284,4 @@ def render_award_management_tab(t):
                         else:
                             st.error(message)
     else:
-        st.info(t['no_awards_created'])
+        st.info(t['no_special_callsigns_created'])
