@@ -63,8 +63,7 @@ def create_availability_heatmap(all_blocks, t):
         ],
         showscale=False,
         xgap=2,
-        ygap=2,
-        textangle=0
+        ygap=2
     ))
 
     # Update layout
