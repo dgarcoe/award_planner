@@ -155,6 +155,8 @@ TRANSLATIONS = {
         'confirm_unblock': 'Do you want to unblock',
         'confirm': 'Confirm',
         'cancel': 'Cancel',
+        'modal_block_title': 'Block Band/Mode',
+        'modal_unblock_title': 'Unblock Band/Mode',
 
         # Language
         'language': 'Language',
@@ -335,6 +337,8 @@ TRANSLATIONS = {
         'confirm_unblock': '¿Desea desbloquear',
         'confirm': 'Confirmar',
         'cancel': 'Cancelar',
+        'modal_block_title': 'Bloquear Banda/Modo',
+        'modal_unblock_title': 'Desbloquear Banda/Modo',
 
         # Language
         'language': 'Idioma',
@@ -515,6 +519,8 @@ TRANSLATIONS = {
         'confirm_unblock': 'Desexa desbloquear',
         'confirm': 'Confirmar',
         'cancel': 'Cancelar',
+        'modal_block_title': 'Bloquear Banda/Modo',
+        'modal_unblock_title': 'Desbloquear Banda/Modo',
 
         # Language
         'language': 'Idioma',

@@ -1,11 +1,10 @@
 """Reusable UI components for QuendAward application."""
 
 import streamlit as st
-from translations import AVAILABLE_LANGUAGES
+from translations import AVAILABLE_LANGUAGES, get_all_texts
 import database as db
 
 
-@st.dialog("📡 Block Band/Mode")
 def _show_block_modal(t, callsign, band, mode, award_id):
     """
     Show modal dialog to confirm blocking a band/mode combination.
@@ -17,25 +16,28 @@ def _show_block_modal(t, callsign, band, mode, award_id):
         mode: Mode to block
         award_id: Current award ID
     """
-    st.write(f"### {t.get('confirm_block', 'Do you want to block')} {band}/{mode}?")
-    st.write("")
+    @st.dialog(t.get('modal_block_title', 'Block Band/Mode'))
+    def _block_dialog():
+        st.write(f"### {t.get('confirm_block', 'Do you want to block')} {band}/{mode}?")
+        st.write("")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button(f"✅ {t.get('confirm', 'Confirm')}", key="modal_confirm_block", type="primary", use_container_width=True):
-            success, message = db.block_band_mode(callsign, band, mode, award_id)
-            if success:
-                st.success(message)
-                st.session_state.modal_result = 'success'
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button(f"✅ {t.get('confirm', 'Confirm')}", key="modal_confirm_block", type="primary", use_container_width=True):
+                success, message = db.block_band_mode(callsign, band, mode, award_id)
+                if success:
+                    st.success(message)
+                    st.session_state.modal_result = 'success'
+                    st.rerun()
+                else:
+                    st.error(message)
+        with col2:
+            if st.button(f"❌ {t.get('cancel', 'Cancel')}", key="modal_cancel_block", use_container_width=True):
                 st.rerun()
-            else:
-                st.error(message)
-    with col2:
-        if st.button(f"❌ {t.get('cancel', 'Cancel')}", key="modal_cancel_block", use_container_width=True):
-            st.rerun()
+
+    _block_dialog()
 
 
-@st.dialog("🔓 Unblock Band/Mode")
 def _show_unblock_modal(t, callsign, band, mode, award_id):
     """
     Show modal dialog to confirm unblocking a band/mode combination.
@@ -47,22 +49,26 @@ def _show_unblock_modal(t, callsign, band, mode, award_id):
         mode: Mode to unblock
         award_id: Current award ID
     """
-    st.write(f"### {t.get('confirm_unblock', 'Do you want to unblock')} {band}/{mode}?")
-    st.write("")
+    @st.dialog(t.get('modal_unblock_title', 'Unblock Band/Mode'))
+    def _unblock_dialog():
+        st.write(f"### {t.get('confirm_unblock', 'Do you want to unblock')} {band}/{mode}?")
+        st.write("")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button(f"✅ {t.get('confirm', 'Confirm')}", key="modal_confirm_unblock", type="primary", use_container_width=True):
-            success, message = db.unblock_band_mode(callsign, band, mode, award_id)
-            if success:
-                st.success(message)
-                st.session_state.modal_result = 'success'
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button(f"✅ {t.get('confirm', 'Confirm')}", key="modal_confirm_unblock", type="primary", use_container_width=True):
+                success, message = db.unblock_band_mode(callsign, band, mode, award_id)
+                if success:
+                    st.success(message)
+                    st.session_state.modal_result = 'success'
+                    st.rerun()
+                else:
+                    st.error(message)
+        with col2:
+            if st.button(f"❌ {t.get('cancel', 'Cancel')}", key="modal_cancel_unblock", use_container_width=True):
                 st.rerun()
-            else:
-                st.error(message)
-    with col2:
-        if st.button(f"❌ {t.get('cancel', 'Cancel')}", key="modal_cancel_unblock", use_container_width=True):
-            st.rerun()
+
+    _unblock_dialog()
 
 
 def render_language_selector(t, key_suffix=""):
