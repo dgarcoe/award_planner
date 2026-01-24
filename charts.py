@@ -79,7 +79,7 @@ def create_availability_heatmap(all_blocks, t):
                     text=text_values[i][j],
                     showarrow=False,
                     font=dict(
-                        size=13,
+                        size=11,  # Reduced from 13 for better mobile fit
                         color=text_colors[i][j],
                         family="Arial, sans-serif"
                     ),
@@ -88,14 +88,14 @@ def create_availability_heatmap(all_blocks, t):
                 )
             )
 
-    # Update layout
+    # Update layout with responsive height
     fig.update_layout(
         title=t['band_mode_matrix'],
         xaxis_title=t['mode_label'],
         yaxis_title=t['band_label'],
-        height=650,
-        margin=dict(l=80, r=20, t=60, b=60),
-        font=dict(size=12),
+        height=450,  # Reduced from 650 for better mobile experience
+        margin=dict(l=60, r=10, t=50, b=40),  # Tighter margins for mobile
+        font=dict(size=11),  # Slightly smaller font
         plot_bgcolor=CHART_BACKGROUND,
         paper_bgcolor=CHART_BACKGROUND,
         xaxis=dict(side='top'),
@@ -132,7 +132,8 @@ def create_blocks_by_band_chart(all_blocks, t):
     fig.update_layout(
         xaxis_title=t['band_label'],
         yaxis_title=t['total_blocks_label'],
-        height=400,
+        height=300,  # Reduced from 400 for better mobile experience
+        margin=dict(l=50, r=10, t=30, b=40),  # Tighter margins
         plot_bgcolor=CHART_BACKGROUND,
         paper_bgcolor=CHART_BACKGROUND,
         xaxis=dict(type='category')

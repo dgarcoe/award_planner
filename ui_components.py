@@ -217,12 +217,13 @@ def render_activity_dashboard(t, award_id, callsign=None):
     fig = create_availability_heatmap(all_blocks, t)
 
     # Use plotly_events to capture clicks
+    # Height reduced from 650 to 450 for better mobile experience
     selected_points = plotly_events(
         fig,
         click_event=True,
         hover_event=False,
         select_event=False,
-        override_height=650,
+        override_height=450,
         override_width="100%"
     )
 

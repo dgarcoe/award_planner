@@ -37,6 +37,9 @@ from admin_functions import (
     render_award_management_tab
 )
 
+# Import mobile styles
+from mobile_styles import inject_all_mobile_optimizations
+
 
 def init_session_state():
     """Initialize session state variables."""
@@ -253,6 +256,9 @@ def main():
         page_icon="🎙️",
         layout="wide"
     )
+
+    # Inject mobile-responsive styles
+    inject_all_mobile_optimizations()
 
     # Initialize session state
     init_session_state()
