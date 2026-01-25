@@ -63,6 +63,8 @@ def create_availability_heatmap(all_blocks, t):
             [0, CHART_COLOR_FREE],  # Green for FREE
             [1, CHART_COLOR_BLOCKED]   # Red for BLOCKED
         ],
+        zmin=0,  # Force minimum of color scale
+        zmax=1,  # Force maximum of color scale
         showscale=False,
         xgap=2,
         ygap=2
