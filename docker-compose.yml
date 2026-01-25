@@ -4,8 +4,8 @@ services:
   ham-coordinator:
     build: .
     container_name: ham-coordinator
-    ports:
-      - "8500:8501"
+    expose:
+      - "8501"
     volumes:
       - ./data:/app/data
     environment:
