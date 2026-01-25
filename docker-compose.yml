@@ -13,6 +13,8 @@ services:
       - ADMIN_CALLSIGN=${ADMIN_CALLSIGN}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
     restart: unless-stopped
+    networks:
+      - ea1rfi-network
 
 networks:
   ea1rfi-network:
