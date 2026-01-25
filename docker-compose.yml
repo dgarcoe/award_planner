@@ -10,6 +10,7 @@ services:
       - ./data:/app/data
     environment:
       - DATABASE_PATH=/app/data/ham_coordinator.db
+      - STREAMLIT_SERVER_BASE_URL_PATH=/quendaward
       - ADMIN_CALLSIGN=${ADMIN_CALLSIGN}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
     restart: unless-stopped
