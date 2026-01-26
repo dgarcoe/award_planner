@@ -278,4 +278,4 @@ def render_activity_dashboard(t, award_id, callsign=None):
     if all_blocks:
         st.subheader(t['blocks_by_band_label'])
         fig_bar = create_blocks_by_band_chart(all_blocks, t)
-        st.plotly_chart(fig_bar, use_container_width=True)
+        st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
