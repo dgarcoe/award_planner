@@ -27,12 +27,13 @@ def _show_block_modal(t, callsign, band, mode, award_id):
                 success, message = db.block_band_mode(callsign, band, mode, award_id)
                 if success:
                     st.success(message)
-                    st.session_state.modal_result = 'success'
                     st.rerun()
                 else:
                     st.error(message)
         with col2:
             if st.button(f"❌ {t.get('cancel', 'Cancel')}", key="modal_cancel_block", use_container_width=True):
+                # Set flag to ignore next click event
+                st.session_state.modal_cancelled = True
                 st.rerun()
 
     _block_dialog()
@@ -60,12 +61,13 @@ def _show_unblock_modal(t, callsign, band, mode, award_id):
                 success, message = db.unblock_band_mode(callsign, band, mode, award_id)
                 if success:
                     st.success(message)
-                    st.session_state.modal_result = 'success'
                     st.rerun()
                 else:
                     st.error(message)
         with col2:
             if st.button(f"❌ {t.get('cancel', 'Cancel')}", key="modal_cancel_unblock", use_container_width=True):
+                # Set flag to ignore next click event
+                st.session_state.modal_cancelled = True
                 st.rerun()
 
     _unblock_dialog()
@@ -239,34 +241,38 @@ def render_activity_dashboard(t, award_id, callsign=None):
 
     # Handle click events
     if selected_points and callsign:
-        point = selected_points[0]
-        # Get the clicked band and mode from pointIndex
-        # plotly_events returns pointIndex as [y, x] for heatmaps
-        if 'pointIndex' in point:
-            y_idx = point['pointIndex'][0]
-            x_idx = point['pointIndex'][1]
+        # Check if we just cancelled a modal - if so, skip this click
+        if st.session_state.get('modal_cancelled', False):
+            st.session_state.modal_cancelled = False
         else:
-            # Fallback to x, y if pointIndex not available
-            y_idx = point.get('y', 0)
-            x_idx = point.get('x', 0)
-
-        clicked_band = BANDS[y_idx]
-        clicked_mode = MODES[x_idx]
-
-        # Check if this combination is blocked
-        block_info = next((b for b in all_blocks if b['band'] == clicked_band and b['mode'] == clicked_mode), None)
-
-        if block_info:
-            # Cell is blocked
-            if block_info['operator_callsign'] == callsign:
-                # User's own block - show unblock modal
-                _show_unblock_modal(t, callsign, clicked_band, clicked_mode, award_id)
+            point = selected_points[0]
+            # Get the clicked band and mode from pointIndex
+            # plotly_events returns pointIndex as [y, x] for heatmaps
+            if 'pointIndex' in point:
+                y_idx = point['pointIndex'][0]
+                x_idx = point['pointIndex'][1]
             else:
-                # Someone else's block
-                st.warning(f"⚠️ {clicked_band}/{clicked_mode} {t.get('already_blocked_by', 'is already blocked by')} {block_info['operator_name']} ({block_info['operator_callsign']})")
-        else:
-            # Cell is free - show block modal
-            _show_block_modal(t, callsign, clicked_band, clicked_mode, award_id)
+                # Fallback to x, y if pointIndex not available
+                y_idx = point.get('y', 0)
+                x_idx = point.get('x', 0)
+
+            clicked_band = BANDS[y_idx]
+            clicked_mode = MODES[x_idx]
+
+            # Check if this combination is blocked
+            block_info = next((b for b in all_blocks if b['band'] == clicked_band and b['mode'] == clicked_mode), None)
+
+            if block_info:
+                # Cell is blocked
+                if block_info['operator_callsign'] == callsign:
+                    # User's own block - show unblock modal
+                    _show_unblock_modal(t, callsign, clicked_band, clicked_mode, award_id)
+                else:
+                    # Someone else's block
+                    st.warning(f"⚠️ {clicked_band}/{clicked_mode} {t.get('already_blocked_by', 'is already blocked by')} {block_info['operator_name']} ({block_info['operator_callsign']})")
+            else:
+                # Cell is free - show block modal
+                _show_block_modal(t, callsign, clicked_band, clicked_mode, award_id)
 
     # Show summary statistics
     st.divider()
