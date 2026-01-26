@@ -197,11 +197,9 @@ def operator_panel():
     st.title(f"🎙️ {t['app_title']}")
     st.subheader(f"{t['welcome']}, {st.session_state.operator_name} ({st.session_state.callsign})")
 
-    # Logout and language selector
-    col1, col2, col3 = st.columns([4, 1, 1])
+    # Logout button
+    col1, col2 = st.columns([5, 1])
     with col2:
-        render_language_selector(t, key_suffix="_panel")
-    with col3:
         if st.button(t['logout']):
             # Auto-liberate all blocks when logging out
             if st.session_state.callsign:
