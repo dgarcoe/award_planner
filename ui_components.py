@@ -220,6 +220,11 @@ def render_activity_dashboard(t, award_id, callsign=None):
     # Display heatmap with click events
     fig = create_availability_heatmap(all_blocks, t)
 
+    # Disable modebar in figure config
+    fig.update_layout(
+        modebar={'orientation': 'v', 'bgcolor': 'rgba(0,0,0,0)', 'color': 'rgba(0,0,0,0)', 'activecolor': 'rgba(0,0,0,0)'}
+    )
+
     # Use plotly_events to capture clicks
     # Height reduced from 650 to 450 for better mobile experience
     selected_points = plotly_events(
@@ -228,7 +233,8 @@ def render_activity_dashboard(t, award_id, callsign=None):
         hover_event=False,
         select_event=False,
         override_height=450,
-        override_width="100%"
+        override_width="100%",
+        key="heatmap_events"
     )
 
     # Handle click events
