@@ -16,6 +16,15 @@ def inject_mobile_styles():
     """
     mobile_css = """
     <style>
+    /* ====== GLOBAL STYLES (ALL DEVICES) ====== */
+
+    /* Hide Plotly modebar (toolbar) on all devices */
+    .modebar-container,
+    .modebar,
+    .modebar-group {
+        display: none !important;
+    }
+
     /* ====== MOBILE RESPONSIVE STYLES ====== */
     /* These styles only apply to screens smaller than 768px */
 
