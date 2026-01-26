@@ -92,7 +92,6 @@ def create_availability_heatmap(all_blocks, t):
 
     # Update layout with responsive height
     fig.update_layout(
-        title=dict(text=t['band_mode_matrix'], font=dict(color='white')),
         xaxis_title=t['mode_label'],
         yaxis_title=t['band_label'],
         height=450,  # Reduced from 650 for better mobile experience
