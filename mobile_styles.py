@@ -228,6 +228,30 @@ def inject_responsive_chart_script():
     responsive_script = """
     <script>
     (function() {
+        // Function to hide ALL modebars (toolbars) on all devices
+        function hideAllModebars() {
+            // Target all possible modebar elements
+            const modebars = document.querySelectorAll('.modebar-container, .modebar, .modebar-group, [class*="modebar"]');
+            modebars.forEach(function(el) {
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
+                el.remove();
+            });
+
+            // Also check inside iframes
+            const iframes = document.querySelectorAll('iframe');
+            iframes.forEach(function(iframe) {
+                try {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    const iframeModebars = iframeDoc.querySelectorAll('.modebar-container, .modebar, .modebar-group');
+                    iframeModebars.forEach(function(el) {
+                        el.style.display = 'none';
+                        el.remove();
+                    });
+                } catch(e) {}
+            });
+        }
+
         // Function to adjust plotly charts for mobile
         function adjustChartsForMobile() {
             const isMobile = window.innerWidth <= 768;
@@ -238,15 +262,11 @@ def inject_responsive_chart_script():
                     // Make chart scrollable on mobile
                     chart.style.overflowX = 'auto';
                     chart.style.overflowY = 'hidden';
-
-                    // Adjust the modebar (chart controls)
-                    const modebar = chart.querySelector('.modebar');
-                    if (modebar) {
-                        modebar.style.transform = 'scale(0.8)';
-                        modebar.style.transformOrigin = 'top right';
-                    }
                 }
             });
+
+            // Always hide modebars
+            hideAllModebars();
         }
 
         // Run on load and resize
