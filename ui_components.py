@@ -27,6 +27,8 @@ def _show_block_modal(t, callsign, band, mode, award_id):
                 success, message = db.block_band_mode(callsign, band, mode, award_id)
                 if success:
                     st.success(message)
+                    # Mark this click as processed so modal won't reopen
+                    st.session_state.last_processed_click = f"{band}_{mode}"
                     st.rerun()
                 else:
                     st.error(message)
@@ -61,6 +63,8 @@ def _show_unblock_modal(t, callsign, band, mode, award_id):
                 success, message = db.unblock_band_mode(callsign, band, mode, award_id)
                 if success:
                     st.success(message)
+                    # Mark this click as processed so modal won't reopen
+                    st.session_state.last_processed_click = f"{band}_{mode}"
                     st.rerun()
                 else:
                     st.error(message)
