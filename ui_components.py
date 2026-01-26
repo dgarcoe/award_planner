@@ -32,8 +32,8 @@ def _show_block_modal(t, callsign, band, mode, award_id):
                     st.error(message)
         with col2:
             if st.button(f"❌ {t.get('cancel', 'Cancel')}", key="modal_cancel_block", use_container_width=True):
-                # Set flag to ignore next click event
-                st.session_state.modal_cancelled = True
+                # Mark this click as processed so it won't reopen
+                st.session_state.last_processed_click = f"{band}_{mode}"
                 st.rerun()
 
     _block_dialog()
@@ -66,8 +66,8 @@ def _show_unblock_modal(t, callsign, band, mode, award_id):
                     st.error(message)
         with col2:
             if st.button(f"❌ {t.get('cancel', 'Cancel')}", key="modal_cancel_unblock", use_container_width=True):
-                # Set flag to ignore next click event
-                st.session_state.modal_cancelled = True
+                # Mark this click as processed so it won't reopen
+                st.session_state.last_processed_click = f"{band}_{mode}"
                 st.rerun()
 
     _unblock_dialog()
@@ -241,24 +241,25 @@ def render_activity_dashboard(t, award_id, callsign=None):
 
     # Handle click events
     if selected_points and callsign:
-        # Check if we just cancelled a modal - if so, skip this click
-        if st.session_state.get('modal_cancelled', False):
-            st.session_state.modal_cancelled = False
+        point = selected_points[0]
+        # Get the clicked band and mode from pointIndex
+        # plotly_events returns pointIndex as [y, x] for heatmaps
+        if 'pointIndex' in point:
+            y_idx = point['pointIndex'][0]
+            x_idx = point['pointIndex'][1]
         else:
-            point = selected_points[0]
-            # Get the clicked band and mode from pointIndex
-            # plotly_events returns pointIndex as [y, x] for heatmaps
-            if 'pointIndex' in point:
-                y_idx = point['pointIndex'][0]
-                x_idx = point['pointIndex'][1]
-            else:
-                # Fallback to x, y if pointIndex not available
-                y_idx = point.get('y', 0)
-                x_idx = point.get('x', 0)
+            # Fallback to x, y if pointIndex not available
+            y_idx = point.get('y', 0)
+            x_idx = point.get('x', 0)
 
-            clicked_band = BANDS[y_idx]
-            clicked_mode = MODES[x_idx]
+        clicked_band = BANDS[y_idx]
+        clicked_mode = MODES[x_idx]
 
+        # Create click key to track if we've already processed this click
+        click_key = f"{clicked_band}_{clicked_mode}"
+
+        # Only show modal if this is a new click (different from last processed)
+        if click_key != st.session_state.get('last_processed_click', ''):
             # Check if this combination is blocked
             block_info = next((b for b in all_blocks if b['band'] == clicked_band and b['mode'] == clicked_mode), None)
 
@@ -273,6 +274,10 @@ def render_activity_dashboard(t, award_id, callsign=None):
             else:
                 # Cell is free - show block modal
                 _show_block_modal(t, callsign, clicked_band, clicked_mode, award_id)
+    else:
+        # No click - clear the last processed click so same cell can be clicked again
+        if 'last_processed_click' in st.session_state:
+            del st.session_state['last_processed_click']
 
     # Show summary statistics
     st.divider()
