@@ -16,6 +16,9 @@ COPY database.py .
 COPY translations.py .
 COPY mobile_styles.py .
 
+# Copy Streamlit config (dark mode)
+COPY .streamlit .streamlit
+
 # Create directory for database persistence
 RUN mkdir -p /app/data
 

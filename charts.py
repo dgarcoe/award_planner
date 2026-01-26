@@ -92,15 +92,16 @@ def create_availability_heatmap(all_blocks, t):
 
     # Update layout with responsive height
     fig.update_layout(
-        title=t['band_mode_matrix'],
+        title=dict(text=t['band_mode_matrix'], font=dict(color='white')),
         xaxis_title=t['mode_label'],
         yaxis_title=t['band_label'],
         height=450,  # Reduced from 650 for better mobile experience
         margin=dict(l=60, r=10, t=50, b=40),  # Tighter margins for mobile
-        font=dict(size=11),  # Slightly smaller font
+        font=dict(size=11, color='white'),  # White text for dark mode
         plot_bgcolor=CHART_BACKGROUND,
         paper_bgcolor=CHART_BACKGROUND,
-        xaxis=dict(side='top'),
+        xaxis=dict(side='top', tickfont=dict(color='white'), title_font=dict(color='white')),
+        yaxis=dict(tickfont=dict(color='white'), title_font=dict(color='white')),
         autosize=True,
         annotations=annotations,
         # Hide modebar (toolbar) on all devices
@@ -138,9 +139,11 @@ def create_blocks_by_band_chart(all_blocks, t):
         yaxis_title=t['total_blocks_label'],
         height=300,  # Reduced from 400 for better mobile experience
         margin=dict(l=50, r=10, t=30, b=40),  # Tighter margins
+        font=dict(color='white'),  # White text for dark mode
         plot_bgcolor=CHART_BACKGROUND,
         paper_bgcolor=CHART_BACKGROUND,
-        xaxis=dict(type='category'),
+        xaxis=dict(type='category', tickfont=dict(color='white'), title_font=dict(color='white')),
+        yaxis=dict(tickfont=dict(color='white'), title_font=dict(color='white')),
         # Hide modebar (toolbar) on all devices
         modebar=dict(remove=['zoom', 'pan', 'select', 'lasso2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d', 'toImage'])
     )
