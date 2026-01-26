@@ -99,8 +99,8 @@ def create_availability_heatmap(all_blocks, t):
         font=dict(size=11, color='white'),  # White text for dark mode
         plot_bgcolor=CHART_BACKGROUND,
         paper_bgcolor=CHART_BACKGROUND,
-        xaxis=dict(side='top', tickfont=dict(color='white'), title_font=dict(color='white')),
-        yaxis=dict(tickfont=dict(color='white'), title_font=dict(color='white')),
+        xaxis=dict(side='top', tickfont=dict(color='white'), title_font=dict(color='white'), fixedrange=True),
+        yaxis=dict(tickfont=dict(color='white'), title_font=dict(color='white'), fixedrange=True),
         autosize=True,
         annotations=annotations,
         # Hide modebar (toolbar) on all devices
