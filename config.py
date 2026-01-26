@@ -6,7 +6,7 @@ import os
 BANDS = ['160m', '80m', '60m', '40m', '30m', '20m', '17m', '15m', '12m', '10m', '6m', '2m', '70cm']
 
 # Ham radio modes
-MODES = ['CW', 'SSB', 'FT4', 'FT8', 'RTTY', 'PSK']
+MODES = ['CW', 'SSB', 'DIGI', 'SAT']
 
 # Admin credentials from environment variables
 ADMIN_CALLSIGN = os.getenv('ADMIN_CALLSIGN', '').upper()
