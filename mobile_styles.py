@@ -177,6 +177,13 @@ def inject_mobile_styles():
     /* ====== HEATMAP/CHART IMPROVEMENTS ====== */
     /* These apply to plotly charts on mobile */
     @media (max-width: 768px) {
+        /* Make heatmap taller on mobile for better touch targets */
+        [data-testid="stPlotlyChart"] > div,
+        [data-testid="stPlotlyChart"] iframe,
+        .js-plotly-plot {
+            min-height: 600px !important;
+        }
+
         /* Allow charts to be scrollable if needed */
         .js-plotly-plot {
             overflow-x: auto !important;

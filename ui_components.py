@@ -228,13 +228,13 @@ def render_activity_dashboard(t, award_id, callsign=None):
     )
 
     # Use plotly_events to capture clicks
-    # Height reduced from 650 to 450 for better mobile experience
+    # Height set to 550px for better touch targets on mobile
     selected_points = plotly_events(
         fig,
         click_event=True,
         hover_event=False,
         select_event=False,
-        override_height=450,
+        override_height=550,
         override_width="100%",
         key="heatmap_events"
     )

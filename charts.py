@@ -94,7 +94,7 @@ def create_availability_heatmap(all_blocks, t):
     fig.update_layout(
         xaxis_title=t['mode_label'],
         yaxis_title=t['band_label'],
-        height=450,  # Reduced from 650 for better mobile experience
+        height=550,  # Increased for better touch targets on mobile
         margin=dict(l=60, r=10, t=50, b=40),  # Tighter margins for mobile
         font=dict(size=11, color='white'),  # White text for dark mode
         plot_bgcolor=CHART_BACKGROUND,
