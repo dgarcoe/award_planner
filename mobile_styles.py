@@ -181,7 +181,7 @@ def inject_mobile_styles():
         [data-testid="stPlotlyChart"] > div,
         [data-testid="stPlotlyChart"] iframe,
         .js-plotly-plot {
-            min-height: 600px !important;
+            min-height: 650px !important;
         }
 
         /* Allow charts to be scrollable if needed */
