@@ -57,8 +57,7 @@ def create_availability_heatmap(all_blocks, t):
         z=z_values,
         x=MODES,
         y=BANDS,
-        hovertemplate='%{hovertext}<extra></extra>',
-        hovertext=hover_values,
+        hoverinfo='none',  # Disable hover - info shown in modal on tap
         colorscale=[
             [0, CHART_COLOR_FREE],  # Green for FREE
             [1, CHART_COLOR_BLOCKED]   # Red for BLOCKED
