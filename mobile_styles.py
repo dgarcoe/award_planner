@@ -193,6 +193,11 @@ def inject_mobile_styles():
         [data-testid="stPlotlyChart"] {
             padding: 0 !important;
         }
+
+        /* Hide hover tooltip on mobile - it blocks touch interaction */
+        .hoverlayer {
+            display: none !important;
+        }
     }
 
     /* ====== LANDSCAPE MOBILE IMPROVEMENTS ====== */
