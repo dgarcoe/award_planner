@@ -289,3 +289,34 @@ def render_activity_dashboard(t, award_id, callsign=None):
         st.subheader(t['blocks_by_band_label'])
         fig_bar = create_blocks_by_band_chart(all_blocks, t)
         st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
+
+
+def render_announcements_operator_tab(t, operator_callsign):
+    """
+    Render the announcements tab for operators.
+    Marks announcements as read when tab is viewed.
+
+    Args:
+        t: Translations dictionary
+        operator_callsign: Current operator's callsign
+    """
+    st.subheader(f"📢 {t['announcements']}")
+
+    # Get announcements with read status
+    announcements = db.get_announcements_with_read_status(operator_callsign)
+
+    if not announcements:
+        st.info(t['no_announcements_available'])
+        return
+
+    # Mark all as read when viewing this tab
+    db.mark_all_announcements_read(operator_callsign)
+
+    # Display announcements
+    for ann in announcements:
+        # Show unread indicator for announcements not yet read
+        read_indicator = "" if ann.get('is_read') else "🔵 "
+
+        with st.expander(f"{read_indicator}{ann['title']}", expanded=not ann.get('is_read')):
+            st.write(ann['content'])
+            st.caption(f"{t['posted_on']}: {ann['created_at']} | {t['by']}: {ann['created_by']}")

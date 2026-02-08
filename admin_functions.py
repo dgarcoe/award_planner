@@ -369,3 +369,69 @@ def render_database_management_tab(t):
                         st.error(f"{t['restore_error']}: {message}")
                 except Exception as e:
                     st.error(f"{t['restore_error']}: {str(e)}")
+
+
+def render_announcements_admin_tab(t):
+    """
+    Render the announcements management tab for admins.
+
+    Args:
+        t: Translations dictionary
+    """
+    st.subheader(f"📢 {t['announcements_management']}")
+    st.info(t['announcements_management_info'])
+
+    # Create new announcement form
+    st.markdown(f"### {t['create_new_announcement']}")
+    with st.form("create_announcement_form"):
+        title = st.text_input(t['announcement_title'], max_chars=200)
+        content = st.text_area(t['announcement_content'], max_chars=2000, height=150)
+        submit = st.form_submit_button(t['create_announcement'], type="primary")
+
+        if submit:
+            if not title or not content:
+                st.error(t['error_fill_all_fields'])
+            else:
+                success, message = db.create_announcement(
+                    title, content, st.session_state.callsign
+                )
+                if success:
+                    st.success(t['announcement_created'])
+                    st.rerun()
+                else:
+                    st.error(message)
+
+    st.divider()
+
+    # List existing announcements
+    st.markdown(f"### {t['existing_announcements']}")
+    announcements = db.get_all_announcements()
+
+    if announcements:
+        for ann in announcements:
+            status_icon = "✅" if ann['is_active'] else "❌"
+            with st.expander(f"{status_icon} {ann['title']}", expanded=False):
+                st.write(f"**{t['content']}:** {ann['content']}")
+                st.write(f"**{t['created_by_label']}:** {ann['created_by']}")
+                st.write(f"**{t['created_label']}:** {ann['created_at']}")
+                st.write(f"**{t['status']}:** {t['active'] if ann['is_active'] else t['inactive']}")
+
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button(t['toggle_status'], key=f"toggle_ann_{ann['id']}"):
+                        success, message = db.toggle_announcement_status(ann['id'])
+                        if success:
+                            st.success(t['announcement_status_updated'])
+                            st.rerun()
+                        else:
+                            st.error(message)
+                with col2:
+                    if st.button(t['delete_announcement'], key=f"delete_ann_{ann['id']}", type="secondary"):
+                        success, message = db.delete_announcement(ann['id'])
+                        if success:
+                            st.success(t['announcement_deleted'])
+                            st.rerun()
+                        else:
+                            st.error(message)
+    else:
+        st.info(t['no_announcements'])

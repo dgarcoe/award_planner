@@ -23,7 +23,8 @@ from translations import get_all_texts, AVAILABLE_LANGUAGES
 from ui_components import (
     render_language_selector,
     render_award_selector,
-    render_activity_dashboard
+    render_activity_dashboard,
+    render_announcements_operator_tab
 )
 
 # Import admin functions
@@ -35,7 +36,8 @@ from admin_functions import (
     render_manage_blocks_tab,
     render_system_stats_tab,
     render_award_management_tab,
-    render_database_management_tab
+    render_database_management_tab,
+    render_announcements_admin_tab
 )
 
 # Import mobile styles
@@ -116,7 +118,7 @@ def admin_panel():
     """Display the admin management panel."""
     t = get_all_texts(st.session_state.language)
 
-    admin_tab1, admin_tab2, admin_tab3, admin_tab4, admin_tab5, admin_tab6, admin_tab7, admin_tab8 = st.tabs([
+    admin_tab1, admin_tab2, admin_tab3, admin_tab4, admin_tab5, admin_tab6, admin_tab7, admin_tab8, admin_tab9 = st.tabs([
         t['tab_create_operator'],
         t['tab_manage_operators'],
         t['tab_manage_admins'],
@@ -124,7 +126,8 @@ def admin_panel():
         t['tab_manage_blocks'],
         t['tab_system_stats'],
         f"🏆 {t['tab_manage_special_callsigns']}",
-        f"💾 {t['tab_database']}"
+        f"💾 {t['tab_database']}",
+        f"📢 {t['tab_announcements']}"
     ])
 
     with admin_tab1:
@@ -150,6 +153,9 @@ def admin_panel():
 
     with admin_tab8:
         render_database_management_tab(t)
+
+    with admin_tab9:
+        render_announcements_admin_tab(t)
 
 
 def render_settings_tab(t):
@@ -197,8 +203,13 @@ def operator_panel():
     st.title(f"🎙️ {t['app_title']}")
     st.subheader(f"{t['welcome']}, {st.session_state.operator_name} ({st.session_state.callsign})")
 
-    # Logout button
+    # Notification and logout row
+    unread_count = db.get_unread_announcement_count(st.session_state.callsign)
     col1, col2 = st.columns([5, 1])
+    with col1:
+        if unread_count > 0:
+            unread_text = t['unread_announcement'] if unread_count == 1 else t['unread_announcements']
+            st.info(f"🔔 {unread_count} {unread_text}")
     with col2:
         if st.button(t['logout']):
             # Auto-liberate all blocks when logging out
@@ -226,20 +237,25 @@ def operator_panel():
 
     # Main tabs - add admin tab if user is admin
     if st.session_state.is_admin:
-        tab_dashboard, tab_admin, tab_settings = st.tabs([
+        tab_dashboard, tab_announcements, tab_admin, tab_settings = st.tabs([
             f"📊 {t['tab_activity_dashboard']}",
+            f"📢 {t['tab_announcements']}",
             f"🔐 {t['admin_panel']}",
             f"⚙️ {t['tab_settings']}"
         ])
     else:
-        tab_dashboard, tab_settings = st.tabs([
+        tab_dashboard, tab_announcements, tab_settings = st.tabs([
             f"📊 {t['tab_activity_dashboard']}",
+            f"📢 {t['tab_announcements']}",
             f"⚙️ {t['tab_settings']}"
         ])
         tab_admin = None
 
     with tab_dashboard:
         render_activity_dashboard(t, st.session_state.current_award_id, st.session_state.callsign)
+
+    with tab_announcements:
+        render_announcements_operator_tab(t, st.session_state.callsign)
 
     if tab_admin and st.session_state.is_admin:
         with tab_admin:
