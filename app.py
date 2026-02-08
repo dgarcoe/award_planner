@@ -130,6 +130,12 @@ def admin_panel():
         f"📢 {t['tab_announcements']}"
     ])
 
+     with admin_tab7:
+        render_award_management_tab(t)
+
+    with admin_tab9:
+        render_announcements_admin_tab(t)
+    
     with admin_tab1:
         render_create_operator_tab(t)
 
@@ -148,14 +154,8 @@ def admin_panel():
     with admin_tab6:
         render_system_stats_tab(t)
 
-    with admin_tab7:
-        render_award_management_tab(t)
-
     with admin_tab8:
         render_database_management_tab(t)
-
-    with admin_tab9:
-        render_announcements_admin_tab(t)
 
 
 def render_settings_tab(t):
