@@ -130,7 +130,7 @@ def admin_panel():
         f"📢 {t['tab_announcements']}"
     ])
 
-     with admin_tab7:
+    with admin_tab7:
         render_award_management_tab(t)
 
     with admin_tab9:
