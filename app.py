@@ -209,7 +209,32 @@ def operator_panel():
     with col1:
         if unread_count > 0:
             unread_text = t['unread_announcement'] if unread_count == 1 else t['unread_announcements']
-            st.info(f"🔔 {unread_count} {unread_text}")
+            # Fixed banner at top of viewport that stays visible when scrolling
+            st.markdown(f"""
+                <style>
+                .notification-banner {{
+                    position: fixed;
+                    top: 60px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    z-index: 9999;
+                    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 25px;
+                    font-weight: bold;
+                    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+                    animation: pulse 2s infinite;
+                }}
+                @keyframes pulse {{
+                    0%, 100% {{ box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4); }}
+                    50% {{ box-shadow: 0 4px 25px rgba(255, 107, 107, 0.7); }}
+                }}
+                </style>
+                <div class="notification-banner">
+                    🔔 {unread_count} {unread_text}
+                </div>
+            """, unsafe_allow_html=True)
     with col2:
         if st.button(t['logout']):
             # Auto-liberate all blocks when logging out
