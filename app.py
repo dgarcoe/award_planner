@@ -118,7 +118,7 @@ def admin_panel():
     """Display the admin management panel."""
     t = get_all_texts(st.session_state.language)
 
-    admin_tab1, admin_tab2, admin_tab3, admin_tab4, admin_tab5, admin_tab6, admin_tab7, admin_tab8, admin_tab9 = st.tabs([
+    admin_tab7, admin_tab9, admin_tab1, admin_tab2, admin_tab3, admin_tab4, admin_tab5, admin_tab6, admin_tab8  = st.tabs([
         f"🏆 {t['tab_manage_special_callsigns']}",
         f"📢 {t['tab_announcements']}",
         t['tab_create_operator'],
