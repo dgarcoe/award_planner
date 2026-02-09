@@ -205,39 +205,43 @@ def operator_panel():
     st.title(f"🎙️ {t['app_title']}")
     st.subheader(f"{t['welcome']}, {st.session_state.operator_name} ({st.session_state.callsign})")
 
-    # Notification and logout row
+    # Bell notification and logout row
     unread_count = db.get_unread_announcement_count(st.session_state.callsign)
-    col1, col2 = st.columns([5, 1])
-    with col1:
+    col1, col2, col3 = st.columns([6, 1, 1])
+    with col2:
         if unread_count > 0:
-            unread_text = t['unread_announcement'] if unread_count == 1 else t['unread_announcements']
-            # Fixed banner at top of viewport that stays visible when scrolling
+            # Bell icon with badge like social networks
             st.markdown(f"""
                 <style>
-                .notification-banner {{
-                    position: fixed;
-                    top: 60px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    z-index: 9999;
-                    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
-                    color: white;
-                    padding: 12px 24px;
-                    border-radius: 25px;
-                    font-weight: bold;
-                    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-                    animation: pulse 2s infinite;
+                .bell-container {{
+                    position: relative;
+                    display: inline-block;
+                    font-size: 28px;
+                    cursor: pointer;
                 }}
-                @keyframes pulse {{
-                    0%, 100% {{ box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4); }}
-                    50% {{ box-shadow: 0 4px 25px rgba(255, 107, 107, 0.7); }}
+                .bell-badge {{
+                    position: absolute;
+                    top: -5px;
+                    right: -5px;
+                    background: #FF4B4B;
+                    color: white;
+                    border-radius: 50%;
+                    min-width: 20px;
+                    height: 20px;
+                    font-size: 12px;
+                    font-weight: bold;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 2px;
                 }}
                 </style>
-                <div class="notification-banner">
-                    🔔 {unread_count} {unread_text}
+                <div class="bell-container" title="{unread_count} {t['unread_announcements']}">
+                    🔔
+                    <span class="bell-badge">{unread_count}</span>
                 </div>
             """, unsafe_allow_html=True)
-    with col2:
+    with col3:
         if st.button(t['logout']):
             # Auto-liberate all blocks when logging out
             if st.session_state.callsign:
