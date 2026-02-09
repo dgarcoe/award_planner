@@ -11,6 +11,12 @@ COPY app.py .
 COPY config.py .
 COPY database.py .
 
+# Copy core package
+COPY core/ core/
+
+# Copy features package
+COPY features/ features/
+
 # Copy UI package
 COPY ui/ ui/
 
