@@ -17,10 +17,10 @@ from config import (
 )
 
 # Import translations
-from translations import get_all_texts, AVAILABLE_LANGUAGES
+from i18n import get_all_texts, AVAILABLE_LANGUAGES
 
 # Import UI components
-from ui_components import (
+from ui.components import (
     render_language_selector,
     render_award_selector,
     render_activity_dashboard,
@@ -28,7 +28,7 @@ from ui_components import (
 )
 
 # Import admin functions
-from admin_functions import (
+from ui.admin_panel import (
     render_create_operator_tab,
     render_manage_operators_tab,
     render_manage_admins_tab,
@@ -41,7 +41,7 @@ from admin_functions import (
 )
 
 # Import mobile styles
-from mobile_styles import inject_all_mobile_optimizations
+from ui.styles import inject_all_mobile_optimizations
 
 
 def init_session_state():

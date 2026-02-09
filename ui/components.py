@@ -1,7 +1,7 @@
 """Reusable UI components for QuendAward application."""
 
 import streamlit as st
-from translations import AVAILABLE_LANGUAGES, get_all_texts
+from i18n import AVAILABLE_LANGUAGES, get_all_texts
 import database as db
 
 
@@ -209,7 +209,7 @@ def render_activity_dashboard(t, award_id, callsign=None):
     Returns:
         None
     """
-    from charts import create_availability_heatmap, create_blocks_by_band_chart
+    from ui.charts import create_availability_heatmap, create_blocks_by_band_chart
     from streamlit_plotly_events import plotly_events
     from config import BANDS, MODES
 

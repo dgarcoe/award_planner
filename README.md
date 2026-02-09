@@ -67,15 +67,19 @@ streamlit run app.py
 
 ```
 award_planner/
-├── app.py               # Main application
+├── app.py               # Main application entry point
+├── config.py            # Configuration constants
 ├── database.py          # Database operations
-├── admin_functions.py   # Admin panel tabs
-├── ui_components.py     # Reusable UI components
-├── charts.py            # Plotly visualizations
-├── translations.py      # i18n (EN/ES/GL)
-├── mobile_styles.py     # Responsive CSS
-├── config.py            # Configuration
-└── Dockerfile
+├── Dockerfile
+│
+├── ui/                  # User interface components
+│   ├── admin_panel.py   # Admin panel tabs
+│   ├── components.py    # Reusable UI components
+│   ├── charts.py        # Plotly visualizations
+│   └── styles.py        # Responsive CSS/JS
+│
+└── i18n/                # Internationalization
+    └── translations.py  # Translations (EN/ES/GL)
 ```
 
 ---

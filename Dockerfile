@@ -9,12 +9,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application files
 COPY app.py .
 COPY config.py .
-COPY charts.py .
-COPY ui_components.py .
-COPY admin_functions.py .
 COPY database.py .
-COPY translations.py .
-COPY mobile_styles.py .
+
+# Copy UI package
+COPY ui/ ui/
+
+# Copy i18n package
+COPY i18n/ i18n/
 
 # Copy Streamlit config (dark mode)
 COPY .streamlit .streamlit
