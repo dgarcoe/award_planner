@@ -16,6 +16,8 @@ from features.awards import (
     get_active_awards,
     get_award_by_id,
     update_award,
+    update_award_image,
+    get_award_image,
     toggle_award_status,
     delete_award,
 )
@@ -52,6 +54,8 @@ __all__ = [
     'get_active_awards',
     'get_award_by_id',
     'update_award',
+    'update_award_image',
+    'get_award_image',
     'toggle_award_status',
     'delete_award',
     # Announcements

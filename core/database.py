@@ -111,6 +111,13 @@ def init_database():
             ''', (block['id'], block['operator_callsign'], default_award_id,
                   block['band'], block['mode'], block['blocked_at']))
 
+    # Migration: Add image_data column to awards table if not exists
+    cursor.execute("PRAGMA table_info(awards)")
+    columns = [column[1] for column in cursor.fetchall()]
+    if 'image_data' not in columns:
+        cursor.execute('ALTER TABLE awards ADD COLUMN image_data BLOB')
+        cursor.execute('ALTER TABLE awards ADD COLUMN image_type TEXT')
+
     # Create announcements table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS announcements (

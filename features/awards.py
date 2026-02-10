@@ -7,25 +7,27 @@ from typing import List, Tuple, Optional
 from core.database import get_connection
 
 
-def create_award(name: str, description: str = "", start_date: str = "", end_date: str = "") -> Tuple[bool, str]:
-    """Create a new award."""
+def create_award(name: str, description: str = "", start_date: str = "", end_date: str = "",
+                 image_data: Optional[bytes] = None, image_type: Optional[str] = None) -> Tuple[bool, str, Optional[int]]:
+    """Create a new award with optional image."""
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
         cursor.execute('''
-            INSERT INTO awards (name, description, start_date, end_date)
-            VALUES (?, ?, ?, ?)
-        ''', (name, description, start_date, end_date))
+            INSERT INTO awards (name, description, start_date, end_date, image_data, image_type)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (name, description, start_date, end_date, image_data, image_type))
 
+        award_id = cursor.lastrowid
         conn.commit()
         conn.close()
-        return True, f"Award '{name}' created successfully"
+        return True, f"Award '{name}' created successfully", award_id
     except sqlite3.IntegrityError:
-        return False, "Award name already exists"
+        return False, "Award name already exists", None
     except Exception as e:
         print(f"Error creating award: {e}")
-        return False, str(e)
+        return False, str(e), None
 
 
 def get_all_awards() -> List[dict]:
@@ -66,7 +68,7 @@ def get_award_by_id(award_id: int) -> Optional[dict]:
 
 
 def update_award(award_id: int, name: str, description: str, start_date: str, end_date: str) -> Tuple[bool, str]:
-    """Update an existing award."""
+    """Update an existing award (without changing image)."""
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -89,6 +91,42 @@ def update_award(award_id: int, name: str, description: str, start_date: str, en
     except Exception as e:
         print(f"Error updating award: {e}")
         return False, str(e)
+
+
+def update_award_image(award_id: int, image_data: Optional[bytes], image_type: Optional[str]) -> Tuple[bool, str]:
+    """Update the image for an existing award."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            UPDATE awards
+            SET image_data = ?, image_type = ?
+            WHERE id = ?
+        ''', (image_data, image_type, award_id))
+
+        if cursor.rowcount == 0:
+            conn.close()
+            return False, "Award not found"
+
+        conn.commit()
+        conn.close()
+        return True, "Image updated successfully"
+    except Exception as e:
+        print(f"Error updating award image: {e}")
+        return False, str(e)
+
+
+def get_award_image(award_id: int) -> Optional[Tuple[bytes, str]]:
+    """Get the image data and type for an award."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT image_data, image_type FROM awards WHERE id = ?', (award_id,))
+    result = cursor.fetchone()
+    conn.close()
+    if result and result['image_data']:
+        return result['image_data'], result['image_type']
+    return None
 
 
 def toggle_award_status(award_id: int) -> Tuple[bool, str]:

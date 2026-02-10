@@ -227,29 +227,53 @@ def render_award_management_tab(t):
 
     # Create new special callsign
     st.subheader(t['create_new_special_callsign'])
-    with st.form("create_award_form"):
-        award_name = st.text_input(t['special_callsign_name'], max_chars=100, key="new_award_name")
-        award_description = st.text_area(t['description'], max_chars=500, key="new_award_desc")
-        col1, col2 = st.columns(2)
-        with col1:
-            start_date = st.date_input(t['start_date'], key="new_award_start")
-        with col2:
-            end_date = st.date_input(t['end_date'], key="new_award_end")
 
-        submit = st.form_submit_button(t['create_special_callsign'], type="primary")
+    # Use session state to track form values (file_uploader doesn't work inside st.form)
+    award_name = st.text_input(t['special_callsign_name'], max_chars=100, key="new_award_name")
+    award_description = st.text_area(t['description'], max_chars=500, key="new_award_desc")
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input(t['start_date'], key="new_award_start", value=None)
+    with col2:
+        end_date = st.date_input(t['end_date'], key="new_award_end", value=None)
 
-        if submit:
-            if not award_name:
-                st.error(t['error_special_callsign_name_required'])
-            else:
-                start_str = start_date.strftime("%Y-%m-%d") if start_date else ""
-                end_str = end_date.strftime("%Y-%m-%d") if end_date else ""
-                success, message = db.create_award(award_name, award_description, start_str, end_str)
-                if success:
-                    st.success(message)
-                    st.rerun()
+    # Image upload
+    st.write(f"**{t['special_callsign_image']}**")
+    st.caption(t['allowed_image_types'])
+    uploaded_image = st.file_uploader(
+        t['upload_image'],
+        type=['jpg', 'jpeg', 'png', 'gif'],
+        key="new_award_image",
+        label_visibility="collapsed"
+    )
+
+    if st.button(t['create_special_callsign'], type="primary", key="create_award_btn"):
+        if not award_name:
+            st.error(t['error_special_callsign_name_required'])
+        else:
+            start_str = start_date.strftime("%Y-%m-%d") if start_date else ""
+            end_str = end_date.strftime("%Y-%m-%d") if end_date else ""
+
+            # Process image if uploaded
+            image_data = None
+            image_type = None
+            if uploaded_image is not None:
+                # Check file size (max 5MB)
+                if uploaded_image.size > 5 * 1024 * 1024:
+                    st.error("Image file too large. Maximum size is 5MB.")
                 else:
-                    st.error(message)
+                    image_data = uploaded_image.read()
+                    image_type = uploaded_image.type
+
+            success, message, award_id = db.create_award(
+                award_name, award_description, start_str, end_str,
+                image_data=image_data, image_type=image_type
+            )
+            if success:
+                st.success(message)
+                st.rerun()
+            else:
+                st.error(message)
 
     st.divider()
 
@@ -258,14 +282,60 @@ def render_award_management_tab(t):
     awards = db.get_all_awards()
 
     if awards:
+        import base64
         for award in awards:
             with st.expander(f"{'✅' if award['is_active'] else '❌'} {award['name']}", expanded=False):
+                # Show current image if exists
+                image_result = db.get_award_image(award['id'])
+                if image_result:
+                    image_data, image_type = image_result
+                    st.write(f"**{t['current_image']}:**")
+                    st.image(image_data, width=300)
+
                 st.write(f"**{t['description']}:** {award['description'] or t['no_description']}")
                 st.write(f"**{t['start_date']}:** {award['start_date'] or t['not_set']}")
                 st.write(f"**{t['end_date']}:** {award['end_date'] or t['not_set']}")
                 st.write(f"**{t['status']}:** {t['active'] if award['is_active'] else t['inactive']}")
                 st.write(f"**{t['created_label']}:** {award['created_at']}")
 
+                # Image management section
+                st.write("---")
+                st.write(f"**{t['special_callsign_image']}**")
+                st.caption(t['allowed_image_types'])
+
+                new_image = st.file_uploader(
+                    t['upload_image'],
+                    type=['jpg', 'jpeg', 'png', 'gif'],
+                    key=f"update_image_{award['id']}",
+                    label_visibility="collapsed"
+                )
+
+                img_col1, img_col2 = st.columns(2)
+                with img_col1:
+                    if st.button(t['upload_image'], key=f"save_image_{award['id']}", disabled=new_image is None):
+                        if new_image is not None:
+                            if new_image.size > 5 * 1024 * 1024:
+                                st.error("Image file too large. Maximum size is 5MB.")
+                            else:
+                                img_data = new_image.read()
+                                img_type = new_image.type
+                                success, message = db.update_award_image(award['id'], img_data, img_type)
+                                if success:
+                                    st.success(t['image_updated'])
+                                    st.rerun()
+                                else:
+                                    st.error(message)
+                with img_col2:
+                    if image_result:
+                        if st.button(t['remove_image'], key=f"remove_image_{award['id']}", type="secondary"):
+                            success, message = db.update_award_image(award['id'], None, None)
+                            if success:
+                                st.success(t['image_removed'])
+                                st.rerun()
+                            else:
+                                st.error(message)
+
+                st.write("---")
                 col1, col2 = st.columns(2)
                 with col1:
                     if st.button(t['toggle_status'], key=f"toggle_award_{award['id']}"):
