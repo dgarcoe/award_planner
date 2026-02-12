@@ -237,6 +237,13 @@ def render_award_management_tab(t):
     with col2:
         end_date = st.date_input(t['end_date'], key="new_award_end", value=None)
 
+    # QRZ link
+    qrz_link = st.text_input(
+        t['qrz_link'],
+        placeholder=t['qrz_link_placeholder'],
+        key="new_award_qrz"
+    )
+
     # Image upload
     st.write(f"**{t['special_callsign_image']}**")
     st.caption(t['allowed_image_types'])
@@ -267,7 +274,8 @@ def render_award_management_tab(t):
 
             success, message, award_id = db.create_award(
                 award_name, award_description, start_str, end_str,
-                image_data=image_data, image_type=image_type
+                image_data=image_data, image_type=image_type,
+                qrz_link=qrz_link
             )
             if success:
                 st.success(message)
@@ -336,6 +344,14 @@ def render_award_management_tab(t):
                         key=f"edit_end_{award['id']}"
                     )
 
+                # QRZ link
+                edit_qrz = st.text_input(
+                    t['qrz_link'],
+                    value=award.get('qrz_link') or "",
+                    placeholder=t['qrz_link_placeholder'],
+                    key=f"edit_qrz_{award['id']}"
+                )
+
                 # Save changes button
                 if st.button(t['save_changes'], key=f"save_award_{award['id']}", type="primary"):
                     if not edit_name:
@@ -343,7 +359,7 @@ def render_award_management_tab(t):
                     else:
                         start_str = edit_start.strftime("%Y-%m-%d") if edit_start else ""
                         end_str = edit_end.strftime("%Y-%m-%d") if edit_end else ""
-                        success, message = db.update_award(award['id'], edit_name, edit_description, start_str, end_str)
+                        success, message = db.update_award(award['id'], edit_name, edit_description, start_str, end_str, edit_qrz)
                         if success:
                             st.success(t['changes_saved'])
                             st.rerun()

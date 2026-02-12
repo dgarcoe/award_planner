@@ -128,9 +128,9 @@ def render_award_selector(active_awards, t):
     # Show special callsign details if available
     current_award = next((a for a in active_awards if a['id'] == st.session_state.current_award_id), None)
     if current_award:
-        # Check if there's an image or description to show
+        # Check if there's an image, description, or QRZ link to show
         image_result = db.get_award_image(current_award['id'])
-        has_content = current_award.get('description') or image_result
+        has_content = current_award.get('description') or image_result or current_award.get('qrz_link')
 
         if has_content:
             with st.expander(f"ℹ️ {t['special_callsign_information']}", expanded=False):
@@ -145,6 +145,8 @@ def render_award_selector(active_awards, t):
                             st.write(f"**{t['start_label']}:** {current_award['start_date']}")
                         if current_award.get('end_date'):
                             st.write(f"**{t['end_label']}:** {current_award['end_date']}")
+                        if current_award.get('qrz_link'):
+                            st.markdown(f"🔗 [{t['view_on_qrz']}]({current_award['qrz_link']})")
                     with col_right:
                         image_data, image_type = image_result
                         st.image(image_data, use_container_width=True)
@@ -157,6 +159,8 @@ def render_award_selector(active_awards, t):
                         st.write(f"**{t['start_label']}:** {current_award['start_date']}")
                     if current_award.get('end_date'):
                         st.write(f"**{t['end_label']}:** {current_award['end_date']}")
+                    if current_award.get('qrz_link'):
+                        st.markdown(f"🔗 [{t['view_on_qrz']}]({current_award['qrz_link']})")
 
 
 def render_block_unblock_section(t, callsign, award_id):

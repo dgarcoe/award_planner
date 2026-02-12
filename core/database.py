@@ -118,6 +118,12 @@ def init_database():
         cursor.execute('ALTER TABLE awards ADD COLUMN image_data BLOB')
         cursor.execute('ALTER TABLE awards ADD COLUMN image_type TEXT')
 
+    # Migration: Add qrz_link column to awards table if not exists
+    cursor.execute("PRAGMA table_info(awards)")
+    columns = [column[1] for column in cursor.fetchall()]
+    if 'qrz_link' not in columns:
+        cursor.execute('ALTER TABLE awards ADD COLUMN qrz_link TEXT')
+
     # Create announcements table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS announcements (

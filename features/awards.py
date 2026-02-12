@@ -8,16 +8,17 @@ from core.database import get_connection
 
 
 def create_award(name: str, description: str = "", start_date: str = "", end_date: str = "",
-                 image_data: Optional[bytes] = None, image_type: Optional[str] = None) -> Tuple[bool, str, Optional[int]]:
-    """Create a new award with optional image."""
+                 image_data: Optional[bytes] = None, image_type: Optional[str] = None,
+                 qrz_link: str = "") -> Tuple[bool, str, Optional[int]]:
+    """Create a new award with optional image and QRZ link."""
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
         cursor.execute('''
-            INSERT INTO awards (name, description, start_date, end_date, image_data, image_type)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (name, description, start_date, end_date, image_data, image_type))
+            INSERT INTO awards (name, description, start_date, end_date, image_data, image_type, qrz_link)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (name, description, start_date, end_date, image_data, image_type, qrz_link))
 
         award_id = cursor.lastrowid
         conn.commit()
@@ -67,7 +68,7 @@ def get_award_by_id(award_id: int) -> Optional[dict]:
     return dict(result) if result else None
 
 
-def update_award(award_id: int, name: str, description: str, start_date: str, end_date: str) -> Tuple[bool, str]:
+def update_award(award_id: int, name: str, description: str, start_date: str, end_date: str, qrz_link: str = "") -> Tuple[bool, str]:
     """Update an existing award (without changing image)."""
     try:
         conn = get_connection()
@@ -75,9 +76,9 @@ def update_award(award_id: int, name: str, description: str, start_date: str, en
 
         cursor.execute('''
             UPDATE awards
-            SET name = ?, description = ?, start_date = ?, end_date = ?
+            SET name = ?, description = ?, start_date = ?, end_date = ?, qrz_link = ?
             WHERE id = ?
-        ''', (name, description, start_date, end_date, award_id))
+        ''', (name, description, start_date, end_date, qrz_link, award_id))
 
         if cursor.rowcount == 0:
             conn.close()
