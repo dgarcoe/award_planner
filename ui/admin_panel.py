@@ -282,7 +282,7 @@ def render_award_management_tab(t):
     awards = db.get_all_awards()
 
     if awards:
-        import base64
+        from datetime import datetime
         for award in awards:
             with st.expander(f"{'✅' if award['is_active'] else '❌'} {award['name']}", expanded=False):
                 # Show current image if exists
@@ -292,9 +292,64 @@ def render_award_management_tab(t):
                     st.write(f"**{t['current_image']}:**")
                     st.image(image_data, width=300)
 
-                st.write(f"**{t['description']}:** {award['description'] or t['no_description']}")
-                st.write(f"**{t['start_date']}:** {award['start_date'] or t['not_set']}")
-                st.write(f"**{t['end_date']}:** {award['end_date'] or t['not_set']}")
+                # Editable fields
+                st.write(f"**{t['edit_special_callsign']}**")
+
+                edit_name = st.text_input(
+                    t['special_callsign_name'],
+                    value=award['name'],
+                    max_chars=100,
+                    key=f"edit_name_{award['id']}"
+                )
+
+                edit_description = st.text_area(
+                    t['description'],
+                    value=award['description'] or "",
+                    max_chars=500,
+                    key=f"edit_desc_{award['id']}"
+                )
+
+                date_col1, date_col2 = st.columns(2)
+                with date_col1:
+                    # Parse existing date or use None
+                    start_val = None
+                    if award['start_date']:
+                        try:
+                            start_val = datetime.strptime(award['start_date'], "%Y-%m-%d").date()
+                        except ValueError:
+                            pass
+                    edit_start = st.date_input(
+                        t['start_date'],
+                        value=start_val,
+                        key=f"edit_start_{award['id']}"
+                    )
+                with date_col2:
+                    end_val = None
+                    if award['end_date']:
+                        try:
+                            end_val = datetime.strptime(award['end_date'], "%Y-%m-%d").date()
+                        except ValueError:
+                            pass
+                    edit_end = st.date_input(
+                        t['end_date'],
+                        value=end_val,
+                        key=f"edit_end_{award['id']}"
+                    )
+
+                # Save changes button
+                if st.button(t['save_changes'], key=f"save_award_{award['id']}", type="primary"):
+                    if not edit_name:
+                        st.error(t['error_special_callsign_name_required'])
+                    else:
+                        start_str = edit_start.strftime("%Y-%m-%d") if edit_start else ""
+                        end_str = edit_end.strftime("%Y-%m-%d") if edit_end else ""
+                        success, message = db.update_award(award['id'], edit_name, edit_description, start_str, end_str)
+                        if success:
+                            st.success(t['changes_saved'])
+                            st.rerun()
+                        else:
+                            st.error(message)
+
                 st.write(f"**{t['status']}:** {t['active'] if award['is_active'] else t['inactive']}")
                 st.write(f"**{t['created_label']}:** {award['created_at']}")
 
