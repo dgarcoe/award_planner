@@ -134,18 +134,29 @@ def render_award_selector(active_awards, t):
 
         if has_content:
             with st.expander(f"ℹ️ {t['special_callsign_information']}", expanded=False):
-                # Show image at the top if exists
+                # Two-column layout: description left, image right
                 if image_result:
-                    image_data, image_type = image_result
-                    st.image(image_data, use_container_width=True)
-
-                st.write(f"**{current_award['name']}**")
-                if current_award.get('description'):
-                    st.write(current_award['description'])
-                if current_award.get('start_date'):
-                    st.write(f"**{t['start_label']}:** {current_award['start_date']}")
-                if current_award.get('end_date'):
-                    st.write(f"**{t['end_label']}:** {current_award['end_date']}")
+                    col_left, col_right = st.columns([3, 2])
+                    with col_left:
+                        st.write(f"**{current_award['name']}**")
+                        if current_award.get('description'):
+                            st.write(current_award['description'])
+                        if current_award.get('start_date'):
+                            st.write(f"**{t['start_label']}:** {current_award['start_date']}")
+                        if current_award.get('end_date'):
+                            st.write(f"**{t['end_label']}:** {current_award['end_date']}")
+                    with col_right:
+                        image_data, image_type = image_result
+                        st.image(image_data, use_container_width=True)
+                else:
+                    # No image, single column layout
+                    st.write(f"**{current_award['name']}**")
+                    if current_award.get('description'):
+                        st.write(current_award['description'])
+                    if current_award.get('start_date'):
+                        st.write(f"**{t['start_label']}:** {current_award['start_date']}")
+                    if current_award.get('end_date'):
+                        st.write(f"**{t['end_label']}:** {current_award['end_date']}")
 
 
 def render_block_unblock_section(t, callsign, award_id):
