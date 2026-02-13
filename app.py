@@ -247,18 +247,16 @@ def operator_panel():
     # Navigate to announcements tab if coming from notification click
     if st.session_state.get('go_to_announcements'):
         st.session_state.go_to_announcements = False
-        # Inject JavaScript to click on the Announcements tab
-        st.markdown("""
+        # Use components.html to run JS that clicks the Announcements tab
+        import streamlit.components.v1 as components
+        components.html("""
             <script>
-                // Wait for tabs to load, then click on Announcements tab (index 1)
-                setTimeout(function() {
-                    const tabs = document.querySelectorAll('[data-baseweb="tab"]');
-                    if (tabs.length > 1) {
-                        tabs[1].click();
-                    }
-                }, 100);
+                const tabs = window.parent.document.querySelectorAll('[data-baseweb="tab"]');
+                if (tabs.length > 1) {
+                    tabs[1].click();
+                }
             </script>
-        """, unsafe_allow_html=True)
+        """, height=0)
 
     # Main tabs - add admin tab if user is admin
     if st.session_state.is_admin:
