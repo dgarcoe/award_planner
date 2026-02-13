@@ -16,6 +16,7 @@ def reset_password_dialog(callsign: str, t: dict):
     col1, col2 = st.columns(2)
     with col1:
         if st.button(t['cancel'], use_container_width=True):
+            st.session_state.reset_password_callsign = None
             st.rerun()
     with col2:
         if st.button(t['reset_password'], type="primary", use_container_width=True):
@@ -30,6 +31,7 @@ def reset_password_dialog(callsign: str, t: dict):
                 if success:
                     st.success(message)
                     st.info(f"**{t['new_credentials_for']} {callsign}:**\n\n{t['password']}: `{new_password}`")
+                    st.session_state.reset_password_callsign = None
                 else:
                     st.error(message)
 
@@ -123,7 +125,8 @@ def render_operators_tab(t):
                                 st.error(message)
                 with btn_col2:
                     if st.button("🔑", key=f"reset_{op['callsign']}", help=t['reset_password']):
-                        reset_password_dialog(op['callsign'], t)
+                        st.session_state.reset_password_callsign = op['callsign']
+                        st.rerun()
                 with btn_col3:
                     if st.button("🗑", key=f"delete_{op['callsign']}", help=t['delete_operator']):
                         success, message = db.delete_operator(op['callsign'])
@@ -134,6 +137,10 @@ def render_operators_tab(t):
                             st.error(message)
     else:
         st.info(t['no_operators'])
+
+    # Show reset password dialog if triggered (must be called unconditionally)
+    if st.session_state.get('reset_password_callsign'):
+        reset_password_dialog(st.session_state.reset_password_callsign, t)
 
 
 def render_manage_blocks_tab(t):
