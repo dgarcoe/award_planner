@@ -8,11 +8,29 @@ services:
       - "8501"
     volumes:
       - ./data:/app/data
+      - ./media:/app/media
     environment:
       - DATABASE_PATH=/app/data/ham_coordinator.db
+      - MEDIA_PATH=/app/media
       - STREAMLIT_SERVER_BASE_URL_PATH=/quendaward
       - ADMIN_CALLSIGN=${ADMIN_CALLSIGN}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+    restart: unless-stopped
+    networks:
+      - ea1rfi-network
+
+  public-app:
+    build: .
+    container_name: quendaward-public
+    command: ["streamlit", "run", "public_app.py", "--server.port=8502", "--server.address=0.0.0.0"]
+    expose:
+      - "8502"
+    volumes:
+      - ./data:/app/data
+      - ./media:/app/media
+    environment:
+      - DATABASE_PATH=/app/data/ham_coordinator.db
+      - MEDIA_PATH=/app/media
     restart: unless-stopped
     networks:
       - ea1rfi-network
