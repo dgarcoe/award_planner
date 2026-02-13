@@ -97,7 +97,7 @@ def render_operators_tab(t):
                 st.write(op['operator_name'])
             with cols[2]:
                 if op['is_admin']:
-                    st.write("🔑 Admin")
+                    st.write("👑 Admin")
                 else:
                     st.write("Operator")
             with cols[3]:
