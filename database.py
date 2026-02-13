@@ -41,6 +41,7 @@ from features.awards import (
     get_all_awards,
     get_active_awards,
     get_award_by_id,
+    get_award_by_name,
     update_award,
     update_award_image,
     get_award_image,
@@ -65,6 +66,20 @@ from features.backup import (
     get_database_backup,
     restore_database_from_backup,
     get_database_info,
+)
+
+from features.media import (
+    save_media_file,
+    get_media_for_award,
+    get_media_file_path,
+    get_media_by_id,
+    read_media_file,
+    delete_media,
+    update_media_order,
+    update_media_description,
+    toggle_media_public,
+    delete_all_media_for_award,
+    MEDIA_PATH,
 )
 
 __all__ = [
@@ -96,6 +111,7 @@ __all__ = [
     'get_all_awards',
     'get_active_awards',
     'get_award_by_id',
+    'get_award_by_name',
     'update_award',
     'update_award_image',
     'get_award_image',
@@ -116,4 +132,16 @@ __all__ = [
     'get_database_backup',
     'restore_database_from_backup',
     'get_database_info',
+    # Features - Media
+    'save_media_file',
+    'get_media_for_award',
+    'get_media_file_path',
+    'get_media_by_id',
+    'read_media_file',
+    'delete_media',
+    'update_media_order',
+    'update_media_description',
+    'toggle_media_public',
+    'delete_all_media_for_award',
+    'MEDIA_PATH',
 ]

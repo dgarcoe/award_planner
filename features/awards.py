@@ -68,6 +68,16 @@ def get_award_by_id(award_id: int) -> Optional[dict]:
     return dict(result) if result else None
 
 
+def get_award_by_name(name: str) -> Optional[dict]:
+    """Get a specific award by name (case-insensitive)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM awards WHERE LOWER(name) = LOWER(?)', (name,))
+    result = cursor.fetchone()
+    conn.close()
+    return dict(result) if result else None
+
+
 def update_award(award_id: int, name: str, description: str, start_date: str, end_date: str, qrz_link: str = "") -> Tuple[bool, str]:
     """Update an existing award (without changing image)."""
     try:

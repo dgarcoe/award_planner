@@ -8,6 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
 COPY app.py .
+COPY public_app.py .
 COPY config.py .
 COPY database.py .
 
@@ -26,14 +27,15 @@ COPY i18n/ i18n/
 # Copy Streamlit config (dark mode)
 COPY .streamlit .streamlit
 
-# Create directory for database persistence
-RUN mkdir -p /app/data
+# Create directories for persistence
+RUN mkdir -p /app/data /app/media
 
-# Set environment variable for database path
+# Set environment variables
 ENV DATABASE_PATH=/app/data/ham_coordinator.db
+ENV MEDIA_PATH=/app/media
 
-# Expose Streamlit port
-EXPOSE 8501
+# Expose Streamlit ports (main app and public app)
+EXPOSE 8501 8502
 
 # Health check
 HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health || exit 1

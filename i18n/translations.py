@@ -141,6 +141,20 @@ TRANSLATIONS = {
         'image_updated': 'Image updated successfully',
         'image_removed': 'Image removed successfully',
         'allowed_image_types': 'Allowed types: JPG, PNG, GIF (max 5MB)',
+
+        # Public Media
+        'public_media': 'Public Media',
+        'public_media_info': 'Upload photos and documents visible on the public callsign page.',
+        'media_type': 'Media type',
+        'media_type_image': 'Image',
+        'media_type_document': 'Document',
+        'upload_media': 'Upload file',
+        'media_description': 'Description (optional)',
+        'media_uploaded': 'Media uploaded successfully',
+        'toggle_visibility': 'Toggle visibility',
+        'delete_media': 'Delete',
+        'error_file_too_large': 'File too large. Maximum size is 50MB.',
+
         'qrz_link': 'QRZ Page Link',
         'qrz_link_placeholder': 'https://www.qrz.com/db/CALLSIGN',
         'view_on_qrz': 'View on QRZ.com',
@@ -368,6 +382,20 @@ TRANSLATIONS = {
         'image_updated': 'Imagen actualizada correctamente',
         'image_removed': 'Imagen eliminada correctamente',
         'allowed_image_types': 'Tipos permitidos: JPG, PNG, GIF (máx 5MB)',
+
+        # Public Media
+        'public_media': 'Contenido Público',
+        'public_media_info': 'Sube fotos y documentos visibles en la página pública del indicativo.',
+        'media_type': 'Tipo de archivo',
+        'media_type_image': 'Imagen',
+        'media_type_document': 'Documento',
+        'upload_media': 'Subir archivo',
+        'media_description': 'Descripción (opcional)',
+        'media_uploaded': 'Archivo subido correctamente',
+        'toggle_visibility': 'Cambiar visibilidad',
+        'delete_media': 'Eliminar',
+        'error_file_too_large': 'Archivo demasiado grande. El tamaño máximo es 50MB.',
+
         'qrz_link': 'Enlace a Página QRZ',
         'qrz_link_placeholder': 'https://www.qrz.com/db/INDICATIVO',
         'view_on_qrz': 'Ver en QRZ.com',
@@ -595,6 +623,20 @@ TRANSLATIONS = {
         'image_updated': 'Imaxe actualizada correctamente',
         'image_removed': 'Imaxe eliminada correctamente',
         'allowed_image_types': 'Tipos permitidos: JPG, PNG, GIF (máx 5MB)',
+
+        # Public Media
+        'public_media': 'Contido Público',
+        'public_media_info': 'Sube fotos e documentos visibles na páxina pública do indicativo.',
+        'media_type': 'Tipo de arquivo',
+        'media_type_image': 'Imaxe',
+        'media_type_document': 'Documento',
+        'upload_media': 'Subir arquivo',
+        'media_description': 'Descrición (opcional)',
+        'media_uploaded': 'Arquivo subido correctamente',
+        'toggle_visibility': 'Cambiar visibilidade',
+        'delete_media': 'Eliminar',
+        'error_file_too_large': 'Arquivo demasiado grande. O tamaño máximo é 50MB.',
+
         'qrz_link': 'Enlace á Páxina QRZ',
         'qrz_link_placeholder': 'https://www.qrz.com/db/INDICATIVO',
         'view_on_qrz': 'Ver en QRZ.com',

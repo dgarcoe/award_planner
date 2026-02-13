@@ -388,6 +388,80 @@ def render_award_management_tab(t):
                             else:
                                 st.error(message)
 
+                # Public Media Management Section
+                st.write("---")
+                st.write(f"**{t.get('public_media', 'Public Media')}**")
+                st.caption(t.get('public_media_info', 'Upload photos and documents visible on the public callsign page.'))
+
+                # Show existing media
+                existing_media = db.get_media_for_award(award['id'], public_only=False)
+                if existing_media:
+                    for media in existing_media:
+                        media_col1, media_col2, media_col3 = st.columns([3, 1, 1])
+                        with media_col1:
+                            icon = "🖼️" if media['media_type'] == 'image' else "📄"
+                            visibility = "👁️" if media.get('is_public', 1) else "🔒"
+                            st.write(f"{icon} {visibility} **{media['filename']}**")
+                            if media.get('description'):
+                                st.caption(media['description'])
+                        with media_col2:
+                            if st.button("👁️" if not media.get('is_public', 1) else "🔒",
+                                        key=f"toggle_vis_{media['id']}",
+                                        help=t.get('toggle_visibility', 'Toggle visibility')):
+                                db.toggle_media_public(media['id'])
+                                st.rerun()
+                        with media_col3:
+                            if st.button("🗑️", key=f"del_media_{media['id']}",
+                                        help=t.get('delete_media', 'Delete')):
+                                db.delete_media(media['id'])
+                                st.rerun()
+
+                # Upload new media
+                media_type = st.selectbox(
+                    t.get('media_type', 'Media type'),
+                    options=['image', 'document'],
+                    format_func=lambda x: t.get(f'media_type_{x}', x.capitalize()),
+                    key=f"media_type_{award['id']}"
+                )
+
+                if media_type == 'image':
+                    allowed_types = ['jpg', 'jpeg', 'png', 'gif', 'webp']
+                else:
+                    allowed_types = ['pdf', 'doc', 'docx', 'txt']
+
+                new_media = st.file_uploader(
+                    t.get('upload_media', 'Upload file'),
+                    type=allowed_types,
+                    key=f"new_media_{award['id']}"
+                )
+
+                media_description = st.text_input(
+                    t.get('media_description', 'Description (optional)'),
+                    key=f"media_desc_{award['id']}"
+                )
+
+                if st.button(t.get('upload_media', 'Upload'), key=f"upload_media_{award['id']}",
+                            disabled=new_media is None):
+                    if new_media is not None:
+                        # Check file size (max 50MB for media)
+                        if new_media.size > 50 * 1024 * 1024:
+                            st.error(t.get('error_file_too_large', 'File too large. Maximum size is 50MB.'))
+                        else:
+                            file_data = new_media.read()
+                            success, message, media_id = db.save_media_file(
+                                award['id'],
+                                new_media.name,
+                                file_data,
+                                media_type,
+                                new_media.type,
+                                media_description
+                            )
+                            if success:
+                                st.success(t.get('media_uploaded', 'Media uploaded successfully'))
+                                st.rerun()
+                            else:
+                                st.error(message)
+
                 st.write("---")
                 col1, col2 = st.columns(2)
                 with col1:
@@ -400,6 +474,8 @@ def render_award_management_tab(t):
                             st.error(message)
                 with col2:
                     if st.button(t['delete_special_callsign'], key=f"delete_award_{award['id']}", type="secondary"):
+                        # Also delete all media for this award
+                        db.delete_all_media_for_award(award['id'])
                         success, message = db.delete_award(award['id'])
                         if success:
                             st.success(message)

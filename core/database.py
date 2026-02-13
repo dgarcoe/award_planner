@@ -150,5 +150,22 @@ def init_database():
         )
     ''')
 
+    # Create callsign_media table for public content (files stored on disk)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS callsign_media (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            award_id INTEGER NOT NULL,
+            media_type TEXT NOT NULL,
+            filename TEXT NOT NULL,
+            filepath TEXT NOT NULL,
+            mime_type TEXT,
+            description TEXT,
+            display_order INTEGER DEFAULT 0,
+            is_public INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (award_id) REFERENCES awards (id) ON DELETE CASCADE
+        )
+    ''')
+
     conn.commit()
     conn.close()
