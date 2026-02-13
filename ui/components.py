@@ -335,14 +335,17 @@ def render_announcements_operator_tab(t, operator_callsign):
         st.info(t['no_announcements_available'])
         return
 
-    # Mark all as read when viewing this tab
-    db.mark_all_announcements_read(operator_callsign)
-
-    # Display announcements
+    # Display announcements - user can click to mark individual ones as read
     for ann in announcements:
-        # Show unread indicator for announcements not yet read
-        read_indicator = "" if ann.get('is_read') else "🔵 "
+        is_read = ann.get('is_read')
+        read_indicator = "" if is_read else "🔵 "
 
-        with st.expander(f"{read_indicator}{ann['title']}", expanded=not ann.get('is_read')):
+        with st.expander(f"{read_indicator}{ann['title']}", expanded=not is_read):
             st.write(ann['content'])
             st.caption(f"{t['posted_on']}: {ann['created_at']} | {t['by']}: {ann['created_by']}")
+
+            # Only show "Mark as read" button for unread announcements
+            if not is_read:
+                if st.button(t.get('mark_as_read', 'Mark as read'), key=f"mark_read_{ann['id']}"):
+                    db.mark_announcement_read(ann['id'], operator_callsign)
+                    st.rerun()

@@ -191,6 +191,8 @@ def operator_panel():
 
     # Bell notification and logout row
     unread_count = db.get_unread_announcement_count(st.session_state.callsign)
+    unread_announcements = db.get_unread_announcements(st.session_state.callsign)
+
     col1, col2, col3 = st.columns([6, 1, 1])
     with col2:
         # Bell icon with popover for notifications
@@ -199,18 +201,13 @@ def operator_panel():
             st.markdown(f"**📢 {t['announcements']}**")
             st.divider()
 
-            # Get only UNREAD announcements
-            announcements = db.get_announcements_with_read_status(st.session_state.callsign)
-            unread_announcements = [a for a in announcements if not a.get('is_read')]
-
             if unread_announcements:
                 for ann in unread_announcements:
                     # Make each announcement clickable
                     if st.button(
-                        f"🔵 **{ann['title']}**",
+                        f"🔵 {ann['title']}",
                         key=f"notif_{ann['id']}",
-                        use_container_width=True,
-                        help=t['tab_announcements']
+                        use_container_width=True
                     ):
                         # Mark as read and navigate to announcements tab
                         db.mark_announcement_read(ann['id'], st.session_state.callsign)
@@ -220,7 +217,6 @@ def operator_panel():
                     content_preview = ann['content'][:80] + "..." if len(ann['content']) > 80 else ann['content']
                     st.caption(content_preview)
                     st.caption(f"{ann['created_at'][:10]} - {ann['created_by']}")
-                    st.markdown("---")
             else:
                 st.info(t['no_announcements_available'])
     with col3:
@@ -251,18 +247,16 @@ def operator_panel():
     # Navigate to announcements tab if coming from notification click
     if st.session_state.get('go_to_announcements'):
         st.session_state.go_to_announcements = False
-        # Inject JavaScript to click on the Announcements tab
-        st.markdown("""
+        # Use components.html to run JS that clicks the Announcements tab
+        import streamlit.components.v1 as components
+        components.html("""
             <script>
-                // Wait for tabs to load, then click on Announcements tab (index 1)
-                setTimeout(function() {
-                    const tabs = document.querySelectorAll('[data-baseweb="tab"]');
-                    if (tabs.length > 1) {
-                        tabs[1].click();
-                    }
-                }, 100);
+                const tabs = window.parent.document.querySelectorAll('[data-baseweb="tab"]');
+                if (tabs.length > 1) {
+                    tabs[1].click();
+                }
             </script>
-        """, unsafe_allow_html=True)
+        """, height=0)
 
     # Main tabs - add admin tab if user is admin
     if st.session_state.is_admin:

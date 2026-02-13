@@ -57,6 +57,7 @@ from features.announcements import (
     mark_announcement_read,
     mark_all_announcements_read,
     get_unread_announcement_count,
+    get_unread_announcements,
     get_announcements_with_read_status,
 )
 
@@ -109,6 +110,7 @@ __all__ = [
     'mark_announcement_read',
     'mark_all_announcements_read',
     'get_unread_announcement_count',
+    'get_unread_announcements',
     'get_announcements_with_read_status',
     # Features - Backup
     'get_database_backup',

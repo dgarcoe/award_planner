@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  ham-coordinator:
+    build: .
+    container_name: ham-coordinator
+    expose:
+      - "8501"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DATABASE_PATH=/app/data/ham_coordinator.db
+      - STREAMLIT_SERVER_BASE_URL_PATH=/quendaward
+      - ADMIN_CALLSIGN=${ADMIN_CALLSIGN:-EA1RFI}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-changeme}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - quendaward-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: quendaward-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - ham-coordinator
+    restart: unless-stopped
+    networks:
+      - quendaward-network
+
+networks:
+  quendaward-network:
+    driver: bridge

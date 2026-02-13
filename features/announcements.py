@@ -232,6 +232,34 @@ def get_unread_announcement_count(operator_callsign: str) -> int:
     return count
 
 
+def get_unread_announcements(operator_callsign: str) -> List[dict]:
+    """
+    Get only unread active announcements for an operator.
+
+    Args:
+        operator_callsign: Callsign of the operator
+
+    Returns:
+        List of unread announcement dictionaries
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT id, title, content, created_by, created_at
+        FROM announcements
+        WHERE is_active = 1 AND id NOT IN (
+            SELECT announcement_id FROM announcement_reads
+            WHERE operator_callsign = ?
+        )
+        ORDER BY created_at DESC
+    ''', (operator_callsign,))
+
+    announcements = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return announcements
+
+
 def get_announcements_with_read_status(operator_callsign: str) -> List[dict]:
     """
     Get active announcements with read status for an operator.
