@@ -199,20 +199,27 @@ def operator_panel():
             st.markdown(f"**📢 {t['announcements']}**")
             st.divider()
 
-            # Get announcements with read status
+            # Get only UNREAD announcements
             announcements = db.get_announcements_with_read_status(st.session_state.callsign)
+            unread_announcements = [a for a in announcements if not a.get('is_read')]
 
-            if announcements:
-                # Mark all as read when popover is opened
-                db.mark_all_announcements_read(st.session_state.callsign)
-
-                for ann in announcements:
-                    read_indicator = "🔵 " if not ann.get('is_read') else ""
-                    st.markdown(f"**{read_indicator}{ann['title']}**")
-                    # Truncate content for preview
-                    content_preview = ann['content'][:100] + "..." if len(ann['content']) > 100 else ann['content']
+            if unread_announcements:
+                for ann in unread_announcements:
+                    # Make each announcement clickable
+                    if st.button(
+                        f"🔵 **{ann['title']}**",
+                        key=f"notif_{ann['id']}",
+                        use_container_width=True,
+                        help=t['tab_announcements']
+                    ):
+                        # Mark as read and navigate to announcements tab
+                        db.mark_announcement_read(ann['id'], st.session_state.callsign)
+                        st.session_state.go_to_announcements = True
+                        st.rerun()
+                    # Show preview below the button
+                    content_preview = ann['content'][:80] + "..." if len(ann['content']) > 80 else ann['content']
                     st.caption(content_preview)
-                    st.caption(f"{t['posted_on']}: {ann['created_at'][:10]} | {t['by']}: {ann['created_by']}")
+                    st.caption(f"{ann['created_at'][:10]} - {ann['created_by']}")
                     st.markdown("---")
             else:
                 st.info(t['no_announcements_available'])
@@ -240,6 +247,22 @@ def operator_panel():
 
     if active_awards:
         render_award_selector(active_awards, t)
+
+    # Navigate to announcements tab if coming from notification click
+    if st.session_state.get('go_to_announcements'):
+        st.session_state.go_to_announcements = False
+        # Inject JavaScript to click on the Announcements tab
+        st.markdown("""
+            <script>
+                // Wait for tabs to load, then click on Announcements tab (index 1)
+                setTimeout(function() {
+                    const tabs = document.querySelectorAll('[data-baseweb="tab"]');
+                    if (tabs.length > 1) {
+                        tabs[1].click();
+                    }
+                }, 100);
+            </script>
+        """, unsafe_allow_html=True)
 
     # Main tabs - add admin tab if user is admin
     if st.session_state.is_admin:
