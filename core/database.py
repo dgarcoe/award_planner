@@ -150,5 +150,21 @@ def init_database():
         )
     ''')
 
+    # Create chat_messages table for real-time chat persistence
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            award_id INTEGER,
+            operator_callsign TEXT NOT NULL,
+            message TEXT NOT NULL,
+            source TEXT NOT NULL DEFAULT 'app',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_chat_messages_award
+        ON chat_messages(award_id, created_at)
+    ''')
+
     conn.commit()
     conn.close()

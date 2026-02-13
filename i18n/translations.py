@@ -230,6 +230,17 @@ TRANSLATIONS = {
         'inactive': 'Inactive',
         'toggle_status': 'Toggle Status',
         'created_label': 'Created',
+
+        # Chat
+        'tab_chat': 'Chat',
+        'chat_title': 'Chat',
+        'chat_placeholder': 'Type a message...',
+        'chat_send': 'Send',
+        'chat_connected': 'Connected',
+        'chat_disconnected': 'Disconnected',
+        'chat_connecting': 'Connecting...',
+        'chat_not_configured': 'Chat not configured',
+        'chat_no_messages': 'No messages yet. Start the conversation!',
     },
     'es': {
         # General
@@ -457,6 +468,17 @@ TRANSLATIONS = {
         'inactive': 'Inactivo',
         'toggle_status': 'Cambiar Estado',
         'created_label': 'Creado',
+
+        # Chat
+        'tab_chat': 'Chat',
+        'chat_title': 'Chat',
+        'chat_placeholder': 'Escribe un mensaje...',
+        'chat_send': 'Enviar',
+        'chat_connected': 'Conectado',
+        'chat_disconnected': 'Desconectado',
+        'chat_connecting': 'Conectando...',
+        'chat_not_configured': 'Chat no configurado',
+        'chat_no_messages': 'No hay mensajes. ¡Inicia la conversación!',
     },
     'gl': {
         # General
@@ -684,6 +706,17 @@ TRANSLATIONS = {
         'inactive': 'Inactivo',
         'toggle_status': 'Cambiar Estado',
         'created_label': 'Creado',
+
+        # Chat
+        'tab_chat': 'Chat',
+        'chat_title': 'Chat',
+        'chat_placeholder': 'Escribe unha mensaxe...',
+        'chat_send': 'Enviar',
+        'chat_connected': 'Conectado',
+        'chat_disconnected': 'Desconectado',
+        'chat_connecting': 'Conectando...',
+        'chat_not_configured': 'Chat non configurado',
+        'chat_no_messages': 'Non hai mensaxes. Inicia a conversa!',
     }
 }
 

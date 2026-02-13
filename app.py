@@ -13,7 +13,10 @@ from config import (
     ADMIN_CALLSIGN,
     ADMIN_PASSWORD,
     AUTO_REFRESH_INTERVAL_MS,
-    DEFAULT_LANGUAGE
+    DEFAULT_LANGUAGE,
+    CHAT_ENABLED,
+    MQTT_WS_URL,
+    CHAT_HISTORY_LIMIT,
 )
 
 # Import translations
@@ -39,6 +42,9 @@ from ui.admin_panel import (
 
 # Import mobile styles
 from ui.styles import inject_all_mobile_optimizations
+
+# Import chat widget
+from ui.chat_widget import render_chat_widget
 
 
 def init_session_state():
@@ -258,33 +264,60 @@ def operator_panel():
             </script>
         """, height=0)
 
-    # Main tabs - add admin tab if user is admin
+    # Build tab list dynamically
+    tab_labels = [
+        f"📊 {t['tab_activity_dashboard']}",
+        f"📢 {t['tab_announcements']}",
+    ]
+    if CHAT_ENABLED:
+        tab_labels.append(f"💬 {t.get('tab_chat', 'Chat')}")
     if st.session_state.is_admin:
-        tab_dashboard, tab_announcements, tab_admin, tab_settings = st.tabs([
-            f"📊 {t['tab_activity_dashboard']}",
-            f"📢 {t['tab_announcements']}",
-            f"🔐 {t['admin_panel']}",
-            f"⚙️ {t['tab_settings']}"
-        ])
-    else:
-        tab_dashboard, tab_announcements, tab_settings = st.tabs([
-            f"📊 {t['tab_activity_dashboard']}",
-            f"📢 {t['tab_announcements']}",
-            f"⚙️ {t['tab_settings']}"
-        ])
-        tab_admin = None
+        tab_labels.append(f"🔐 {t['admin_panel']}")
+    tab_labels.append(f"⚙️ {t['tab_settings']}")
 
-    with tab_dashboard:
+    tabs = st.tabs(tab_labels)
+    tab_idx = 0
+
+    with tabs[tab_idx]:
         render_activity_dashboard(t, st.session_state.current_award_id, st.session_state.callsign)
+    tab_idx += 1
 
-    with tab_announcements:
+    with tabs[tab_idx]:
         render_announcements_operator_tab(t, st.session_state.callsign)
+    tab_idx += 1
 
-    if tab_admin and st.session_state.is_admin:
-        with tab_admin:
+    if CHAT_ENABLED:
+        with tabs[tab_idx]:
+            if st.session_state.current_award_id:
+                chat_translations = {
+                    'chat_title': t.get('chat_title', 'Chat'),
+                    'chat_placeholder': t.get('chat_placeholder', 'Type a message...'),
+                    'chat_send': t.get('chat_send', 'Send'),
+                    'chat_connected': t.get('chat_connected', 'Connected'),
+                    'chat_disconnected': t.get('chat_disconnected', 'Disconnected'),
+                    'chat_connecting': t.get('chat_connecting', 'Connecting...'),
+                    'chat_not_configured': t.get('chat_not_configured', 'Chat not configured'),
+                    'chat_no_messages': t.get('chat_no_messages', 'No messages yet. Start the conversation!'),
+                }
+                history = db.get_chat_history(st.session_state.current_award_id, CHAT_HISTORY_LIMIT)
+                render_chat_widget(
+                    callsign=st.session_state.callsign,
+                    operator_name=st.session_state.operator_name,
+                    award_id=st.session_state.current_award_id,
+                    mqtt_ws_url=MQTT_WS_URL,
+                    chat_history=history,
+                    translations=chat_translations,
+                )
+            else:
+                st.info(t.get('error_no_special_callsign_selected', 'No special callsign selected.'))
+        tab_idx += 1
+
+    if st.session_state.is_admin:
+        with tabs[tab_idx]:
             admin_panel()
+        tab_idx += 1
 
-    with tab_settings:
+    with tabs[tab_idx]:
         render_settings_tab(t)
 
 
@@ -311,6 +344,11 @@ def main():
 
     # Initialize database
     db.init_database()
+
+    # Start MQTT subscriber for chat persistence (runs once per process)
+    if CHAT_ENABLED:
+        from services.mqtt_subscriber import start_subscriber_thread
+        start_subscriber_thread()
 
     # Show appropriate page
     if st.session_state.logged_in:

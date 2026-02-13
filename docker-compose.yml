@@ -13,9 +13,32 @@ services:
       - STREAMLIT_SERVER_BASE_URL_PATH=/quendaward
       - ADMIN_CALLSIGN=${ADMIN_CALLSIGN}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - MQTT_BROKER_HOST=mosquitto
+      - MQTT_BROKER_PORT=1883
+      - MQTT_WS_URL=${MQTT_WS_URL:-}
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+    networks:
+      - ea1rfi-network
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: quendaward-mosquitto
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    expose:
+      - "1883"
+      - "9001"
     restart: unless-stopped
     networks:
       - ea1rfi-network
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:
 
 networks:
   ea1rfi-network:

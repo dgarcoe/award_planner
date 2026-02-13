@@ -67,6 +67,12 @@ from features.backup import (
     get_database_info,
 )
 
+from features.chat import (
+    save_chat_message,
+    get_chat_history,
+    get_chat_history_global,
+)
+
 __all__ = [
     # Core - Database
     'get_connection',
@@ -116,4 +122,8 @@ __all__ = [
     'get_database_backup',
     'restore_database_from_backup',
     'get_database_info',
+    # Features - Chat
+    'save_chat_message',
+    'get_chat_history',
+    'get_chat_history_global',
 ]
