@@ -196,24 +196,30 @@ def operator_panel():
         # Bell icon with popover for notifications
         bell_label = f"🔔 {unread_count}" if unread_count > 0 else "🔔"
         with st.popover(bell_label, use_container_width=True):
-            st.markdown(f"### 📢 {t['announcements']}")
-
             # Get announcements with read status
             announcements = db.get_announcements_with_read_status(st.session_state.callsign)
 
-            if announcements:
-                # Mark all as read when viewing
-                db.mark_all_announcements_read(st.session_state.callsign)
+            # Header with mark as read button
+            header_col1, header_col2 = st.columns([2, 1])
+            with header_col1:
+                st.markdown(f"**📢 {t['announcements']}**")
+            with header_col2:
+                if unread_count > 0:
+                    if st.button(t['mark_all_read'], key="mark_read_btn", use_container_width=True):
+                        db.mark_all_announcements_read(st.session_state.callsign)
+                        st.rerun()
 
+            st.divider()
+
+            if announcements:
                 for ann in announcements:
                     read_indicator = "🔵 " if not ann.get('is_read') else ""
-                    with st.container():
-                        st.markdown(f"**{read_indicator}{ann['title']}**")
-                        # Truncate content for preview
-                        content_preview = ann['content'][:100] + "..." if len(ann['content']) > 100 else ann['content']
-                        st.caption(content_preview)
-                        st.caption(f"{t['posted_on']}: {ann['created_at'][:10]} | {t['by']}: {ann['created_by']}")
-                        st.divider()
+                    st.markdown(f"**{read_indicator}{ann['title']}**")
+                    # Truncate content for preview
+                    content_preview = ann['content'][:100] + "..." if len(ann['content']) > 100 else ann['content']
+                    st.caption(content_preview)
+                    st.caption(f"{t['posted_on']}: {ann['created_at'][:10]} | {t['by']}: {ann['created_by']}")
+                    st.markdown("---")
             else:
                 st.info(t['no_announcements_available'])
     with col3:
