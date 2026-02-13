@@ -5,6 +5,35 @@ import pandas as pd
 import database as db
 
 
+@st.dialog("Reset Password")
+def reset_password_dialog(callsign: str, t: dict):
+    """Dialog for resetting an operator's password."""
+    st.write(f"**{t['reset_password_for']} {callsign}**")
+
+    new_password = st.text_input(t['new_password'], type="password", key="dialog_new_pwd")
+    confirm_password = st.text_input(t['confirm_new_password'], type="password", key="dialog_confirm_pwd")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button(t['cancel'], use_container_width=True):
+            st.rerun()
+    with col2:
+        if st.button(t['reset_password'], type="primary", use_container_width=True):
+            if not new_password:
+                st.error(t['error_enter_password'])
+            elif new_password != confirm_password:
+                st.error(t['error_passwords_not_match'])
+            elif len(new_password) < 6:
+                st.error(t['error_password_min_length'])
+            else:
+                success, message = db.admin_reset_password(callsign, new_password)
+                if success:
+                    st.success(message)
+                    st.info(f"**{t['new_credentials_for']} {callsign}:**\n\n{t['password']}: `{new_password}`")
+                else:
+                    st.error(message)
+
+
 def render_operators_tab(t):
     """Render the unified operator management tab."""
     st.subheader(f"👥 {t['operator_management']}")
@@ -74,7 +103,7 @@ def render_operators_tab(t):
                 created_date = op['created_at'][:10] if op['created_at'] else ""
                 st.caption(created_date)
             with cols[4]:
-                btn_col1, btn_col2 = st.columns(2)
+                btn_col1, btn_col2, btn_col3 = st.columns(3)
                 with btn_col1:
                     if op['is_admin']:
                         if st.button("⬇", key=f"demote_{op['callsign']}", help=t['demote']):
@@ -93,6 +122,9 @@ def render_operators_tab(t):
                             else:
                                 st.error(message)
                 with btn_col2:
+                    if st.button("🔑", key=f"reset_{op['callsign']}", help=t['reset_password']):
+                        reset_password_dialog(op['callsign'], t)
+                with btn_col3:
                     if st.button("🗑", key=f"delete_{op['callsign']}", help=t['delete_operator']):
                         success, message = db.delete_operator(op['callsign'])
                         if success:
@@ -100,44 +132,6 @@ def render_operators_tab(t):
                             st.rerun()
                         else:
                             st.error(message)
-    else:
-        st.info(t['no_operators'])
-
-
-def render_reset_password_tab(t):
-    """Render the reset password tab."""
-    st.subheader(t['reset_operator_password'])
-    st.info(t['reset_password_info'])
-
-    operators = db.get_all_operators()
-
-    if operators:
-        callsign_to_reset = st.selectbox(
-            t['select_operator'],
-            options=[op['callsign'] for op in operators],
-            key="reset_select"
-        )
-
-        with st.form("reset_password_form"):
-            new_password = st.text_input(t['new_password'], type="password", key="new_pwd")
-            new_password_confirm = st.text_input(t['confirm_new_password'], type="password", key="new_pwd_confirm")
-
-            submit = st.form_submit_button(t['reset_password'])
-
-            if submit:
-                if not new_password:
-                    st.error(t['error_enter_password'])
-                elif new_password != new_password_confirm:
-                    st.error(t['error_passwords_not_match'])
-                elif len(new_password) < 6:
-                    st.error(t['error_password_min_length'])
-                else:
-                    success, message = db.admin_reset_password(callsign_to_reset, new_password)
-                    if success:
-                        st.success(message)
-                        st.info(f"**{t['new_credentials_for']} {callsign_to_reset}:**\n\n{t['password']}: `{new_password}`")
-                    else:
-                        st.error(message)
     else:
         st.info(t['no_operators'])
 

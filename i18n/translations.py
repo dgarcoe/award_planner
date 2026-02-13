@@ -75,6 +75,7 @@ TRANSLATIONS = {
         # Reset Password
         'reset_operator_password': 'Reset Operator Password',
         'reset_password_info': 'Reset the password for any operator.',
+        'reset_password_for': 'Reset Password for',
         'select_operator': 'Select Operator',
         'new_password': 'New Password',
         'confirm_new_password': 'Confirm New Password',
@@ -299,6 +300,7 @@ TRANSLATIONS = {
         # Reset Password
         'reset_operator_password': 'Restablecer Contraseña de Operador',
         'reset_password_info': 'Restablezca la contraseña de cualquier operador.',
+        'reset_password_for': 'Restablecer Contraseña para',
         'select_operator': 'Seleccione Operador',
         'new_password': 'Nueva Contraseña',
         'confirm_new_password': 'Confirmar Nueva Contraseña',
@@ -523,6 +525,7 @@ TRANSLATIONS = {
         # Reset Password
         'reset_operator_password': 'Restablecer Contrasinal de Operador',
         'reset_password_info': 'Restabeza o contrasinal de calquera operador.',
+        'reset_password_for': 'Restablecer Contrasinal para',
         'select_operator': 'Seleccione Operador',
         'new_password': 'Novo Contrasinal',
         'confirm_new_password': 'Confirmar Novo Contrasinal',
