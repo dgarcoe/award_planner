@@ -199,9 +199,8 @@ def operator_panel():
             st.markdown(f"**📢 {t['announcements']}**")
             st.divider()
 
-            # Get only UNREAD announcements (is_read = 0 means unread)
-            announcements = db.get_announcements_with_read_status(st.session_state.callsign)
-            unread_announcements = [a for a in announcements if a.get('is_read', 0) == 0]
+            # Get only UNREAD announcements directly from database
+            unread_announcements = db.get_unread_announcements(st.session_state.callsign)
 
             if unread_announcements:
                 for ann in unread_announcements:
