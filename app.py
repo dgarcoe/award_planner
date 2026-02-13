@@ -4,6 +4,8 @@ QuendAward: Ham Radio Award Operator Coordination Tool
 Main application file with Streamlit UI.
 """
 
+import time
+
 import streamlit as st
 import database as db
 from streamlit_autorefresh import st_autorefresh
@@ -190,7 +192,17 @@ def operator_panel():
     st.subheader(f"{t['welcome']}, {st.session_state.operator_name} ({st.session_state.callsign})")
 
     # Bell notification and logout row
-    unread_count = db.get_unread_announcement_count(st.session_state.callsign)
+    # Cache notification data to prevent auto-refresh from affecting it
+    current_time = time.time()
+    last_notif_check = st.session_state.get('last_notif_check', 0)
+
+    # Only refresh notifications every 30 seconds or on first load
+    if current_time - last_notif_check > 30 or 'cached_unread_count' not in st.session_state:
+        st.session_state.cached_unread_count = db.get_unread_announcement_count(st.session_state.callsign)
+        st.session_state.cached_unread_announcements = db.get_unread_announcements(st.session_state.callsign)
+        st.session_state.last_notif_check = current_time
+
+    unread_count = st.session_state.cached_unread_count
     col1, col2, col3 = st.columns([6, 1, 1])
     with col2:
         # Bell icon with popover for notifications
@@ -199,8 +211,8 @@ def operator_panel():
             st.markdown(f"**📢 {t['announcements']}**")
             st.divider()
 
-            # Get only UNREAD announcements directly from database
-            unread_announcements = db.get_unread_announcements(st.session_state.callsign)
+            # Use cached unread announcements
+            unread_announcements = st.session_state.cached_unread_announcements
 
             if unread_announcements:
                 for ann in unread_announcements:
@@ -212,6 +224,8 @@ def operator_panel():
                     ):
                         # Mark as read and navigate to announcements tab
                         db.mark_announcement_read(ann['id'], st.session_state.callsign)
+                        # Invalidate notification cache to refresh on next render
+                        st.session_state.last_notif_check = 0
                         st.session_state.go_to_announcements = True
                         st.rerun()
                     # Show preview below the button
