@@ -201,9 +201,6 @@ def operator_panel():
             st.markdown(f"**📢 {t['announcements']}**")
             st.divider()
 
-            # Debug: show what we got
-            st.caption(f"DEBUG: Found {len(unread_announcements)} unread")
-
             if unread_announcements:
                 for ann in unread_announcements:
                     # Make each announcement clickable
