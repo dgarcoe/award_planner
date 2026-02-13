@@ -196,22 +196,16 @@ def operator_panel():
         # Bell icon with popover for notifications
         bell_label = f"🔔 {unread_count}" if unread_count > 0 else "🔔"
         with st.popover(bell_label, use_container_width=True):
+            st.markdown(f"**📢 {t['announcements']}**")
+            st.divider()
+
             # Get announcements with read status
             announcements = db.get_announcements_with_read_status(st.session_state.callsign)
 
-            # Header with mark as read button
-            header_col1, header_col2 = st.columns([2, 1])
-            with header_col1:
-                st.markdown(f"**📢 {t['announcements']}**")
-            with header_col2:
-                if unread_count > 0:
-                    if st.button(t['mark_all_read'], key="mark_read_btn", use_container_width=True):
-                        db.mark_all_announcements_read(st.session_state.callsign)
-                        st.rerun()
-
-            st.divider()
-
             if announcements:
+                # Mark all as read when popover is opened
+                db.mark_all_announcements_read(st.session_state.callsign)
+
                 for ann in announcements:
                     read_indicator = "🔵 " if not ann.get('is_read') else ""
                     st.markdown(f"**{read_indicator}{ann['title']}**")
