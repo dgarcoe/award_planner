@@ -199,18 +199,17 @@ def operator_panel():
             st.markdown(f"**📢 {t['announcements']}**")
             st.divider()
 
-            # Get only UNREAD announcements
+            # Get only UNREAD announcements (is_read = 0 means unread)
             announcements = db.get_announcements_with_read_status(st.session_state.callsign)
-            unread_announcements = [a for a in announcements if not a.get('is_read')]
+            unread_announcements = [a for a in announcements if a.get('is_read', 0) == 0]
 
             if unread_announcements:
                 for ann in unread_announcements:
                     # Make each announcement clickable
                     if st.button(
-                        f"🔵 **{ann['title']}**",
+                        f"🔵 {ann['title']}",
                         key=f"notif_{ann['id']}",
-                        use_container_width=True,
-                        help=t['tab_announcements']
+                        use_container_width=True
                     ):
                         # Mark as read and navigate to announcements tab
                         db.mark_announcement_read(ann['id'], st.session_state.callsign)
@@ -220,7 +219,6 @@ def operator_panel():
                     content_preview = ann['content'][:80] + "..." if len(ann['content']) > 80 else ann['content']
                     st.caption(content_preview)
                     st.caption(f"{ann['created_at'][:10]} - {ann['created_by']}")
-                    st.markdown("---")
             else:
                 st.info(t['no_announcements_available'])
     with col3:
