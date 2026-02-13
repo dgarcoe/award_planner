@@ -193,38 +193,29 @@ def operator_panel():
     unread_count = db.get_unread_announcement_count(st.session_state.callsign)
     col1, col2, col3 = st.columns([6, 1, 1])
     with col2:
-        if unread_count > 0:
-            # Bell icon with badge like social networks
-            st.markdown(f"""
-                <style>
-                .bell-container {{
-                    position: relative;
-                    display: inline-block;
-                    font-size: 28px;
-                    cursor: pointer;
-                }}
-                .bell-badge {{
-                    position: absolute;
-                    top: -5px;
-                    right: -5px;
-                    background: #FF4B4B;
-                    color: white;
-                    border-radius: 50%;
-                    min-width: 20px;
-                    height: 20px;
-                    font-size: 12px;
-                    font-weight: bold;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 2px;
-                }}
-                </style>
-                <div class="bell-container" title="{unread_count} {t['unread_announcements']}">
-                    🔔
-                    <span class="bell-badge">{unread_count}</span>
-                </div>
-            """, unsafe_allow_html=True)
+        # Bell icon with popover for notifications
+        bell_label = f"🔔 {unread_count}" if unread_count > 0 else "🔔"
+        with st.popover(bell_label, use_container_width=True):
+            st.markdown(f"### 📢 {t['announcements']}")
+
+            # Get announcements with read status
+            announcements = db.get_announcements_with_read_status(st.session_state.callsign)
+
+            if announcements:
+                # Mark all as read when viewing
+                db.mark_all_announcements_read(st.session_state.callsign)
+
+                for ann in announcements:
+                    read_indicator = "🔵 " if not ann.get('is_read') else ""
+                    with st.container():
+                        st.markdown(f"**{read_indicator}{ann['title']}**")
+                        # Truncate content for preview
+                        content_preview = ann['content'][:100] + "..." if len(ann['content']) > 100 else ann['content']
+                        st.caption(content_preview)
+                        st.caption(f"{t['posted_on']}: {ann['created_at'][:10]} | {t['by']}: {ann['created_by']}")
+                        st.divider()
+            else:
+                st.info(t['no_announcements_available'])
     with col3:
         if st.button(t['logout']):
             # Auto-liberate all blocks when logging out

@@ -25,6 +25,20 @@ def inject_mobile_styles():
         display: none !important;
     }
 
+    /* Sticky header for notification bell and logout */
+    [data-testid="stHeader"] {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 999 !important;
+        background: var(--background-color, white) !important;
+    }
+
+    /* Style the notification popover button */
+    [data-testid="stPopover"] button {
+        font-size: 1.2rem !important;
+        padding: 0.25rem 0.5rem !important;
+    }
+
     /* ====== MOBILE RESPONSIVE STYLES ====== */
     /* These styles only apply to screens smaller than 768px */
 
