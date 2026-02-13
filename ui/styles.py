@@ -25,18 +25,15 @@ def inject_mobile_styles():
         display: none !important;
     }
 
-    /* Sticky header for notification bell and logout */
-    [data-testid="stHeader"] {
-        position: sticky !important;
-        top: 0 !important;
-        z-index: 999 !important;
-        background: var(--background-color, white) !important;
+    /* Style the notification popover */
+    [data-testid="stPopover"] button {
+        font-size: 1.1rem !important;
     }
 
-    /* Style the notification popover button */
-    [data-testid="stPopover"] button {
-        font-size: 1.2rem !important;
-        padding: 0.25rem 0.5rem !important;
+    /* Make popover content scrollable */
+    [data-testid="stPopoverBody"] {
+        max-height: 400px !important;
+        overflow-y: auto !important;
     }
 
     /* ====== MOBILE RESPONSIVE STYLES ====== */
