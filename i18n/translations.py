@@ -30,13 +30,12 @@ TRANSLATIONS = {
 
         # Admin Panel
         'admin_panel': 'Admin Panel',
-        'tab_create_operator': 'Create Operator',
-        'tab_manage_operators': 'Manage Operators',
-        'tab_manage_admins': 'Manage Admins',
+        'tab_operators': 'Operators',
         'tab_reset_password': 'Reset Password',
         'tab_system_stats': 'System Stats',
 
-        # Create Operator
+        # Operator Management
+        'operator_management': 'Operator Management',
         'create_new_operator': 'Create New Operator',
         'create_operator_info': 'Create a new operator account and provide them with their credentials.',
         'operator_name': 'Operator Name',
@@ -45,6 +44,8 @@ TRANSLATIONS = {
         'credentials_to_provide': 'Credentials to provide to operator:',
         'is_admin': 'Admin privileges',
         'grant_admin_privileges': 'Grant admin privileges to this operator',
+        'role': 'Role',
+        'actions': 'Actions',
 
         # Manage Operators
         'all_operators': 'All Operators',
@@ -253,13 +254,12 @@ TRANSLATIONS = {
 
         # Admin Panel
         'admin_panel': 'Panel de Administración',
-        'tab_create_operator': 'Crear Operador',
-        'tab_manage_operators': 'Gestionar Operadores',
-        'tab_manage_admins': 'Gestionar Administradores',
+        'tab_operators': 'Operadores',
         'tab_reset_password': 'Restablecer Contraseña',
         'tab_system_stats': 'Estadísticas del Sistema',
 
-        # Create Operator
+        # Operator Management
+        'operator_management': 'Gestión de Operadores',
         'create_new_operator': 'Crear Nuevo Operador',
         'create_operator_info': 'Cree una nueva cuenta de operador y proporciónele sus credenciales.',
         'operator_name': 'Nombre del Operador',
@@ -268,6 +268,8 @@ TRANSLATIONS = {
         'credentials_to_provide': 'Credenciales para proporcionar al operador:',
         'is_admin': 'Privilegios de administrador',
         'grant_admin_privileges': 'Otorgar privilegios de administrador a este operador',
+        'role': 'Rol',
+        'actions': 'Acciones',
 
         # Manage Operators
         'all_operators': 'Todos los Operadores',
@@ -476,13 +478,12 @@ TRANSLATIONS = {
 
         # Admin Panel
         'admin_panel': 'Panel de Administración',
-        'tab_create_operator': 'Crear Operador',
-        'tab_manage_operators': 'Xestionar Operadores',
-        'tab_manage_admins': 'Xestionar Administradores',
+        'tab_operators': 'Operadores',
         'tab_reset_password': 'Restablecer Contrasinal',
         'tab_system_stats': 'Estatísticas do Sistema',
 
-        # Create Operator
+        # Operator Management
+        'operator_management': 'Xestión de Operadores',
         'create_new_operator': 'Crear Novo Operador',
         'create_operator_info': 'Cree unha nova conta de operador e proporciónelle as súas credenciais.',
         'operator_name': 'Nome do Operador',
@@ -491,6 +492,8 @@ TRANSLATIONS = {
         'credentials_to_provide': 'Credenciais para proporcionar ao operador:',
         'is_admin': 'Privilexios de administrador',
         'grant_admin_privileges': 'Outorgar privilexios de administrador a este operador',
+        'role': 'Rol',
+        'actions': 'Accións',
 
         # Manage Operators
         'all_operators': 'Todos os Operadores',

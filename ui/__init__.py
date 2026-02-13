@@ -8,9 +8,7 @@ from ui.components import (
 )
 
 from ui.admin_panel import (
-    render_create_operator_tab,
-    render_manage_operators_tab,
-    render_manage_admins_tab,
+    render_operators_tab,
     render_reset_password_tab,
     render_manage_blocks_tab,
     render_system_stats_tab,

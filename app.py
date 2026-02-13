@@ -29,9 +29,7 @@ from ui.components import (
 
 # Import admin functions
 from ui.admin_panel import (
-    render_create_operator_tab,
-    render_manage_operators_tab,
-    render_manage_admins_tab,
+    render_operators_tab,
     render_reset_password_tab,
     render_manage_blocks_tab,
     render_system_stats_tab,
@@ -118,44 +116,35 @@ def admin_panel():
     """Display the admin management panel."""
     t = get_all_texts(st.session_state.language)
 
-    admin_tab7, admin_tab9, admin_tab1, admin_tab2, admin_tab3, admin_tab4, admin_tab5, admin_tab6, admin_tab8  = st.tabs([
+    tab_callsigns, tab_announcements, tab_operators, tab_password, tab_blocks, tab_stats, tab_database = st.tabs([
         f"🏆 {t['tab_manage_special_callsigns']}",
         f"📢 {t['tab_announcements']}",
-        t['tab_create_operator'],
-        t['tab_manage_operators'],
-        t['tab_manage_admins'],
+        f"👥 {t['tab_operators']}",
         t['tab_reset_password'],
         t['tab_manage_blocks'],
         t['tab_system_stats'],
         f"💾 {t['tab_database']}"
     ])
 
-
-    with admin_tab7:
+    with tab_callsigns:
         render_award_management_tab(t)
 
-    with admin_tab9:
+    with tab_announcements:
         render_announcements_admin_tab(t)
-    
-    with admin_tab1:
-        render_create_operator_tab(t)
 
-    with admin_tab2:
-        render_manage_operators_tab(t)
+    with tab_operators:
+        render_operators_tab(t)
 
-    with admin_tab3:
-        render_manage_admins_tab(t)
-
-    with admin_tab4:
+    with tab_password:
         render_reset_password_tab(t)
 
-    with admin_tab5:
+    with tab_blocks:
         render_manage_blocks_tab(t)
 
-    with admin_tab6:
+    with tab_stats:
         render_system_stats_tab(t)
 
-    with admin_tab8:
+    with tab_database:
         render_database_management_tab(t)
 
 

@@ -5,21 +5,21 @@ import pandas as pd
 import database as db
 
 
-def render_create_operator_tab(t):
-    """Render the create operator tab."""
-    st.subheader(t['create_new_operator'])
-    st.info(t['create_operator_info'])
+def render_operators_tab(t):
+    """Render the unified operator management tab."""
+    st.subheader(f"👥 {t['operator_management']}")
 
-    with st.form("create_operator_form"):
+    # Create operator section (collapsible)
+    with st.expander(f"➕ {t['create_new_operator']}", expanded=False):
+        st.info(t['create_operator_info'])
+
         new_callsign = st.text_input(t['callsign'], max_chars=20, key="new_call").upper()
         new_operator_name = st.text_input(t['operator_name'], max_chars=100)
         new_password = st.text_input(t['password'], type="password", max_chars=100, key="new_pass")
         new_password_confirm = st.text_input(t['confirm_password'], type="password", max_chars=100, key="new_pass_conf")
         is_admin = st.checkbox(t['grant_admin_privileges'], value=False)
 
-        submit = st.form_submit_button(t['create_operator'], type="primary")
-
-        if submit:
+        if st.button(t['create_operator'], type="primary", key="create_op_btn"):
             if not new_callsign or not new_operator_name or not new_password:
                 st.error(t['error_fill_all_fields'])
             elif new_password != new_password_confirm:
@@ -32,95 +32,76 @@ def render_create_operator_tab(t):
                     st.success(message)
                     admin_text = f" ({t['admin_status']})" if is_admin else ""
                     st.info(f"**{t['credentials_to_provide']}**\n\n{t['callsign']}: `{new_callsign}`{admin_text}\n\n{t['password']}: `{new_password}`")
-                else:
-                    st.error(message)
-
-
-def render_manage_operators_tab(t):
-    """Render the manage operators tab."""
-    st.subheader(t['all_operators'])
-    operators = db.get_all_operators()
-
-    if operators:
-        df = pd.DataFrame(operators)
-        df['is_admin'] = df['is_admin'].apply(lambda x: t['yes'] if x else t['no'])
-        df = df[['callsign', 'operator_name', 'is_admin', 'created_at']]
-        df.columns = [t['callsign'], t['name'], t['admin_status'], t['created']]
-
-        st.dataframe(df, use_container_width=True, hide_index=True)
-
-        st.divider()
-        st.subheader(t['delete_operator'])
-        st.warning(t['delete_operator_warning'])
-
-        if operators:
-            callsign_to_delete = st.selectbox(
-                t['select_operator_to_delete'],
-                options=[op['callsign'] for op in operators],
-                key="delete_select"
-            )
-
-            if st.button(t['delete_operator'], type="secondary"):
-                success, message = db.delete_operator(callsign_to_delete)
-                if success:
-                    st.success(message)
                     st.rerun()
                 else:
                     st.error(message)
-    else:
-        st.info(t['no_operators'])
-
-
-def render_manage_admins_tab(t):
-    """Render the manage admin roles tab."""
-    st.subheader(t['manage_admin_roles'])
-    operators = db.get_all_operators()
-
-    # Promote section
-    st.subheader(t['promote_operator'])
-    st.info(t['promote_info'])
-
-    regular_ops = [op for op in operators if not op['is_admin']]
-    if regular_ops:
-        callsign_to_promote = st.selectbox(
-            t['select_operator_to_promote'],
-            options=[op['callsign'] for op in regular_ops],
-            key="promote_select"
-        )
-
-        if st.button(t['promote'], type="primary"):
-            success, message = db.promote_to_admin(callsign_to_promote)
-            if success:
-                st.success(message)
-                st.rerun()
-            else:
-                st.error(message)
-    else:
-        st.info(t['no_operators_to_promote'])
 
     st.divider()
 
-    # Demote section
-    st.subheader(t['demote_operator'])
-    st.info(t['demote_info'])
+    # Operators list
+    operators = db.get_all_operators()
 
-    admin_ops = [op for op in operators if op['is_admin']]
-    if admin_ops:
-        callsign_to_demote = st.selectbox(
-            t['select_operator_to_demote'],
-            options=[op['callsign'] for op in admin_ops],
-            key="demote_select"
-        )
+    if operators:
+        # Header row
+        header_cols = st.columns([2, 3, 2, 2, 2])
+        with header_cols[0]:
+            st.write(f"**{t['callsign']}**")
+        with header_cols[1]:
+            st.write(f"**{t['name']}**")
+        with header_cols[2]:
+            st.write(f"**{t['role']}**")
+        with header_cols[3]:
+            st.write(f"**{t['created']}**")
+        with header_cols[4]:
+            st.write(f"**{t['actions']}**")
 
-        if st.button(t['demote'], type="secondary"):
-            success, message = db.demote_from_admin(callsign_to_demote)
-            if success:
-                st.success(message)
-                st.rerun()
-            else:
-                st.error(message)
+        st.markdown("<hr style='margin: 0.5rem 0;'>", unsafe_allow_html=True)
+
+        # Operator rows
+        for op in operators:
+            cols = st.columns([2, 3, 2, 2, 2])
+            with cols[0]:
+                st.write(f"**{op['callsign']}**")
+            with cols[1]:
+                st.write(op['operator_name'])
+            with cols[2]:
+                if op['is_admin']:
+                    st.write("🔑 Admin")
+                else:
+                    st.write("Operator")
+            with cols[3]:
+                # Show only date part
+                created_date = op['created_at'][:10] if op['created_at'] else ""
+                st.caption(created_date)
+            with cols[4]:
+                btn_col1, btn_col2 = st.columns(2)
+                with btn_col1:
+                    if op['is_admin']:
+                        if st.button("⬇", key=f"demote_{op['callsign']}", help=t['demote']):
+                            success, message = db.demote_from_admin(op['callsign'])
+                            if success:
+                                st.success(message)
+                                st.rerun()
+                            else:
+                                st.error(message)
+                    else:
+                        if st.button("⬆", key=f"promote_{op['callsign']}", help=t['promote']):
+                            success, message = db.promote_to_admin(op['callsign'])
+                            if success:
+                                st.success(message)
+                                st.rerun()
+                            else:
+                                st.error(message)
+                with btn_col2:
+                    if st.button("🗑", key=f"delete_{op['callsign']}", help=t['delete_operator']):
+                        success, message = db.delete_operator(op['callsign'])
+                        if success:
+                            st.success(message)
+                            st.rerun()
+                        else:
+                            st.error(message)
     else:
-        st.info(t['no_operators_to_demote'])
+        st.info(t['no_operators'])
 
 
 def render_reset_password_tab(t):
