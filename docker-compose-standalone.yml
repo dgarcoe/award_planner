@@ -36,6 +36,7 @@ services:
     environment:
       - DATABASE_PATH=/app/data/ham_coordinator.db
       - MEDIA_PATH=/app/media
+      - STREAMLIT_SERVER_BASE_URL_PATH=/public
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8502/_stcore/health"]

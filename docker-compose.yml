@@ -31,6 +31,7 @@ services:
     environment:
       - DATABASE_PATH=/app/data/ham_coordinator.db
       - MEDIA_PATH=/app/media
+      - STREAMLIT_SERVER_BASE_URL_PATH=/public
     restart: unless-stopped
     networks:
       - ea1rfi-network
