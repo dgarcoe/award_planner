@@ -402,6 +402,31 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
     let lastSendTime = 0;
     const SEND_INTERVAL_MS = 1000;
 
+    // Last-read position tracking (localStorage, per user + award)
+    const AWARD_ID = {award_id or 0};
+    const POS_KEY = 'quendaward_chat_pos_' + AWARD_ID + '_' + CALLSIGN;
+
+    function saveLastRead(msgId) {{
+        if (msgId && msgId !== '0') {{
+            try {{ localStorage.setItem(POS_KEY, String(msgId)); }} catch(e) {{}}
+        }}
+    }}
+
+    function restoreScrollPosition() {{
+        var lastId = null;
+        try {{ lastId = localStorage.getItem(POS_KEY); }} catch(e) {{}}
+        var sentinel = document.getElementById('chat-bottom');
+        if (lastId) {{
+            var el = messagesEl.querySelector('[data-msg-id="' + lastId + '"]');
+            if (el) {{
+                el.scrollIntoView({{ behavior: 'instant', block: 'start' }});
+                return;
+            }}
+        }}
+        // No saved position or message not in history: scroll to bottom
+        if (sentinel) sentinel.scrollIntoView({{ behavior: 'instant', block: 'end' }});
+    }}
+
     // Quoting state
     let quotedMessage = null;
 
@@ -480,6 +505,7 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
         // Insert before the sentinel so it stays last
         const sentinel = document.getElementById('chat-bottom');
         messagesEl.insertBefore(div, sentinel);
+        saveLastRead(div.dataset.msgId);
         sentinel.scrollIntoView({{ behavior: 'instant', block: 'end' }});
     }}
 
@@ -506,9 +532,20 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
                 msg.id
             );
         }});
-        // scrollIntoView on the sentinel works regardless of whether the
-        // flex container has resolved its height yet (robust inside iframes).
-        document.getElementById('chat-bottom').scrollIntoView({{ behavior: 'instant', block: 'end' }});
+        // Restore scroll position once the flex container has a real height.
+        // ResizeObserver fires as soon as the iframe resolves its layout —
+        // more reliable than any setTimeout/rAF approach inside Streamlit iframes.
+        var scrollRestored = false;
+        var ro = new ResizeObserver(function(entries) {{
+            for (var i = 0; i < entries.length; i++) {{
+                if (entries[i].contentRect.height > 0 && !scrollRestored) {{
+                    scrollRestored = true;
+                    ro.disconnect();
+                    restoreScrollPosition();
+                }}
+            }}
+        }});
+        ro.observe(messagesEl);
     }} else {{
         const noMsg = document.createElement('div');
         noMsg.className = 'no-messages';
