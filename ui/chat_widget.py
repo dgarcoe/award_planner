@@ -506,7 +506,6 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
         const sentinel = document.getElementById('chat-bottom');
         messagesEl.insertBefore(div, sentinel);
         saveLastRead(div.dataset.msgId);
-        sentinel.scrollIntoView({{ behavior: 'instant', block: 'end' }});
     }}
 
     // Dismiss quote
