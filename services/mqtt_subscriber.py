@@ -26,17 +26,17 @@ _subscriber_started = False
 _subscriber_lock = threading.Lock()
 
 
-def _save_chat_message(award_id, callsign, message, source='app',
+def _save_chat_message(room_id, callsign, message, source='app',
                        reply_to_id=None, reply_to_callsign=None, reply_to_text=None):
     """Persist a chat message to the database. Returns the inserted message ID."""
     conn = get_connection()
     try:
         cursor = conn.execute(
             '''INSERT INTO chat_messages
-               (award_id, operator_callsign, message, source,
+               (room_id, operator_callsign, message, source,
                 reply_to_id, reply_to_callsign, reply_to_text)
                VALUES (?, ?, ?, ?, ?, ?, ?)''',
-            (award_id, callsign, message, source,
+            (room_id, callsign, message, source,
              reply_to_id, reply_to_callsign, reply_to_text)
         )
         conn.commit()
@@ -48,7 +48,7 @@ def _save_chat_message(award_id, callsign, message, source='app',
         conn.close()
 
 
-def _create_mention_notifications(award_id, sender_callsign, message, mentions, chat_message_id):
+def _create_mention_notifications(room_id, sender_callsign, message, mentions, chat_message_id):
     """Create a chat_notification row for each mentioned callsign."""
     if not mentions:
         return
@@ -65,11 +65,11 @@ def _create_mention_notifications(award_id, sender_callsign, message, mentions, 
             if existing:
                 conn.execute(
                     '''INSERT INTO chat_notifications
-                       (recipient_callsign, sender_callsign, award_id,
+                       (recipient_callsign, sender_callsign, room_id,
                         message_preview, chat_message_id)
                        VALUES (?, ?, ?, ?, ?)''',
                     (callsign.upper(), sender_callsign.upper(),
-                     award_id, preview, chat_message_id)
+                     room_id, preview, chat_message_id)
                 )
         conn.commit()
     except Exception:
@@ -95,14 +95,36 @@ def _on_message(client, userdata, msg):
         if not callsign or not message:
             return
 
-        # Extract award_id from topic: quendaward/chat/{award_id_or_global}
+        # Extract room_id from topic
+        # New format: quendaward/chat/room/{room_id}
+        # Legacy format: quendaward/chat/{award_id}
         topic_parts = msg.topic.split('/')
-        award_id = None
-        if len(topic_parts) >= 3 and topic_parts[2] != 'global':
+        room_id = None
+
+        if len(topic_parts) >= 4 and topic_parts[2] == 'room':
             try:
-                award_id = int(topic_parts[2])
+                room_id = int(topic_parts[3])
             except ValueError:
                 pass
+        elif len(topic_parts) >= 3 and topic_parts[2] != 'global':
+            # Legacy: quendaward/chat/{award_id} — look up room by award_id
+            try:
+                award_id = int(topic_parts[2])
+                conn = get_connection()
+                try:
+                    row = conn.execute(
+                        'SELECT id FROM chat_rooms WHERE award_id = ?', (award_id,)
+                    ).fetchone()
+                    if row:
+                        room_id = row[0]
+                finally:
+                    conn.close()
+            except ValueError:
+                pass
+
+        if room_id is None:
+            logger.warning("Could not determine room_id from topic %s", msg.topic)
+            return
 
         # Extract quote data
         reply_to = payload.get('reply_to')
@@ -115,14 +137,14 @@ def _on_message(client, userdata, msg):
             reply_to_text = (reply_to.get('text') or '')[:100]
 
         msg_id = _save_chat_message(
-            award_id, callsign, message, source,
+            room_id, callsign, message, source,
             reply_to_id, reply_to_callsign, reply_to_text
         )
 
         # Process @mentions
         mentions = payload.get('mentions', [])
         if mentions and msg_id:
-            _create_mention_notifications(award_id, callsign, message, mentions, msg_id)
+            _create_mention_notifications(room_id, callsign, message, mentions, msg_id)
     except json.JSONDecodeError:
         logger.warning("Received non-JSON MQTT message on %s", msg.topic)
     except Exception:

@@ -194,5 +194,89 @@ def init_database():
         ON chat_notifications(recipient_callsign, is_read, created_at)
     ''')
 
+    # Create chat_rooms table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS chat_rooms (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT DEFAULT '',
+            room_type TEXT NOT NULL DEFAULT 'custom',
+            award_id INTEGER UNIQUE,
+            is_admin_only INTEGER DEFAULT 0,
+            created_by TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Seed the General room if it doesn't exist
+    cursor.execute("SELECT id FROM chat_rooms WHERE room_type = 'general'")
+    if not cursor.fetchone():
+        cursor.execute('''
+            INSERT INTO chat_rooms (name, description, room_type, is_admin_only)
+            VALUES ('General', '', 'general', 0)
+        ''')
+
+    # Sync: create a chat room for each active award that doesn't have one yet
+    cursor.execute('''
+        SELECT a.id, a.name FROM awards a
+        WHERE NOT EXISTS (SELECT 1 FROM chat_rooms cr WHERE cr.award_id = a.id)
+    ''')
+    for row in cursor.fetchall():
+        cursor.execute(
+            "INSERT OR IGNORE INTO chat_rooms (name, description, room_type, award_id) VALUES (?, '', 'award', ?)",
+            (row[1], row[0])
+        )
+
+    # Migration: Add room_id column to chat_messages if not exists
+    cursor.execute("PRAGMA table_info(chat_messages)")
+    msg_cols = [col[1] for col in cursor.fetchall()]
+    if 'room_id' not in msg_cols:
+        cursor.execute('ALTER TABLE chat_messages ADD COLUMN room_id INTEGER')
+        # Migrate existing messages: set room_id from award rooms
+        cursor.execute(
+            'SELECT DISTINCT cm.award_id FROM chat_messages cm WHERE cm.award_id IS NOT NULL'
+        )
+        for arow in cursor.fetchall():
+            aid = arow[0]
+            cursor.execute('SELECT id FROM chat_rooms WHERE award_id = ?', (aid,))
+            room = cursor.fetchone()
+            if room:
+                cursor.execute(
+                    'UPDATE chat_messages SET room_id = ? WHERE award_id = ?',
+                    (room[0], aid)
+                )
+        # Assign orphan messages (no award_id) to General room
+        cursor.execute("SELECT id FROM chat_rooms WHERE room_type = 'general'")
+        gen = cursor.fetchone()
+        if gen:
+            cursor.execute(
+                'UPDATE chat_messages SET room_id = ? WHERE room_id IS NULL',
+                (gen[0],)
+            )
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_chat_messages_room
+        ON chat_messages(room_id, created_at)
+    ''')
+
+    # Migration: Add room_id column to chat_notifications if not exists
+    cursor.execute("PRAGMA table_info(chat_notifications)")
+    notif_cols = [col[1] for col in cursor.fetchall()]
+    if 'room_id' not in notif_cols:
+        cursor.execute('ALTER TABLE chat_notifications ADD COLUMN room_id INTEGER')
+        # Migrate: set room_id from award_id mapping
+        cursor.execute('''
+            UPDATE chat_notifications SET room_id = (
+                SELECT cr.id FROM chat_rooms cr WHERE cr.award_id = chat_notifications.award_id
+            ) WHERE award_id IS NOT NULL
+        ''')
+        cursor.execute("SELECT id FROM chat_rooms WHERE room_type = 'general'")
+        gen = cursor.fetchone()
+        if gen:
+            cursor.execute(
+                'UPDATE chat_notifications SET room_id = ? WHERE room_id IS NULL',
+                (gen[0],)
+            )
+
     conn.commit()
     conn.close()

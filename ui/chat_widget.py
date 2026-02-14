@@ -1,9 +1,14 @@
 """
-Real-time chat widget using MQTT over WebSockets.
+Real-time chat widget with room selector using MQTT over WebSockets.
 
 Renders a self-contained HTML/JS/CSS chat component via st.components.v1.html().
 The widget connects directly to the Mosquitto MQTT broker from the browser,
 bypassing Streamlit's rerun cycle for true real-time messaging.
+
+Rooms are presented as a horizontal scrollable pill bar (mobile-friendly).
+Room switching is handled entirely client-side: the MQTT subscription changes,
+messages are cleared and re-loaded from pre-loaded history, and new incoming
+messages on other rooms increment an unread badge on their pill.
 """
 
 import json
@@ -11,26 +16,33 @@ import json
 import streamlit.components.v1 as components
 
 
-def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
-                       chat_history, translations, operators_list=None):
+def render_chat_widget(callsign, operator_name, rooms, all_histories,
+                       current_room_id, mqtt_ws_url, translations,
+                       operators_list=None):
     """
-    Render the real-time chat widget.
+    Render the real-time chat widget with room selector.
 
     Args:
         callsign: Current operator's callsign
         operator_name: Current operator's display name
-        award_id: Current award ID for the chat room
-        mqtt_ws_url: Public WebSocket URL for MQTT broker (e.g. wss://domain/mqtt)
-        chat_history: List of message dicts from DB for initial history load
+        rooms: List of room dicts ({id, name, room_type, is_admin_only})
+        all_histories: Dict mapping room id (int) to list of message dicts
+        current_room_id: Initially selected room ID
+        mqtt_ws_url: Public WebSocket URL for MQTT broker
         translations: Dict with chat-related translation strings
-        operators_list: List of operator dicts ({callsign, name}) for @mention autocomplete
+        operators_list: List of operator dicts for @mention autocomplete
     """
-    # Sanitize inputs for safe JS embedding
     safe_callsign = json.dumps(callsign)
     safe_name = json.dumps(operator_name)
-    safe_topic = json.dumps(f"quendaward/chat/{award_id}")
     safe_mqtt_url = json.dumps(mqtt_ws_url)
-    safe_history = json.dumps(chat_history)
+    safe_rooms = json.dumps([
+        {'id': r['id'], 'name': r['name'], 'type': r['room_type']}
+        for r in rooms
+    ])
+    # Convert int keys to string keys for JS object
+    histories_for_js = {str(k): v for k, v in all_histories.items()}
+    safe_histories = json.dumps(histories_for_js)
+    safe_current = json.dumps(current_room_id)
     safe_translations = json.dumps(translations)
     safe_operators = json.dumps(operators_list or [])
 
@@ -54,7 +66,7 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
     #chat-container {{
         display: flex;
         flex-direction: column;
-        height: 480px;
+        height: 520px;
         border: 1px solid #333;
         border-radius: 8px;
         overflow: hidden;
@@ -91,6 +103,57 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
 
     #chat-header .status .dot.error {{
         background: #f44336;
+    }}
+
+    /* --- Room pill bar --- */
+    #room-bar {{
+        display: flex;
+        gap: 6px;
+        padding: 7px 14px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        background: #1a1d24;
+        border-bottom: 1px solid #333;
+        scrollbar-width: none;
+    }}
+    #room-bar::-webkit-scrollbar {{ display: none; }}
+
+    .room-pill {{
+        flex-shrink: 0;
+        padding: 5px 14px;
+        border-radius: 16px;
+        background: #262b36;
+        color: #aaa;
+        font-size: 12px;
+        cursor: pointer;
+        white-space: nowrap;
+        border: 1px solid #333;
+        transition: all 0.15s;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }}
+
+    .room-pill:hover {{
+        background: #2e3440;
+        color: #fff;
+    }}
+
+    .room-pill.active {{
+        background: #2563eb;
+        color: white;
+        border-color: #2563eb;
+    }}
+
+    .room-pill .unread-badge {{
+        display: inline-block;
+        background: #ef4444;
+        color: white;
+        border-radius: 10px;
+        padding: 0 5px;
+        font-size: 10px;
+        margin-left: 4px;
+        min-width: 16px;
+        text-align: center;
     }}
 
     #chat-messages {{
@@ -170,7 +233,6 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
         padding: 4px 0;
     }}
 
-    /* Quote block inside a rendered message */
     .msg .quote-block {{
         border-left: 3px solid #4a9eff;
         padding: 3px 8px;
@@ -195,13 +257,11 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
         max-width: 280px;
     }}
 
-    /* @mention highlight */
     .mention {{
         color: #4a9eff;
         font-weight: 600;
     }}
 
-    /* Quote preview bar above input */
     #quote-preview {{
         display: none;
         padding: 6px 14px;
@@ -240,7 +300,6 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
         color: #fff;
     }}
 
-    /* Mention autocomplete dropdown */
     #chat-input-wrapper {{
         position: relative;
     }}
@@ -354,6 +413,7 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
             <span class="dot" id="status-dot"></span>
         </div>
     </div>
+    <div id="room-bar"></div>
     <div id="chat-messages"><div id="chat-bottom"></div></div>
     <div id="quote-preview">
         <div class="qp-sender" id="qp-sender"></div>
@@ -374,11 +434,15 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
 (function() {{
     const CALLSIGN = {safe_callsign};
     const NAME = {safe_name};
-    const TOPIC = {safe_topic};
     const MQTT_URL = {safe_mqtt_url};
-    const HISTORY = {safe_history};
+    const ROOMS = {safe_rooms};
+    const ALL_HISTORY = {safe_histories};
     const T = {safe_translations};
     const OPERATORS = {safe_operators};
+
+    var currentRoomId = {safe_current};
+    var currentTopic = 'quendaward/chat/room/' + currentRoomId;
+    var unreadCounts = {{}};
 
     const messagesEl = document.getElementById('chat-messages');
     const inputEl = document.getElementById('chat-input');
@@ -391,20 +455,19 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
     const qpText = document.getElementById('qp-text');
     const qpDismiss = document.getElementById('qp-dismiss');
     const autocompleteEl = document.getElementById('mention-autocomplete');
+    const roomBar = document.getElementById('room-bar');
 
-    // Set translated text
     titleEl.textContent = T.chat_title || 'Chat';
     inputEl.placeholder = T.chat_placeholder || 'Type a message...';
     sendBtn.textContent = T.chat_send || 'Send';
     statusText.textContent = T.chat_connecting || 'Connecting...';
 
-    // Rate limiting: 1 message per second
+    // Rate limiting
     let lastSendTime = 0;
     const SEND_INTERVAL_MS = 1000;
 
-    // Last-read position tracking (localStorage, per user + award)
-    const AWARD_ID = {award_id or 0};
-    const POS_KEY = 'quendaward_chat_pos_' + AWARD_ID + '_' + CALLSIGN;
+    // Scroll position key (per room + user)
+    var POS_KEY = 'quendaward_chat_pos_' + currentRoomId + '_' + CALLSIGN;
 
     function saveLastRead(msgId) {{
         if (msgId && msgId !== '0') {{
@@ -422,7 +485,6 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
                 return;
             }}
         }}
-        // No saved position or message not in history: scroll to bottom
         messagesEl.scrollTop = messagesEl.scrollHeight;
     }}
 
@@ -453,8 +515,7 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
 
     function renderMessageText(text) {{
         let escaped = escapeHtml(text);
-        // Highlight @CALLSIGN mentions (uppercase letters, digits, slash — 2-12 chars)
-        escaped = escaped.replace(/@([A-Z0-9\\/]{{2,12}})/gi, function(match, cs) {{
+        escaped = escaped.replace(/@([A-Z0-9\\/]{{2,12}})/gi, function(match) {{
             return '<span class="mention">' + match + '</span>';
         }});
         return escaped;
@@ -486,7 +547,6 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
             '<div class="text">' + renderMessageText(text) + '</div>' +
             '<div class="time">' + escapeHtml(timeStr) + '</div>';
 
-        // Click to quote
         div.addEventListener('click', function() {{
             quotedMessage = {{
                 id: parseInt(div.dataset.msgId) || 0,
@@ -501,56 +561,110 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
             inputEl.focus();
         }});
 
-        // Insert before the sentinel so it stays last
         const sentinel = document.getElementById('chat-bottom');
         messagesEl.insertBefore(div, sentinel);
         saveLastRead(div.dataset.msgId);
     }}
 
-    // Dismiss quote
     qpDismiss.addEventListener('click', function() {{
         quotedMessage = null;
         quotePreview.style.display = 'none';
     }});
 
-    // Load history
-    if (HISTORY && HISTORY.length > 0) {{
-        HISTORY.forEach(function(msg) {{
-            var replyTo = msg.reply_to_callsign ? {{
-                callsign: msg.reply_to_callsign,
-                text: msg.reply_to_text || ''
-            }} : null;
-            appendMessage(
-                msg.operator_callsign,
-                '',
-                msg.message,
-                msg.created_at,
-                msg.operator_callsign === CALLSIGN,
-                replyTo,
-                msg.id
-            );
-        }});
-        // Restore scroll position once the flex container has a real height.
-        // ResizeObserver fires as soon as the iframe resolves its layout —
-        // more reliable than any setTimeout/rAF approach inside Streamlit iframes.
-        var scrollRestored = false;
-        var ro = new ResizeObserver(function(entries) {{
-            for (var i = 0; i < entries.length; i++) {{
-                if (entries[i].contentRect.height > 0 && !scrollRestored) {{
-                    scrollRestored = true;
-                    ro.disconnect();
-                    restoreScrollPosition();
-                }}
+    // --- Room pills ---
+    function renderRoomPills() {{
+        roomBar.innerHTML = '';
+        ROOMS.forEach(function(room) {{
+            var pill = document.createElement('div');
+            pill.className = 'room-pill' + (room.id === currentRoomId ? ' active' : '');
+            pill.textContent = room.name;
+            pill.dataset.roomId = room.id;
+
+            var unread = unreadCounts[room.id] || 0;
+            if (unread > 0 && room.id !== currentRoomId) {{
+                var badge = document.createElement('span');
+                badge.className = 'unread-badge';
+                badge.textContent = unread > 99 ? '99+' : unread;
+                pill.appendChild(badge);
             }}
+
+            pill.addEventListener('click', function() {{
+                switchRoom(room.id);
+            }});
+            roomBar.appendChild(pill);
         }});
-        ro.observe(messagesEl);
-    }} else {{
-        const noMsg = document.createElement('div');
-        noMsg.className = 'no-messages';
-        noMsg.id = 'no-messages-placeholder';
-        noMsg.textContent = T.chat_no_messages || 'No messages yet. Start the conversation!';
-        messagesEl.appendChild(noMsg);
     }}
+
+    function loadRoomMessages(roomId) {{
+        // Clear messages area
+        messagesEl.innerHTML = '<div id="chat-bottom"></div>';
+
+        var history = ALL_HISTORY[String(roomId)] || [];
+        if (history.length > 0) {{
+            history.forEach(function(msg) {{
+                var replyTo = msg.reply_to_callsign ? {{
+                    callsign: msg.reply_to_callsign,
+                    text: msg.reply_to_text || ''
+                }} : null;
+                appendMessage(
+                    msg.operator_callsign,
+                    '',
+                    msg.message,
+                    msg.created_at,
+                    msg.operator_callsign === CALLSIGN,
+                    replyTo,
+                    msg.id
+                );
+            }});
+        }} else {{
+            var noMsg = document.createElement('div');
+            noMsg.className = 'no-messages';
+            noMsg.id = 'no-messages-placeholder';
+            noMsg.textContent = T.chat_no_messages || 'No messages yet. Start the conversation!';
+            messagesEl.appendChild(noMsg);
+        }}
+    }}
+
+    function switchRoom(roomId) {{
+        if (roomId === currentRoomId) return;
+
+        // Clear quote
+        quotedMessage = null;
+        quotePreview.style.display = 'none';
+
+        currentRoomId = roomId;
+        currentTopic = 'quendaward/chat/room/' + roomId;
+        POS_KEY = 'quendaward_chat_pos_' + roomId + '_' + CALLSIGN;
+
+        // Clear unread for new room
+        unreadCounts[roomId] = 0;
+
+        // Re-render pills
+        renderRoomPills();
+
+        // Load messages for new room
+        loadRoomMessages(roomId);
+
+        // Restore scroll position
+        restoreScrollPosition();
+    }}
+
+    // Initial render
+    renderRoomPills();
+    loadRoomMessages(currentRoomId);
+
+    // Restore scroll with ResizeObserver
+    var scrollRestored = false;
+    var ro = new ResizeObserver(function(entries) {{
+        for (var i = 0; i < entries.length; i++) {{
+            if (entries[i].contentRect.height > 0 && !scrollRestored) {{
+                scrollRestored = true;
+                ro.disconnect();
+                restoreScrollPosition();
+            }}
+        }}
+    }});
+    ro.observe(messagesEl);
 
     // --- Mention autocomplete ---
     function renderAutocomplete(items) {{
@@ -593,7 +707,6 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
         const val = inputEl.value;
         const cursorPos = inputEl.selectionStart;
 
-        // Look backward from cursor for @
         var atPos = -1;
         for (var i = cursorPos - 1; i >= 0; i--) {{
             if (val[i] === '@') {{ atPos = i; break; }}
@@ -643,35 +756,61 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
                 statusText.textContent = T.chat_connected || 'Connected';
                 statusDot.className = 'dot connected';
                 sendBtn.disabled = false;
-                client.subscribe(TOPIC);
+                // Subscribe to all rooms with wildcard
+                client.subscribe('quendaward/chat/room/#');
             }});
 
             client.on('message', function(topic, payload) {{
                 try {{
                     const data = JSON.parse(payload.toString());
                     if (!data.callsign || !data.message) return;
-
-                    // Skip our own messages (already rendered locally on send)
                     if (data.callsign === CALLSIGN) return;
 
-                    // Remove "no messages" placeholder if present
-                    const placeholder = document.getElementById('no-messages-placeholder');
-                    if (placeholder) placeholder.remove();
+                    // Extract room_id from topic: quendaward/chat/room/{room_id}
+                    var parts = topic.split('/');
+                    var msgRoomId = null;
+                    if (parts.length >= 4 && parts[2] === 'room') {{
+                        msgRoomId = parseInt(parts[3]);
+                    }}
+                    if (!msgRoomId) return;
 
-                    var replyTo = data.reply_to || null;
-                    // Check if user is near the bottom before appending
-                    var atBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 60;
-                    appendMessage(
-                        data.callsign,
-                        data.name || '',
-                        data.message,
-                        data.timestamp || null,
-                        false,
-                        replyTo,
-                        0
-                    );
-                    if (atBottom) {{
-                        messagesEl.scrollTop = messagesEl.scrollHeight;
+                    if (msgRoomId === currentRoomId) {{
+                        // Remove placeholder
+                        var placeholder = document.getElementById('no-messages-placeholder');
+                        if (placeholder) placeholder.remove();
+
+                        var replyTo = data.reply_to || null;
+                        var atBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 60;
+                        appendMessage(
+                            data.callsign,
+                            data.name || '',
+                            data.message,
+                            data.timestamp || null,
+                            false,
+                            replyTo,
+                            0
+                        );
+                        if (atBottom) {{
+                            messagesEl.scrollTop = messagesEl.scrollHeight;
+                        }}
+                    }} else {{
+                        // Increment unread for other room
+                        unreadCounts[msgRoomId] = (unreadCounts[msgRoomId] || 0) + 1;
+                        renderRoomPills();
+
+                        // Also store in ALL_HISTORY so switching shows the message
+                        var key = String(msgRoomId);
+                        if (!ALL_HISTORY[key]) ALL_HISTORY[key] = [];
+                        ALL_HISTORY[key].push({{
+                            id: 0,
+                            operator_callsign: data.callsign,
+                            message: data.message,
+                            source: data.source || 'app',
+                            created_at: data.timestamp || new Date().toISOString(),
+                            reply_to_id: data.reply_to ? data.reply_to.id : null,
+                            reply_to_callsign: data.reply_to ? data.reply_to.callsign : null,
+                            reply_to_text: data.reply_to ? data.reply_to.text : null
+                        }});
                     }}
                 }} catch(e) {{ /* ignore malformed */ }}
             }});
@@ -702,14 +841,12 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
         const text = inputEl.value.trim();
         if (!text || !client || !client.connected) return;
 
-        // Rate limit
         const now = Date.now();
         if (now - lastSendTime < SEND_INTERVAL_MS) return;
         lastSendTime = now;
 
         const ts = new Date().toISOString();
 
-        // Extract @mentions
         var mentionRegex = /@([A-Z0-9\\/]{{2,12}})/gi;
         var mentions = [];
         var match;
@@ -740,25 +877,21 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
             }};
         }}
 
-        client.publish(TOPIC, JSON.stringify(payloadObj));
+        client.publish(currentTopic, JSON.stringify(payloadObj));
 
-        // Remove "no messages" placeholder if present
-        const placeholder = document.getElementById('no-messages-placeholder');
+        var placeholder = document.getElementById('no-messages-placeholder');
         if (placeholder) placeholder.remove();
 
-        // Render locally immediately (don't wait for echo)
         appendMessage(CALLSIGN, NAME, text, ts, true, quotedMessage, 0);
         inputEl.value = '';
         messagesEl.scrollTop = messagesEl.scrollHeight;
 
-        // Clear quote
         quotedMessage = null;
         quotePreview.style.display = 'none';
     }}
 
     sendBtn.addEventListener('click', sendMessage);
     inputEl.addEventListener('keydown', function(e) {{
-        // Handle mention autocomplete navigation
         if (mentionActive) {{
             if (e.key === 'ArrowDown') {{
                 e.preventDefault();
@@ -786,7 +919,6 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
             }}
         }}
 
-        // Normal Enter to send
         if (e.key === 'Enter' && !e.shiftKey) {{
             e.preventDefault();
             sendMessage();
@@ -801,4 +933,4 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
 </html>
 """
 
-    components.html(html, height=500, scrolling=False)
+    components.html(html, height=540, scrolling=False)

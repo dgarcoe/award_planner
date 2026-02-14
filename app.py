@@ -221,10 +221,10 @@ def operator_panel():
             if chat_notifications:
                 st.markdown(f"**💬 {t.get('chat_mentions', 'Chat Mentions')}**")
                 for notif in chat_notifications:
-                    award_label = notif.get('award_name') or ''
+                    room_label = notif.get('room_name') or ''
                     btn_label = f"🔵 @{notif['sender_callsign']}"
-                    if award_label:
-                        btn_label += f" ({award_label})"
+                    if room_label:
+                        btn_label += f" ({room_label})"
                     if st.button(
                         btn_label,
                         key=f"chat_notif_{notif['id']}",
@@ -325,7 +325,21 @@ def operator_panel():
 
     if CHAT_ENABLED:
         with tabs[tab_idx]:
-            if st.session_state.current_award_id:
+            # Sync award rooms and load all available rooms
+            db.sync_award_rooms()
+            rooms = db.get_chat_rooms(is_admin=st.session_state.is_admin)
+            if rooms:
+                # Determine initial room (General first, then first available)
+                general_rooms = [r for r in rooms if r['room_type'] == 'general']
+                default_room_id = general_rooms[0]['id'] if general_rooms else rooms[0]['id']
+
+                # Load history for every room
+                all_histories = {}
+                for room in rooms:
+                    all_histories[room['id']] = db.get_chat_history_by_room(
+                        room['id'], CHAT_HISTORY_LIMIT
+                    )
+
                 chat_translations = {
                     'chat_title': t.get('chat_title', 'Chat'),
                     'chat_placeholder': t.get('chat_placeholder', 'Type a message...'),
@@ -337,7 +351,6 @@ def operator_panel():
                     'chat_no_messages': t.get('chat_no_messages', 'No messages yet. Start the conversation!'),
                     'chat_replying_to': t.get('chat_replying_to', 'Replying to'),
                 }
-                history = db.get_chat_history(st.session_state.current_award_id, CHAT_HISTORY_LIMIT)
                 all_operators = db.get_all_operators()
                 operators_for_chat = [
                     {'callsign': op['callsign'], 'name': op['operator_name']}
@@ -346,14 +359,15 @@ def operator_panel():
                 render_chat_widget(
                     callsign=st.session_state.callsign,
                     operator_name=st.session_state.operator_name,
-                    award_id=st.session_state.current_award_id,
+                    rooms=rooms,
+                    all_histories=all_histories,
+                    current_room_id=default_room_id,
                     mqtt_ws_url=MQTT_WS_URL,
-                    chat_history=history,
                     translations=chat_translations,
                     operators_list=operators_for_chat,
                 )
             else:
-                st.info(t.get('error_no_special_callsign_selected', 'No special callsign selected.'))
+                st.info(t.get('chat_no_rooms', 'No chat rooms available.'))
         tab_idx += 1
 
     if st.session_state.is_admin:
