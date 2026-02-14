@@ -415,16 +415,15 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
     function restoreScrollPosition() {{
         var lastId = null;
         try {{ lastId = localStorage.getItem(POS_KEY); }} catch(e) {{}}
-        var sentinel = document.getElementById('chat-bottom');
         if (lastId) {{
             var el = messagesEl.querySelector('[data-msg-id="' + lastId + '"]');
             if (el) {{
-                el.scrollIntoView({{ behavior: 'instant', block: 'start' }});
+                messagesEl.scrollTop = el.offsetTop - messagesEl.offsetTop;
                 return;
             }}
         }}
         // No saved position or message not in history: scroll to bottom
-        if (sentinel) sentinel.scrollIntoView({{ behavior: 'instant', block: 'end' }});
+        messagesEl.scrollTop = messagesEl.scrollHeight;
     }}
 
     // Quoting state
@@ -672,7 +671,7 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
                         0
                     );
                     if (atBottom) {{
-                        document.getElementById('chat-bottom').scrollIntoView({{ behavior: 'instant', block: 'end' }});
+                        messagesEl.scrollTop = messagesEl.scrollHeight;
                     }}
                 }} catch(e) {{ /* ignore malformed */ }}
             }});
@@ -750,7 +749,7 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
         // Render locally immediately (don't wait for echo)
         appendMessage(CALLSIGN, NAME, text, ts, true, quotedMessage, 0);
         inputEl.value = '';
-        document.getElementById('chat-bottom').scrollIntoView({{ behavior: 'instant', block: 'end' }});
+        messagesEl.scrollTop = messagesEl.scrollHeight;
 
         // Clear quote
         quotedMessage = null;
