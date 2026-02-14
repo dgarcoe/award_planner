@@ -745,6 +745,7 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
         // Render locally immediately (don't wait for echo)
         appendMessage(CALLSIGN, NAME, text, ts, true, quotedMessage, 0);
         inputEl.value = '';
+        document.getElementById('chat-bottom').scrollIntoView({{ behavior: 'instant', block: 'end' }});
 
         // Clear quote
         quotedMessage = null;
