@@ -114,6 +114,29 @@ def get_chat_stats():
         conn.close()
 
 
+def get_chat_stats_by_user():
+    """
+    Return message counts grouped by operator callsign across all awards.
+
+    Returns:
+        list of dicts (operator_callsign, message_count, oldest, newest)
+    """
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            '''SELECT operator_callsign,
+                      COUNT(*) AS message_count,
+                      MIN(created_at) AS oldest,
+                      MAX(created_at) AS newest
+               FROM chat_messages
+               GROUP BY operator_callsign
+               ORDER BY message_count DESC'''
+        )
+        return [dict(row) for row in cursor.fetchall()]
+    finally:
+        conn.close()
+
+
 def delete_chat_messages_by_award(award_id):
     """Delete all chat messages for a specific award. Returns number of rows deleted."""
     conn = get_connection()

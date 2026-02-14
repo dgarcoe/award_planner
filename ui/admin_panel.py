@@ -500,39 +500,57 @@ def render_chat_management_tab(t):
     st.info(t['chat_management_info'])
 
     stats = db.get_chat_stats()
+    all_awards = db.get_all_awards()
 
     # --- Statistics ---
     st.subheader(t['chat_stats_title'])
     st.metric(t['chat_total_messages'], stats['total'])
 
     if stats['per_award']:
-        rows = []
-        for row in stats['per_award']:
-            rows.append({
-                t['chat_award_col']: row['award_name'] or f"ID {row['award_id']}",
-                t['chat_count_col']: row['message_count'],
-                t['chat_oldest_col']: (row['oldest'] or '')[:16],
-                t['chat_newest_col']: (row['newest'] or '')[:16],
-            })
-        st.dataframe(rows, use_container_width=True, hide_index=True)
+        col_left, col_right = st.columns(2)
+
+        with col_left:
+            st.caption(t['chat_per_callsign'])
+            rows_cs = []
+            for row in stats['per_award']:
+                rows_cs.append({
+                    t['chat_callsign_col']: row['award_name'] or f"ID {row['award_id']}",
+                    t['chat_count_col']: row['message_count'],
+                    t['chat_oldest_col']: (row['oldest'] or '')[:16],
+                    t['chat_newest_col']: (row['newest'] or '')[:16],
+                })
+            st.dataframe(rows_cs, use_container_width=True, hide_index=True)
+
+        with col_right:
+            st.caption(t['chat_per_user'])
+            user_stats = db.get_chat_stats_by_user()
+            if user_stats:
+                rows_usr = []
+                for row in user_stats:
+                    rows_usr.append({
+                        t['chat_user_col']: row['operator_callsign'],
+                        t['chat_count_col']: row['message_count'],
+                        t['chat_oldest_col']: (row['oldest'] or '')[:16],
+                        t['chat_newest_col']: (row['newest'] or '')[:16],
+                    })
+                st.dataframe(rows_usr, use_container_width=True, hide_index=True)
     else:
         st.info(t['chat_no_messages_db'])
 
     st.divider()
 
-    # --- Delete by award ---
-    st.subheader(t['chat_clean_by_award'])
-    st.caption(t['chat_clean_by_award_info'])
+    # --- Delete by special callsign ---
+    st.subheader(t['chat_clean_by_callsign'])
+    st.caption(t['chat_clean_by_callsign_info'])
 
-    all_awards = db.get_all_awards()
     if all_awards:
         award_options = {a['name']: a['id'] for a in all_awards}
         selected_award_name = st.selectbox(
-            t['chat_select_award'],
+            t['chat_select_callsign'],
             options=list(award_options.keys()),
             key="chat_mgmt_award_select"
         )
-        if st.button(t['chat_delete_award_btn'], key="chat_del_by_award", type="secondary"):
+        if st.button(t['chat_delete_callsign_btn'], key="chat_del_by_award", type="secondary"):
             award_id = award_options[selected_award_name]
             deleted = db.delete_chat_messages_by_award(award_id)
             if deleted:
@@ -555,18 +573,18 @@ def render_chat_management_tab(t):
         key="chat_mgmt_days"
     )
 
-    award_filter_options = [t['chat_all_awards']] + [a['name'] for a in all_awards]
-    award_filter_name = st.selectbox(
-        t['chat_filter_award_optional'],
-        options=award_filter_options,
+    callsign_filter_options = [t['chat_all_callsigns']] + [a['name'] for a in all_awards]
+    callsign_filter_name = st.selectbox(
+        t['chat_filter_callsign_optional'],
+        options=callsign_filter_options,
         key="chat_mgmt_old_award"
     )
 
     if st.button(t['chat_delete_old_btn'], key="chat_del_old", type="secondary"):
-        if award_filter_name == t['chat_all_awards']:
+        if callsign_filter_name == t['chat_all_callsigns']:
             deleted = db.delete_chat_messages_older_than(days)
         else:
-            award_id = next(a['id'] for a in all_awards if a['name'] == award_filter_name)
+            award_id = next(a['id'] for a in all_awards if a['name'] == callsign_filter_name)
             deleted = db.delete_chat_messages_older_than(days, award_id)
         if deleted:
             st.success(f"{deleted} {t['chat_deleted_count']}")
