@@ -4,9 +4,10 @@ QuendAward: Ham Radio Award Operator Coordination Tool
 Main application file with Streamlit UI.
 """
 
+from datetime import timedelta
+
 import streamlit as st
 import database as db
-from streamlit_autorefresh import st_autorefresh
 
 # Import configuration
 from config import (
@@ -189,8 +190,8 @@ def operator_panel():
     """Display the operator coordination panel."""
     t = get_all_texts(st.session_state.language)
 
-    # Auto-refresh every 5 seconds to show real-time updates
-    st_autorefresh(interval=AUTO_REFRESH_INTERVAL_MS, key="datarefresh")
+    # Auto-refresh interval for fragment-based refresh
+    refresh_interval = timedelta(milliseconds=AUTO_REFRESH_INTERVAL_MS)
 
     st.title(f"🎙️ {t['app_title']}")
     st.subheader(f"{t['welcome']}, {st.session_state.operator_name} ({st.session_state.callsign})")
@@ -279,11 +280,17 @@ def operator_panel():
     tab_idx = 0
 
     with tabs[tab_idx]:
-        render_activity_dashboard(t, st.session_state.current_award_id, st.session_state.callsign)
+        @st.fragment(run_every=refresh_interval)
+        def _dashboard_fragment():
+            render_activity_dashboard(t, st.session_state.current_award_id, st.session_state.callsign)
+        _dashboard_fragment()
     tab_idx += 1
 
     with tabs[tab_idx]:
-        render_announcements_operator_tab(t, st.session_state.callsign)
+        @st.fragment(run_every=refresh_interval)
+        def _announcements_fragment():
+            render_announcements_operator_tab(t, st.session_state.callsign)
+        _announcements_fragment()
     tab_idx += 1
 
     if CHAT_ENABLED:
