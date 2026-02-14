@@ -494,6 +494,99 @@ def render_database_management_tab(t):
                     st.error(f"{t['restore_error']}: {str(e)}")
 
 
+def render_chat_management_tab(t):
+    """Render the chat management tab for admins."""
+    st.subheader(f"💬 {t['chat_management_title']}")
+    st.info(t['chat_management_info'])
+
+    stats = db.get_chat_stats()
+
+    # --- Statistics ---
+    st.subheader(t['chat_stats_title'])
+    st.metric(t['chat_total_messages'], stats['total'])
+
+    if stats['per_award']:
+        rows = []
+        for row in stats['per_award']:
+            rows.append({
+                t['chat_award_col']: row['award_name'] or f"ID {row['award_id']}",
+                t['chat_count_col']: row['message_count'],
+                t['chat_oldest_col']: (row['oldest'] or '')[:16],
+                t['chat_newest_col']: (row['newest'] or '')[:16],
+            })
+        st.dataframe(rows, use_container_width=True, hide_index=True)
+    else:
+        st.info(t['chat_no_messages_db'])
+
+    st.divider()
+
+    # --- Delete by award ---
+    st.subheader(t['chat_clean_by_award'])
+    st.caption(t['chat_clean_by_award_info'])
+
+    all_awards = db.get_all_awards()
+    if all_awards:
+        award_options = {a['name']: a['id'] for a in all_awards}
+        selected_award_name = st.selectbox(
+            t['chat_select_award'],
+            options=list(award_options.keys()),
+            key="chat_mgmt_award_select"
+        )
+        if st.button(t['chat_delete_award_btn'], key="chat_del_by_award", type="secondary"):
+            award_id = award_options[selected_award_name]
+            deleted = db.delete_chat_messages_by_award(award_id)
+            if deleted:
+                st.success(f"{deleted} {t['chat_deleted_count']}")
+            else:
+                st.info(t['chat_nothing_to_delete'])
+            st.rerun()
+    else:
+        st.info(t['chat_no_messages_db'])
+
+    st.divider()
+
+    # --- Delete old messages ---
+    st.subheader(t['chat_clean_old'])
+    st.caption(t['chat_clean_old_info'])
+
+    days = st.number_input(
+        t['chat_days_to_keep'],
+        min_value=1, max_value=3650, value=30, step=1,
+        key="chat_mgmt_days"
+    )
+
+    award_filter_options = [t['chat_all_awards']] + [a['name'] for a in all_awards]
+    award_filter_name = st.selectbox(
+        t['chat_filter_award_optional'],
+        options=award_filter_options,
+        key="chat_mgmt_old_award"
+    )
+
+    if st.button(t['chat_delete_old_btn'], key="chat_del_old", type="secondary"):
+        if award_filter_name == t['chat_all_awards']:
+            deleted = db.delete_chat_messages_older_than(days)
+        else:
+            award_id = next(a['id'] for a in all_awards if a['name'] == award_filter_name)
+            deleted = db.delete_chat_messages_older_than(days, award_id)
+        if deleted:
+            st.success(f"{deleted} {t['chat_deleted_count']}")
+        else:
+            st.info(t['chat_nothing_to_delete'])
+        st.rerun()
+
+    st.divider()
+
+    # --- Delete all ---
+    st.subheader(t['chat_delete_all'])
+    st.warning(t['chat_delete_all_warning'])
+    confirm = st.checkbox(t['chat_confirm_delete_all'], key="chat_mgmt_confirm_all")
+    if confirm:
+        if st.button(t['chat_delete_all_btn'], key="chat_del_all", type="primary"):
+            deleted = db.delete_all_chat_messages()
+            st.success(f"{deleted} {t['chat_deleted_count']}")
+            st.rerun()
+
+
 def render_announcements_admin_tab(t):
     """
     Render the announcements management tab for admins.

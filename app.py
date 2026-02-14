@@ -38,7 +38,8 @@ from ui.admin_panel import (
     render_system_stats_tab,
     render_award_management_tab,
     render_database_management_tab,
-    render_announcements_admin_tab
+    render_announcements_admin_tab,
+    render_chat_management_tab,
 )
 
 # Import mobile styles
@@ -122,32 +123,40 @@ def admin_panel():
     """Display the admin management panel."""
     t = get_all_texts(st.session_state.language)
 
-    tab_callsigns, tab_announcements, tab_operators, tab_blocks, tab_stats, tab_database = st.tabs([
+    admin_tab_labels = [
         f"🏆 {t['tab_manage_special_callsigns']}",
         f"📢 {t['tab_announcements']}",
         f"👥 {t['tab_operators']}",
         t['tab_manage_blocks'],
         t['tab_system_stats'],
-        f"💾 {t['tab_database']}"
-    ])
+        f"💾 {t['tab_database']}",
+    ]
+    if CHAT_ENABLED:
+        admin_tab_labels.append(f"💬 {t['tab_chat_management']}")
 
-    with tab_callsigns:
+    admin_tabs = st.tabs(admin_tab_labels)
+
+    with admin_tabs[0]:
         render_award_management_tab(t)
 
-    with tab_announcements:
+    with admin_tabs[1]:
         render_announcements_admin_tab(t)
 
-    with tab_operators:
+    with admin_tabs[2]:
         render_operators_tab(t)
 
-    with tab_blocks:
+    with admin_tabs[3]:
         render_manage_blocks_tab(t)
 
-    with tab_stats:
+    with admin_tabs[4]:
         render_system_stats_tab(t)
 
-    with tab_database:
+    with admin_tabs[5]:
         render_database_management_tab(t)
+
+    if CHAT_ENABLED:
+        with admin_tabs[6]:
+            render_chat_management_tab(t)
 
 
 

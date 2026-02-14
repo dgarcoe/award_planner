@@ -71,6 +71,10 @@ from features.chat import (
     save_chat_message,
     get_chat_history,
     get_chat_history_global,
+    get_chat_stats,
+    delete_chat_messages_by_award,
+    delete_chat_messages_older_than,
+    delete_all_chat_messages,
 )
 
 __all__ = [
@@ -126,4 +130,8 @@ __all__ = [
     'save_chat_message',
     'get_chat_history',
     'get_chat_history_global',
+    'get_chat_stats',
+    'delete_chat_messages_by_award',
+    'delete_chat_messages_older_than',
+    'delete_all_chat_messages',
 ]

@@ -81,3 +81,84 @@ def get_chat_history_global(limit=100):
         return [dict(row) for row in reversed(rows)]
     finally:
         conn.close()
+
+
+def get_chat_stats():
+    """
+    Return chat statistics: total count, per-award breakdown with oldest/newest dates.
+
+    Returns:
+        dict with keys:
+            total: int
+            per_award: list of dicts (award_id, count, oldest, newest)
+    """
+    conn = get_connection()
+    try:
+        cursor = conn.execute('SELECT COUNT(*) FROM chat_messages')
+        total = cursor.fetchone()[0]
+
+        cursor = conn.execute(
+            '''SELECT cm.award_id,
+                      a.name AS award_name,
+                      COUNT(*) AS message_count,
+                      MIN(cm.created_at) AS oldest,
+                      MAX(cm.created_at) AS newest
+               FROM chat_messages cm
+               LEFT JOIN awards a ON a.id = cm.award_id
+               GROUP BY cm.award_id
+               ORDER BY message_count DESC'''
+        )
+        per_award = [dict(row) for row in cursor.fetchall()]
+        return {'total': total, 'per_award': per_award}
+    finally:
+        conn.close()
+
+
+def delete_chat_messages_by_award(award_id):
+    """Delete all chat messages for a specific award. Returns number of rows deleted."""
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            'DELETE FROM chat_messages WHERE award_id = ?', (award_id,)
+        )
+        conn.commit()
+        return cursor.rowcount
+    finally:
+        conn.close()
+
+
+def delete_chat_messages_older_than(days, award_id=None):
+    """
+    Delete messages older than `days` days, optionally filtered by award.
+    Returns number of rows deleted.
+    """
+    conn = get_connection()
+    try:
+        if award_id is not None:
+            cursor = conn.execute(
+                '''DELETE FROM chat_messages
+                   WHERE created_at < datetime('now', ? || ' days')
+                   AND award_id = ?''',
+                (f'-{days}', award_id)
+            )
+        else:
+            cursor = conn.execute(
+                '''DELETE FROM chat_messages
+                   WHERE created_at < datetime('now', ? || ' days')''',
+                (f'-{days}',)
+            )
+        conn.commit()
+        return cursor.rowcount
+    finally:
+        conn.close()
+
+
+def delete_all_chat_messages():
+    """Delete every chat message. Returns number of rows deleted."""
+    conn = get_connection()
+    try:
+        cursor = conn.execute('DELETE FROM chat_messages')
+        conn.commit()
+        return cursor.rowcount
+    finally:
+        conn.close()
