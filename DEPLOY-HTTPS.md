@@ -32,26 +32,21 @@ Create a `.env` file:
 ```bash
 cat > .env << EOF
 DOMAIN=your-domain.com
-ADMIN_CALLSIGN=YOUR_CALLSIGN
+ADMIN_CALLSIGN=EA1RFI
 ADMIN_PASSWORD=your_secure_password
+MQTT_WS_URL=wss://your-domain.com/mqtt
 EOF
 ```
 
-### Step 2: Update nginx.conf with your domain
+The `DOMAIN` variable is automatically substituted into the nginx config at container startup using nginx's built-in template mechanism — no need to manually edit `nginx/nginx.conf`.
 
-Replace `${DOMAIN}` in `nginx/nginx.conf` with your actual domain:
-
-```bash
-sed -i "s/\${DOMAIN}/your-domain.com/g" nginx/nginx.conf
-```
-
-### Step 3: Create required directories
+### Step 2: Create required directories
 
 ```bash
 mkdir -p certbot/www certbot/conf data
 ```
 
-### Step 4: Get initial certificate
+### Step 3: Get initial certificate
 
 First, start nginx with HTTP-only config:
 
@@ -78,15 +73,11 @@ docker run --rm \
     -d your-domain.com
 ```
 
-### Step 5: Start the full stack
+### Step 4: Start the full stack
 
-Restore the HTTPS nginx config and start everything:
+Stop the init nginx and start the full stack:
 
 ```bash
-# Restore HTTPS config (if you backed it up)
-mv nginx/nginx.conf.bak nginx/nginx.conf
-
-# Stop and restart
 docker-compose -f docker-compose-standalone.yml down
 docker-compose -f docker-compose-standalone.yml up -d
 ```
