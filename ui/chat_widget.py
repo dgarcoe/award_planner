@@ -660,6 +660,8 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
                     if (placeholder) placeholder.remove();
 
                     var replyTo = data.reply_to || null;
+                    // Check if user is near the bottom before appending
+                    var atBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 60;
                     appendMessage(
                         data.callsign,
                         data.name || '',
@@ -669,6 +671,9 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
                         replyTo,
                         0
                     );
+                    if (atBottom) {{
+                        document.getElementById('chat-bottom').scrollIntoView({{ behavior: 'instant', block: 'end' }});
+                    }}
                 }} catch(e) {{ /* ignore malformed */ }}
             }});
 
