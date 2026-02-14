@@ -504,6 +504,10 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
                 msg.id
             );
         }});
+        // Scroll to bottom after all history is in the DOM
+        setTimeout(function() {{
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }}, 0);
     }} else {{
         const noMsg = document.createElement('div');
         noMsg.className = 'no-messages';
