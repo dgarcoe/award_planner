@@ -354,7 +354,7 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
             <span class="dot" id="status-dot"></span>
         </div>
     </div>
-    <div id="chat-messages"></div>
+    <div id="chat-messages"><div id="chat-bottom"></div></div>
     <div id="quote-preview">
         <div class="qp-sender" id="qp-sender"></div>
         <div class="qp-text" id="qp-text"></div>
@@ -477,8 +477,10 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
             inputEl.focus();
         }});
 
-        messagesEl.appendChild(div);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
+        // Insert before the sentinel so it stays last
+        const sentinel = document.getElementById('chat-bottom');
+        messagesEl.insertBefore(div, sentinel);
+        sentinel.scrollIntoView({{ behavior: 'instant', block: 'end' }});
     }}
 
     // Dismiss quote
@@ -504,16 +506,9 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
                 msg.id
             );
         }});
-        // Scroll to bottom after the browser has fully painted the history.
-        // Double rAF ensures we run after layout + paint, not just after DOM insert.
-        // The 150ms fallback covers slow iframe initialisation in Streamlit.
-        function scrollToBottom() {{
-            messagesEl.scrollTop = messagesEl.scrollHeight;
-        }}
-        requestAnimationFrame(function() {{
-            requestAnimationFrame(scrollToBottom);
-        }});
-        setTimeout(scrollToBottom, 150);
+        // scrollIntoView on the sentinel works regardless of whether the
+        // flex container has resolved its height yet (robust inside iframes).
+        document.getElementById('chat-bottom').scrollIntoView({{ behavior: 'instant', block: 'end' }});
     }} else {{
         const noMsg = document.createElement('div');
         noMsg.className = 'no-messages';
