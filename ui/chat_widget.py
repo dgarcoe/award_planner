@@ -504,10 +504,16 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url,
                 msg.id
             );
         }});
-        // Scroll to bottom after all history is in the DOM
-        setTimeout(function() {{
+        // Scroll to bottom after the browser has fully painted the history.
+        // Double rAF ensures we run after layout + paint, not just after DOM insert.
+        // The 150ms fallback covers slow iframe initialisation in Streamlit.
+        function scrollToBottom() {{
             messagesEl.scrollTop = messagesEl.scrollHeight;
-        }}, 0);
+        }}
+        requestAnimationFrame(function() {{
+            requestAnimationFrame(scrollToBottom);
+        }});
+        setTimeout(scrollToBottom, 150);
     }} else {{
         const noMsg = document.createElement('div');
         noMsg.className = 'no-messages';
