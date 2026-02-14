@@ -5,7 +5,8 @@ Chat feature module - database functions for chat message persistence and retrie
 from core.database import get_connection
 
 
-def save_chat_message(award_id, callsign, message, source='app'):
+def save_chat_message(award_id, callsign, message, source='app',
+                      reply_to_id=None, reply_to_callsign=None, reply_to_text=None):
     """
     Save a chat message to the database.
 
@@ -14,6 +15,9 @@ def save_chat_message(award_id, callsign, message, source='app'):
         callsign: Operator callsign who sent the message
         message: Message text
         source: Message source ('app' or 'telegram')
+        reply_to_id: ID of the message being quoted (optional)
+        reply_to_callsign: Callsign of the quoted message sender (optional)
+        reply_to_text: Preview text of the quoted message (optional)
 
     Returns:
         int: ID of the inserted message
@@ -21,8 +25,12 @@ def save_chat_message(award_id, callsign, message, source='app'):
     conn = get_connection()
     try:
         cursor = conn.execute(
-            'INSERT INTO chat_messages (award_id, operator_callsign, message, source) VALUES (?, ?, ?, ?)',
-            (award_id, callsign, message, source)
+            '''INSERT INTO chat_messages
+               (award_id, operator_callsign, message, source,
+                reply_to_id, reply_to_callsign, reply_to_text)
+               VALUES (?, ?, ?, ?, ?, ?, ?)''',
+            (award_id, callsign, message, source,
+             reply_to_id, reply_to_callsign, reply_to_text)
         )
         conn.commit()
         return cursor.lastrowid
@@ -44,7 +52,8 @@ def get_chat_history(award_id, limit=100):
     conn = get_connection()
     try:
         cursor = conn.execute(
-            '''SELECT id, award_id, operator_callsign, message, source, created_at
+            '''SELECT id, award_id, operator_callsign, message, source, created_at,
+                      reply_to_id, reply_to_callsign, reply_to_text
                FROM chat_messages
                WHERE award_id = ?
                ORDER BY created_at DESC
@@ -71,7 +80,8 @@ def get_chat_history_global(limit=100):
     conn = get_connection()
     try:
         cursor = conn.execute(
-            '''SELECT id, award_id, operator_callsign, message, source, created_at
+            '''SELECT id, award_id, operator_callsign, message, source, created_at,
+                      reply_to_id, reply_to_callsign, reply_to_text
                FROM chat_messages
                ORDER BY created_at DESC
                LIMIT ?''',
@@ -183,5 +193,65 @@ def delete_all_chat_messages():
         cursor = conn.execute('DELETE FROM chat_messages')
         conn.commit()
         return cursor.rowcount
+    finally:
+        conn.close()
+
+
+# --- Chat mention notifications ---
+
+def get_unread_chat_notification_count(operator_callsign):
+    """Return the number of unread chat mention notifications for an operator."""
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            'SELECT COUNT(*) FROM chat_notifications WHERE recipient_callsign = ? AND is_read = 0',
+            (operator_callsign.upper(),)
+        )
+        return cursor.fetchone()[0]
+    finally:
+        conn.close()
+
+
+def get_unread_chat_notifications(operator_callsign, limit=20):
+    """Return unread chat mention notifications for an operator."""
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            '''SELECT cn.id, cn.sender_callsign, cn.award_id, cn.message_preview,
+                      cn.created_at, a.name AS award_name
+               FROM chat_notifications cn
+               LEFT JOIN awards a ON a.id = cn.award_id
+               WHERE cn.recipient_callsign = ? AND cn.is_read = 0
+               ORDER BY cn.created_at DESC
+               LIMIT ?''',
+            (operator_callsign.upper(), limit)
+        )
+        return [dict(row) for row in cursor.fetchall()]
+    finally:
+        conn.close()
+
+
+def mark_chat_notification_read(notification_id):
+    """Mark a single chat notification as read."""
+    conn = get_connection()
+    try:
+        conn.execute(
+            'UPDATE chat_notifications SET is_read = 1 WHERE id = ?',
+            (notification_id,)
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def mark_all_chat_notifications_read(operator_callsign):
+    """Mark all chat notifications as read for an operator."""
+    conn = get_connection()
+    try:
+        conn.execute(
+            'UPDATE chat_notifications SET is_read = 1 WHERE recipient_callsign = ? AND is_read = 0',
+            (operator_callsign.upper(),)
+        )
+        conn.commit()
     finally:
         conn.close()

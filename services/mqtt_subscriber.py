@@ -26,17 +26,54 @@ _subscriber_started = False
 _subscriber_lock = threading.Lock()
 
 
-def _save_chat_message(award_id, callsign, message, source='app'):
-    """Persist a chat message to the database."""
+def _save_chat_message(award_id, callsign, message, source='app',
+                       reply_to_id=None, reply_to_callsign=None, reply_to_text=None):
+    """Persist a chat message to the database. Returns the inserted message ID."""
     conn = get_connection()
     try:
-        conn.execute(
-            'INSERT INTO chat_messages (award_id, operator_callsign, message, source) VALUES (?, ?, ?, ?)',
-            (award_id, callsign, message, source)
+        cursor = conn.execute(
+            '''INSERT INTO chat_messages
+               (award_id, operator_callsign, message, source,
+                reply_to_id, reply_to_callsign, reply_to_text)
+               VALUES (?, ?, ?, ?, ?, ?, ?)''',
+            (award_id, callsign, message, source,
+             reply_to_id, reply_to_callsign, reply_to_text)
         )
         conn.commit()
+        return cursor.lastrowid
     except Exception:
         logger.exception("Failed to save chat message")
+        return None
+    finally:
+        conn.close()
+
+
+def _create_mention_notifications(award_id, sender_callsign, message, mentions, chat_message_id):
+    """Create a chat_notification row for each mentioned callsign."""
+    if not mentions:
+        return
+    conn = get_connection()
+    try:
+        preview = message[:80] + '...' if len(message) > 80 else message
+        for callsign in mentions:
+            if callsign.upper() == sender_callsign.upper():
+                continue
+            existing = conn.execute(
+                'SELECT callsign FROM operators WHERE callsign = ?',
+                (callsign.upper(),)
+            ).fetchone()
+            if existing:
+                conn.execute(
+                    '''INSERT INTO chat_notifications
+                       (recipient_callsign, sender_callsign, award_id,
+                        message_preview, chat_message_id)
+                       VALUES (?, ?, ?, ?, ?)''',
+                    (callsign.upper(), sender_callsign.upper(),
+                     award_id, preview, chat_message_id)
+                )
+        conn.commit()
+    except Exception:
+        logger.exception("Failed to create mention notifications")
     finally:
         conn.close()
 
@@ -67,7 +104,25 @@ def _on_message(client, userdata, msg):
             except ValueError:
                 pass
 
-        _save_chat_message(award_id, callsign, message, source)
+        # Extract quote data
+        reply_to = payload.get('reply_to')
+        reply_to_id = None
+        reply_to_callsign = None
+        reply_to_text = None
+        if reply_to and isinstance(reply_to, dict):
+            reply_to_id = reply_to.get('id')
+            reply_to_callsign = reply_to.get('callsign')
+            reply_to_text = (reply_to.get('text') or '')[:100]
+
+        msg_id = _save_chat_message(
+            award_id, callsign, message, source,
+            reply_to_id, reply_to_callsign, reply_to_text
+        )
+
+        # Process @mentions
+        mentions = payload.get('mentions', [])
+        if mentions and msg_id:
+            _create_mention_notifications(award_id, callsign, message, mentions, msg_id)
     except json.JSONDecodeError:
         logger.warning("Received non-JSON MQTT message on %s", msg.topic)
     except Exception:

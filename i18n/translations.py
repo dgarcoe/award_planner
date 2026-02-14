@@ -272,6 +272,9 @@ TRANSLATIONS = {
         'chat_delete_all_btn': 'Delete all messages',
         'chat_deleted_count': 'messages deleted.',
         'chat_nothing_to_delete': 'No messages matched the criteria.',
+        'chat_mentions': 'Chat Mentions',
+        'chat_replying_to': 'Replying to',
+        'chat_no_mentions': 'No new mentions',
     },
     'es': {
         # General
@@ -541,6 +544,9 @@ TRANSLATIONS = {
         'chat_delete_all_btn': 'Eliminar todos los mensajes',
         'chat_deleted_count': 'mensajes eliminados.',
         'chat_nothing_to_delete': 'Ningún mensaje coincide con los criterios.',
+        'chat_mentions': 'Menciones del Chat',
+        'chat_replying_to': 'Respondiendo a',
+        'chat_no_mentions': 'Sin menciones nuevas',
     },
     'gl': {
         # General
@@ -810,6 +816,9 @@ TRANSLATIONS = {
         'chat_delete_all_btn': 'Eliminar todas as mensaxes',
         'chat_deleted_count': 'mensaxes eliminadas.',
         'chat_nothing_to_delete': 'Ningunha mensaxe coincide cos criterios.',
+        'chat_mentions': 'Mencions do Chat',
+        'chat_replying_to': 'Respondendo a',
+        'chat_no_mentions': 'Sen mencions novas',
     }
 }
 

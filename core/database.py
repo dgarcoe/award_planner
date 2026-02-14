@@ -166,5 +166,33 @@ def init_database():
         ON chat_messages(award_id, created_at)
     ''')
 
+    # Migration: Add reply columns to chat_messages if not exists
+    cursor.execute("PRAGMA table_info(chat_messages)")
+    chat_columns = [column[1] for column in cursor.fetchall()]
+    if 'reply_to_id' not in chat_columns:
+        cursor.execute('ALTER TABLE chat_messages ADD COLUMN reply_to_id INTEGER')
+        cursor.execute('ALTER TABLE chat_messages ADD COLUMN reply_to_callsign TEXT')
+        cursor.execute('ALTER TABLE chat_messages ADD COLUMN reply_to_text TEXT')
+
+    # Create chat_notifications table for @mention notifications
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS chat_notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            recipient_callsign TEXT NOT NULL,
+            sender_callsign TEXT NOT NULL,
+            award_id INTEGER,
+            message_preview TEXT NOT NULL,
+            chat_message_id INTEGER,
+            is_read INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (recipient_callsign) REFERENCES operators (callsign),
+            FOREIGN KEY (sender_callsign) REFERENCES operators (callsign)
+        )
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_chat_notifications_recipient
+        ON chat_notifications(recipient_callsign, is_read, created_at)
+    ''')
+
     conn.commit()
     conn.close()

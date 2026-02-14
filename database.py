@@ -76,6 +76,10 @@ from features.chat import (
     delete_chat_messages_by_award,
     delete_chat_messages_older_than,
     delete_all_chat_messages,
+    get_unread_chat_notification_count,
+    get_unread_chat_notifications,
+    mark_chat_notification_read,
+    mark_all_chat_notifications_read,
 )
 
 __all__ = [
@@ -136,4 +140,8 @@ __all__ = [
     'delete_chat_messages_by_award',
     'delete_chat_messages_older_than',
     'delete_all_chat_messages',
+    'get_unread_chat_notification_count',
+    'get_unread_chat_notifications',
+    'mark_chat_notification_read',
+    'mark_all_chat_notifications_read',
 ]

@@ -206,17 +206,38 @@ def operator_panel():
     st.subheader(f"{t['welcome']}, {st.session_state.operator_name} ({st.session_state.callsign})")
 
     # Bell notification and logout row
-    unread_count = db.get_unread_announcement_count(st.session_state.callsign)
+    unread_ann_count = db.get_unread_announcement_count(st.session_state.callsign)
+    unread_mention_count = db.get_unread_chat_notification_count(st.session_state.callsign)
+    total_unread = unread_ann_count + unread_mention_count
     unread_announcements = db.get_unread_announcements(st.session_state.callsign)
+    chat_notifications = db.get_unread_chat_notifications(st.session_state.callsign)
 
     col1, col2, col3 = st.columns([6, 1, 1])
     with col2:
         # Bell icon with popover for notifications
-        bell_label = f"🔔 {unread_count}" if unread_count > 0 else "🔔"
+        bell_label = f"🔔 {total_unread}" if total_unread > 0 else "🔔"
         with st.popover(bell_label, use_container_width=True):
-            st.markdown(f"**📢 {t['announcements']}**")
-            st.divider()
+            # Chat mentions section
+            if chat_notifications:
+                st.markdown(f"**💬 {t.get('chat_mentions', 'Chat Mentions')}**")
+                for notif in chat_notifications:
+                    award_label = notif.get('award_name') or ''
+                    btn_label = f"🔵 @{notif['sender_callsign']}"
+                    if award_label:
+                        btn_label += f" ({award_label})"
+                    if st.button(
+                        btn_label,
+                        key=f"chat_notif_{notif['id']}",
+                        use_container_width=True
+                    ):
+                        db.mark_chat_notification_read(notif['id'])
+                        st.rerun()
+                    st.caption(notif['message_preview'][:80])
+                    st.caption(notif['created_at'][:16])
+                st.divider()
 
+            # Announcements section
+            st.markdown(f"**📢 {t['announcements']}**")
             if unread_announcements:
                 for ann in unread_announcements:
                     # Make each announcement clickable
@@ -314,8 +335,14 @@ def operator_panel():
                     'chat_connecting': t.get('chat_connecting', 'Connecting...'),
                     'chat_not_configured': t.get('chat_not_configured', 'Chat not configured'),
                     'chat_no_messages': t.get('chat_no_messages', 'No messages yet. Start the conversation!'),
+                    'chat_replying_to': t.get('chat_replying_to', 'Replying to'),
                 }
                 history = db.get_chat_history(st.session_state.current_award_id, CHAT_HISTORY_LIMIT)
+                all_operators = db.get_all_operators()
+                operators_for_chat = [
+                    {'callsign': op['callsign'], 'name': op['operator_name']}
+                    for op in all_operators
+                ]
                 render_chat_widget(
                     callsign=st.session_state.callsign,
                     operator_name=st.session_state.operator_name,
@@ -323,6 +350,7 @@ def operator_panel():
                     mqtt_ws_url=MQTT_WS_URL,
                     chat_history=history,
                     translations=chat_translations,
+                    operators_list=operators_for_chat,
                 )
             else:
                 st.info(t.get('error_no_special_callsign_selected', 'No special callsign selected.'))
