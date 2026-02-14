@@ -339,22 +339,20 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url, chat_hist
                 try {{
                     const data = JSON.parse(payload.toString());
                     if (!data.callsign || !data.message) return;
-                    // Don't render our own echoed messages (already shown on send)
-                    if (data.callsign === CALLSIGN && data._local) return;
+
+                    // Skip our own messages (already rendered locally on send)
+                    if (data.callsign === CALLSIGN) return;
 
                     // Remove "no messages" placeholder if present
                     const placeholder = document.getElementById('no-messages-placeholder');
                     if (placeholder) placeholder.remove();
-
-                    // Skip if this is our own message (we already rendered it)
-                    if (data._sender_id === CALLSIGN + '_' + data._ts) return;
 
                     appendMessage(
                         data.callsign,
                         data.name || '',
                         data.message,
                         data.timestamp || null,
-                        data.callsign === CALLSIGN
+                        false
                     );
                 }} catch(e) {{ /* ignore malformed */ }}
             }});
@@ -396,8 +394,7 @@ def render_chat_widget(callsign, operator_name, award_id, mqtt_ws_url, chat_hist
             name: NAME,
             message: text,
             source: 'app',
-            timestamp: ts,
-            _sender_id: CALLSIGN + '_' + ts
+            timestamp: ts
         }});
 
         client.publish(TOPIC, payload);
