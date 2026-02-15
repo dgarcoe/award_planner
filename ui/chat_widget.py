@@ -766,7 +766,7 @@ def render_chat_widget(callsign, operator_name, rooms, all_histories,
                     if (!data.callsign || !data.message) return;
                     if (data.callsign === CALLSIGN) return;
 
-                    // Extract room_id from topic: quendaward/chat/room/{room_id}
+                    // Extract room_id from topic
                     var parts = topic.split('/');
                     var msgRoomId = null;
                     if (parts.length >= 4 && parts[2] === 'room') {{
