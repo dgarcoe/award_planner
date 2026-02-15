@@ -16,6 +16,7 @@ A web application for coordinating multiple operators activating the same specia
 |---------|-------------|
 | 📊 **Real-time Heatmap** | Interactive visualization of band/mode availability |
 | 🔒 **Band/Mode Blocking** | Reserve combinations while you're active |
+| 💬 **Real-time Chat** | MQTT-powered instant messaging between operators (no page refresh) |
 | 📢 **Announcements** | Admin announcements with notification badges |
 | 🏆 **Multi-Award Support** | Manage multiple special callsigns/events |
 | 🌍 **Multi-Language** | English, Spanish, Galician |
@@ -46,7 +47,7 @@ docker-compose up -d
 
 ```bash
 pip install -r requirements.txt
-export ADMIN_CALLSIGN=W1ADMIN
+export ADMIN_CALLSIGN=EA1RFI
 export ADMIN_PASSWORD=YourSecurePassword
 streamlit run app.py
 ```
@@ -60,6 +61,39 @@ streamlit run app.py
 | `ADMIN_CALLSIGN` | Super admin callsign | Yes |
 | `ADMIN_PASSWORD` | Super admin password | Yes |
 | `DATABASE_PATH` | SQLite database path | No (default: `ham_coordinator.db`) |
+| `MQTT_WS_URL` | MQTT WebSocket URL for real-time chat (e.g. `wss://yourdomain.com/mqtt`) | No (chat disabled when unset) |
+| `MQTT_BROKER_HOST` | MQTT broker hostname (internal) | No (default: `mosquitto`) |
+| `MQTT_BROKER_PORT` | MQTT broker port (internal) | No (default: `1883`) |
+
+---
+
+## 💬 Real-time Chat
+
+QuendAward includes a real-time chat system powered by MQTT over WebSockets. Messages are delivered instantly between operators — no page refresh needed.
+
+### How it works
+
+```
+Browser A ──(MQTT/WS)──► Mosquitto Broker ──(MQTT/WS)──► Browser B
+                                │
+                         Python subscriber ──► SQLite (history)
+```
+
+- **Mosquitto** MQTT broker runs as a Docker sidecar, handling pub/sub routing
+- **mqtt.js** in the browser connects via WebSocket for instant message delivery
+- A **Python MQTT subscriber** thread persists messages to SQLite for chat history
+- Chat rooms are **per-award** — each special callsign has its own channel
+
+### Enabling chat
+
+Set the `MQTT_WS_URL` environment variable to enable the chat tab:
+
+```bash
+# In .env
+MQTT_WS_URL=wss://yourdomain.com/mqtt
+```
+
+When `MQTT_WS_URL` is not set, the chat tab is hidden and no MQTT connections are made. The nginx config included in the standalone deployment already proxies `/mqtt` to Mosquitto's WebSocket port.
 
 ---
 
@@ -69,26 +103,51 @@ streamlit run app.py
 award_planner/
 ├── app.py               # Main application entry point
 ├── config.py            # Configuration constants
-├── database.py          # Database operations
+├── database.py          # Database compatibility layer
 ├── Dockerfile
+│
+├── core/                # Core modules
+│   ├── database.py      # SQLite connection & schema
+│   └── auth.py          # Authentication & password hashing
+│
+├── features/            # Feature modules
+│   ├── announcements.py # Admin announcements
+│   ├── awards.py        # Special callsign management
+│   ├── blocks.py        # Band/mode blocking logic
+│   ├── chat.py          # Chat message persistence
+│   └── backup.py        # Database backup/restore
+│
+├── services/            # Background services
+│   └── mqtt_subscriber.py  # MQTT listener for chat persistence
 │
 ├── ui/                  # User interface components
 │   ├── admin_panel.py   # Admin panel tabs
 │   ├── components.py    # Reusable UI components
 │   ├── charts.py        # Plotly visualizations
+│   ├── chat_widget.py   # Real-time chat (HTML/JS/CSS)
 │   └── styles.py        # Responsive CSS/JS
 │
-└── i18n/                # Internationalization
-    └── translations.py  # Translations (EN/ES/GL)
+├── i18n/                # Internationalization
+│   └── translations.py  # Translations (EN/ES/GL)
+│
+├── mosquitto/           # MQTT broker config
+│   └── config/
+│       └── mosquitto.conf
+│
+├── nginx/               # Reverse proxy config
+│   └── nginx.conf
+│
+├── docker-compose.yml
+└── docker-compose-standalone.yml
 ```
 
 ---
 
 ## 📻 Supported Bands & Modes
 
-**Bands:** 160m, 80m, 60m, 40m, 30m, 20m, 17m, 15m, 12m, 10m, 6m, 2m, 70cm
+**Bands:** 160m, 80m, 60m, 40m, 30m, 20m, 17m, 15m, 12m, 10m, 8m, 6m, 2m, 70cm, SAT
 
-**Modes:** CW, SSB, DIGI, SAT
+**Modes:** SSB, CW, FT8, FT4, RTTY
 
 ---
 
@@ -98,7 +157,7 @@ award_planner/
 |------|-------------|
 | **Super Admin** | Full access, configured via environment variables |
 | **Admin** | Create operators, manage awards, announcements |
-| **Operator** | Block/unblock bands, view dashboard |
+| **Operator** | Block/unblock bands, view dashboard, chat |
 
 ---
 
@@ -117,6 +176,7 @@ award_planner/
 2. Select the active award/special callsign
 3. Click on heatmap cells to block/unblock
 4. Check 🔔 for announcements
+5. Use the 💬 Chat tab to communicate with other operators in real time
 
 ---
 
@@ -140,7 +200,7 @@ See [LICENSE](LICENSE) for details.
 
 ## 👨‍💻 Author
 
-**Daniel García Coego**
+**Daniel García Coego (EA1RFI)**
 
 ---
 

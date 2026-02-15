@@ -4,16 +4,20 @@ QuendAward: Ham Radio Award Operator Coordination Tool
 Main application file with Streamlit UI.
 """
 
+from datetime import timedelta
+
 import streamlit as st
 import database as db
-from streamlit_autorefresh import st_autorefresh
 
 # Import configuration
 from config import (
     ADMIN_CALLSIGN,
     ADMIN_PASSWORD,
     AUTO_REFRESH_INTERVAL_MS,
-    DEFAULT_LANGUAGE
+    DEFAULT_LANGUAGE,
+    CHAT_ENABLED,
+    MQTT_WS_URL,
+    CHAT_HISTORY_LIMIT,
 )
 
 # Import translations
@@ -34,11 +38,15 @@ from ui.admin_panel import (
     render_system_stats_tab,
     render_award_management_tab,
     render_database_management_tab,
-    render_announcements_admin_tab
+    render_announcements_admin_tab,
+    render_chat_management_tab,
 )
 
 # Import mobile styles
 from ui.styles import inject_all_mobile_optimizations
+
+# Import chat widget
+from ui.chat_widget import render_chat_widget
 
 
 def init_session_state():
@@ -115,32 +123,40 @@ def admin_panel():
     """Display the admin management panel."""
     t = get_all_texts(st.session_state.language)
 
-    tab_callsigns, tab_announcements, tab_operators, tab_blocks, tab_stats, tab_database = st.tabs([
+    admin_tab_labels = [
         f"🏆 {t['tab_manage_special_callsigns']}",
         f"📢 {t['tab_announcements']}",
         f"👥 {t['tab_operators']}",
         t['tab_manage_blocks'],
         t['tab_system_stats'],
-        f"💾 {t['tab_database']}"
-    ])
+        f"💾 {t['tab_database']}",
+    ]
+    if CHAT_ENABLED:
+        admin_tab_labels.append(f"💬 {t['tab_chat_management']}")
 
-    with tab_callsigns:
+    admin_tabs = st.tabs(admin_tab_labels)
+
+    with admin_tabs[0]:
         render_award_management_tab(t)
 
-    with tab_announcements:
+    with admin_tabs[1]:
         render_announcements_admin_tab(t)
 
-    with tab_operators:
+    with admin_tabs[2]:
         render_operators_tab(t)
 
-    with tab_blocks:
+    with admin_tabs[3]:
         render_manage_blocks_tab(t)
 
-    with tab_stats:
+    with admin_tabs[4]:
         render_system_stats_tab(t)
 
-    with tab_database:
+    with admin_tabs[5]:
         render_database_management_tab(t)
+
+    if CHAT_ENABLED:
+        with admin_tabs[6]:
+            render_chat_management_tab(t)
 
 
 
@@ -183,24 +199,45 @@ def operator_panel():
     """Display the operator coordination panel."""
     t = get_all_texts(st.session_state.language)
 
-    # Auto-refresh every 5 seconds to show real-time updates
-    st_autorefresh(interval=AUTO_REFRESH_INTERVAL_MS, key="datarefresh")
+    # Auto-refresh interval for fragment-based refresh
+    refresh_interval = timedelta(milliseconds=AUTO_REFRESH_INTERVAL_MS)
 
     st.title(f"🎙️ {t['app_title']}")
     st.subheader(f"{t['welcome']}, {st.session_state.operator_name} ({st.session_state.callsign})")
 
     # Bell notification and logout row
-    unread_count = db.get_unread_announcement_count(st.session_state.callsign)
+    unread_ann_count = db.get_unread_announcement_count(st.session_state.callsign)
+    unread_mention_count = db.get_unread_chat_notification_count(st.session_state.callsign)
+    total_unread = unread_ann_count + unread_mention_count
     unread_announcements = db.get_unread_announcements(st.session_state.callsign)
+    chat_notifications = db.get_unread_chat_notifications(st.session_state.callsign)
 
     col1, col2, col3 = st.columns([6, 1, 1])
     with col2:
         # Bell icon with popover for notifications
-        bell_label = f"🔔 {unread_count}" if unread_count > 0 else "🔔"
+        bell_label = f"🔔 {total_unread}" if total_unread > 0 else "🔔"
         with st.popover(bell_label, use_container_width=True):
-            st.markdown(f"**📢 {t['announcements']}**")
-            st.divider()
+            # Chat mentions section
+            if chat_notifications:
+                st.markdown(f"**💬 {t.get('chat_mentions', 'Chat Mentions')}**")
+                for notif in chat_notifications:
+                    room_label = notif.get('room_name') or ''
+                    btn_label = f"🔵 @{notif['sender_callsign']}"
+                    if room_label:
+                        btn_label += f" ({room_label})"
+                    if st.button(
+                        btn_label,
+                        key=f"chat_notif_{notif['id']}",
+                        use_container_width=True
+                    ):
+                        db.mark_chat_notification_read(notif['id'])
+                        st.rerun()
+                    st.caption(notif['message_preview'][:80])
+                    st.caption(notif['created_at'][:16])
+                st.divider()
 
+            # Announcements section
+            st.markdown(f"**📢 {t['announcements']}**")
             if unread_announcements:
                 for ann in unread_announcements:
                     # Make each announcement clickable
@@ -258,33 +295,87 @@ def operator_panel():
             </script>
         """, height=0)
 
-    # Main tabs - add admin tab if user is admin
+    # Build tab list dynamically
+    tab_labels = [
+        f"📊 {t['tab_activity_dashboard']}",
+        f"📢 {t['tab_announcements']}",
+    ]
+    if CHAT_ENABLED:
+        tab_labels.append(f"💬 {t.get('tab_chat', 'Chat')}")
     if st.session_state.is_admin:
-        tab_dashboard, tab_announcements, tab_admin, tab_settings = st.tabs([
-            f"📊 {t['tab_activity_dashboard']}",
-            f"📢 {t['tab_announcements']}",
-            f"🔐 {t['admin_panel']}",
-            f"⚙️ {t['tab_settings']}"
-        ])
-    else:
-        tab_dashboard, tab_announcements, tab_settings = st.tabs([
-            f"📊 {t['tab_activity_dashboard']}",
-            f"📢 {t['tab_announcements']}",
-            f"⚙️ {t['tab_settings']}"
-        ])
-        tab_admin = None
+        tab_labels.append(f"🔐 {t['admin_panel']}")
+    tab_labels.append(f"⚙️ {t['tab_settings']}")
 
-    with tab_dashboard:
-        render_activity_dashboard(t, st.session_state.current_award_id, st.session_state.callsign)
+    tabs = st.tabs(tab_labels)
+    tab_idx = 0
 
-    with tab_announcements:
-        render_announcements_operator_tab(t, st.session_state.callsign)
+    with tabs[tab_idx]:
+        @st.fragment(run_every=refresh_interval)
+        def _dashboard_fragment():
+            render_activity_dashboard(t, st.session_state.current_award_id, st.session_state.callsign)
+        _dashboard_fragment()
+    tab_idx += 1
 
-    if tab_admin and st.session_state.is_admin:
-        with tab_admin:
+    with tabs[tab_idx]:
+        @st.fragment(run_every=refresh_interval)
+        def _announcements_fragment():
+            render_announcements_operator_tab(t, st.session_state.callsign)
+        _announcements_fragment()
+    tab_idx += 1
+
+    if CHAT_ENABLED:
+        with tabs[tab_idx]:
+            # Sync award rooms and load all available rooms
+            db.sync_award_rooms()
+            rooms = db.get_chat_rooms(is_admin=st.session_state.is_admin)
+            if rooms:
+                # Determine initial room (General first, then first available)
+                general_rooms = [r for r in rooms if r['room_type'] == 'general']
+                default_room_id = general_rooms[0]['id'] if general_rooms else rooms[0]['id']
+
+                # Load history for every room
+                all_histories = {}
+                for room in rooms:
+                    all_histories[room['id']] = db.get_chat_history_by_room(
+                        room['id'], CHAT_HISTORY_LIMIT
+                    )
+
+                chat_translations = {
+                    'chat_title': t.get('chat_title', 'Chat'),
+                    'chat_placeholder': t.get('chat_placeholder', 'Type a message...'),
+                    'chat_send': t.get('chat_send', 'Send'),
+                    'chat_connected': t.get('chat_connected', 'Connected'),
+                    'chat_disconnected': t.get('chat_disconnected', 'Disconnected'),
+                    'chat_connecting': t.get('chat_connecting', 'Connecting...'),
+                    'chat_not_configured': t.get('chat_not_configured', 'Chat not configured'),
+                    'chat_no_messages': t.get('chat_no_messages', 'No messages yet. Start the conversation!'),
+                    'chat_replying_to': t.get('chat_replying_to', 'Replying to'),
+                }
+                all_operators = db.get_all_operators()
+                operators_for_chat = [
+                    {'callsign': op['callsign'], 'name': op['operator_name']}
+                    for op in all_operators
+                ]
+                render_chat_widget(
+                    callsign=st.session_state.callsign,
+                    operator_name=st.session_state.operator_name,
+                    rooms=rooms,
+                    all_histories=all_histories,
+                    current_room_id=default_room_id,
+                    mqtt_ws_url=MQTT_WS_URL,
+                    translations=chat_translations,
+                    operators_list=operators_for_chat,
+                )
+            else:
+                st.info(t.get('chat_no_rooms', 'No chat rooms available.'))
+        tab_idx += 1
+
+    if st.session_state.is_admin:
+        with tabs[tab_idx]:
             admin_panel()
+        tab_idx += 1
 
-    with tab_settings:
+    with tabs[tab_idx]:
         render_settings_tab(t)
 
 
@@ -311,6 +402,11 @@ def main():
 
     # Initialize database
     db.init_database()
+
+    # Start MQTT subscriber for chat persistence (runs once per process)
+    if CHAT_ENABLED:
+        from services.mqtt_subscriber import start_subscriber_thread
+        start_subscriber_thread()
 
     # Show appropriate page
     if st.session_state.logged_in:

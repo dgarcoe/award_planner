@@ -494,6 +494,182 @@ def render_database_management_tab(t):
                     st.error(f"{t['restore_error']}: {str(e)}")
 
 
+def render_chat_management_tab(t):
+    """Render the chat management tab for admins (rooms + messages)."""
+    st.subheader(f"💬 {t['chat_management_title']}")
+    st.info(t['chat_management_info'])
+
+    all_rooms = db.get_chat_rooms(is_admin=True)
+    room_type_labels = {
+        'general': t.get('chat_room_type_general', 'General'),
+        'award': t.get('chat_room_type_award', 'Special Callsign'),
+        'admin': t.get('chat_room_type_admin', 'Admin'),
+        'custom': t.get('chat_room_type_custom', 'Custom'),
+    }
+
+    # --- Room Management ---
+    st.subheader(t.get('chat_room_management', 'Room Management'))
+
+    with st.expander(t.get('chat_create_room', 'Create Room'), expanded=False):
+        room_name = st.text_input(
+            t.get('chat_room_name', 'Room Name'),
+            max_chars=50,
+            key="new_room_name"
+        )
+        room_desc = st.text_input(
+            t.get('description', 'Description'),
+            max_chars=200,
+            key="new_room_desc"
+        )
+        room_admin_only = st.checkbox(
+            t.get('chat_room_admin_only', 'Admin only'),
+            key="new_room_admin_only"
+        )
+        if st.button(t.get('chat_create_room', 'Create Room'), type="primary", key="btn_create_room"):
+            if not room_name.strip():
+                st.error(t.get('chat_room_name_required', 'Room name is required'))
+            else:
+                rtype = 'admin' if room_admin_only else 'custom'
+                success, message, _ = db.create_chat_room(
+                    room_name.strip(), room_desc.strip(), rtype,
+                    room_admin_only, st.session_state.callsign
+                )
+                if success:
+                    st.success(t.get('chat_room_created', 'Room created'))
+                    st.rerun()
+                else:
+                    st.error(message)
+
+    # List existing rooms
+    if all_rooms:
+        for room in all_rooms:
+            rtype = room_type_labels.get(room['room_type'], room['room_type'])
+            admin_tag = " [Admin]" if room['is_admin_only'] else ""
+            label = f"{room['name']} ({rtype}){admin_tag}"
+            cols = st.columns([6, 2])
+            with cols[0]:
+                st.write(label)
+            with cols[1]:
+                # Only allow deleting custom/admin rooms (not general or award)
+                if room['room_type'] in ('custom', 'admin'):
+                    if st.button(
+                        t.get('chat_delete_room', 'Delete'),
+                        key=f"del_room_{room['id']}",
+                        type="secondary"
+                    ):
+                        success, message = db.delete_chat_room(room['id'])
+                        if success:
+                            st.success(t.get('chat_room_deleted', 'Room deleted'))
+                            st.rerun()
+                        else:
+                            st.error(message)
+
+    st.divider()
+
+    # --- Statistics ---
+    stats = db.get_chat_stats()
+    st.subheader(t['chat_stats_title'])
+    st.metric(t['chat_total_messages'], stats['total'])
+
+    if stats['per_room']:
+        col_left, col_right = st.columns(2)
+
+        with col_left:
+            st.caption(t.get('chat_per_room', 'Messages per Room'))
+            rows_rm = []
+            for row in stats['per_room']:
+                rows_rm.append({
+                    t.get('chat_room_col', 'Room'): row['room_name'] or f"ID {row['room_id']}",
+                    t['chat_count_col']: row['message_count'],
+                    t['chat_oldest_col']: (row['oldest'] or '')[:16],
+                    t['chat_newest_col']: (row['newest'] or '')[:16],
+                })
+            st.dataframe(rows_rm, use_container_width=True, hide_index=True)
+
+        with col_right:
+            st.caption(t['chat_per_user'])
+            user_stats = db.get_chat_stats_by_user()
+            if user_stats:
+                rows_usr = []
+                for row in user_stats:
+                    rows_usr.append({
+                        t['chat_user_col']: row['operator_callsign'],
+                        t['chat_count_col']: row['message_count'],
+                        t['chat_oldest_col']: (row['oldest'] or '')[:16],
+                        t['chat_newest_col']: (row['newest'] or '')[:16],
+                    })
+                st.dataframe(rows_usr, use_container_width=True, hide_index=True)
+    else:
+        st.info(t['chat_no_messages_db'])
+
+    st.divider()
+
+    # --- Delete by room ---
+    st.subheader(t.get('chat_clean_by_room', 'Delete by Room'))
+    st.caption(t.get('chat_clean_by_room_info', 'Delete all messages for a specific room.'))
+
+    if all_rooms:
+        room_options = {r['name']: r['id'] for r in all_rooms}
+        selected_room_name = st.selectbox(
+            t.get('chat_select_room', 'Select room'),
+            options=list(room_options.keys()),
+            key="chat_mgmt_room_select"
+        )
+        if st.button(t.get('chat_delete_room_btn', 'Delete messages for this room'), key="chat_del_by_room", type="secondary"):
+            room_id = room_options[selected_room_name]
+            deleted = db.delete_chat_messages_by_room(room_id)
+            if deleted:
+                st.success(f"{deleted} {t['chat_deleted_count']}")
+            else:
+                st.info(t['chat_nothing_to_delete'])
+            st.rerun()
+    else:
+        st.info(t['chat_no_messages_db'])
+
+    st.divider()
+
+    # --- Delete old messages ---
+    st.subheader(t['chat_clean_old'])
+    st.caption(t['chat_clean_old_info'])
+
+    days = st.number_input(
+        t['chat_days_to_keep'],
+        min_value=1, max_value=3650, value=30, step=1,
+        key="chat_mgmt_days"
+    )
+
+    room_filter_options = [t.get('chat_all_rooms', 'All rooms')] + [r['name'] for r in all_rooms]
+    room_filter_name = st.selectbox(
+        t.get('chat_filter_room_optional', 'Filter by room (optional)'),
+        options=room_filter_options,
+        key="chat_mgmt_old_room"
+    )
+
+    if st.button(t['chat_delete_old_btn'], key="chat_del_old", type="secondary"):
+        if room_filter_name == t.get('chat_all_rooms', 'All rooms'):
+            deleted = db.delete_chat_messages_older_than(days)
+        else:
+            room_id = next(r['id'] for r in all_rooms if r['name'] == room_filter_name)
+            deleted = db.delete_chat_messages_older_than(days, room_id)
+        if deleted:
+            st.success(f"{deleted} {t['chat_deleted_count']}")
+        else:
+            st.info(t['chat_nothing_to_delete'])
+        st.rerun()
+
+    st.divider()
+
+    # --- Delete all ---
+    st.subheader(t['chat_delete_all'])
+    st.warning(t['chat_delete_all_warning'])
+    confirm = st.checkbox(t['chat_confirm_delete_all'], key="chat_mgmt_confirm_all")
+    if confirm:
+        if st.button(t['chat_delete_all_btn'], key="chat_del_all", type="primary"):
+            deleted = db.delete_all_chat_messages()
+            st.success(f"{deleted} {t['chat_deleted_count']}")
+            st.rerun()
+
+
 def render_announcements_admin_tab(t):
     """
     Render the announcements management tab for admins.

@@ -23,6 +23,9 @@ COPY ui/ ui/
 # Copy i18n package
 COPY i18n/ i18n/
 
+# Copy services package
+COPY services/ services/
+
 # Copy Streamlit config (dark mode)
 COPY .streamlit .streamlit
 

@@ -67,6 +67,30 @@ from features.backup import (
     get_database_info,
 )
 
+from features.chat import (
+    # Chat rooms
+    get_chat_rooms,
+    create_chat_room,
+    delete_chat_room,
+    sync_award_rooms,
+    # Chat messages
+    save_chat_message,
+    get_chat_history,
+    get_chat_history_by_room,
+    get_chat_history_global,
+    get_chat_stats,
+    get_chat_stats_by_user,
+    delete_chat_messages_by_room,
+    delete_chat_messages_by_award,
+    delete_chat_messages_older_than,
+    delete_all_chat_messages,
+    # Chat notifications
+    get_unread_chat_notification_count,
+    get_unread_chat_notifications,
+    mark_chat_notification_read,
+    mark_all_chat_notifications_read,
+)
+
 __all__ = [
     # Core - Database
     'get_connection',
@@ -116,4 +140,25 @@ __all__ = [
     'get_database_backup',
     'restore_database_from_backup',
     'get_database_info',
+    # Features - Chat rooms
+    'get_chat_rooms',
+    'create_chat_room',
+    'delete_chat_room',
+    'sync_award_rooms',
+    # Features - Chat messages
+    'save_chat_message',
+    'get_chat_history',
+    'get_chat_history_by_room',
+    'get_chat_history_global',
+    'get_chat_stats',
+    'get_chat_stats_by_user',
+    'delete_chat_messages_by_room',
+    'delete_chat_messages_by_award',
+    'delete_chat_messages_older_than',
+    'delete_all_chat_messages',
+    # Features - Chat notifications
+    'get_unread_chat_notification_count',
+    'get_unread_chat_notifications',
+    'mark_chat_notification_read',
+    'mark_all_chat_notifications_read',
 ]

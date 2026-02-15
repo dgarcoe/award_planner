@@ -20,3 +20,10 @@ DEFAULT_LANGUAGE = 'gl'  # Galician
 CHART_COLOR_FREE = '#90EE90'  # Green
 CHART_COLOR_BLOCKED = '#FF6B6B'  # Red
 CHART_BACKGROUND = 'rgba(0,0,0,0)'  # Transparent
+
+# MQTT / Real-time chat configuration
+MQTT_BROKER_HOST = os.getenv('MQTT_BROKER_HOST', 'mosquitto')
+MQTT_BROKER_PORT = int(os.getenv('MQTT_BROKER_PORT', '1883'))
+MQTT_WS_URL = os.getenv('MQTT_WS_URL', '')  # e.g. wss://yourdomain.com/mqtt
+CHAT_ENABLED = bool(MQTT_WS_URL)
+CHAT_HISTORY_LIMIT = 100
