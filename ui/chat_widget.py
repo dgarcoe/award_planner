@@ -401,6 +401,28 @@ def render_chat_widget(callsign, operator_name, rooms, all_histories,
         padding: 40px 0;
         font-size: 13px;
     }}
+
+    .day-separator {{
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        user-select: none;
+    }}
+
+    .day-separator::before,
+    .day-separator::after {{
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #333;
+    }}
+
+    .day-separator span {{
+        font-size: 11px;
+        color: #888;
+        white-space: nowrap;
+    }}
 </style>
 </head>
 <body>
@@ -503,21 +525,59 @@ def render_chat_widget(callsign, operator_name, rooms, all_histories,
         return div.innerHTML;
     }}
 
+    // --- Timestamp helpers & day separator tracking ---
+    var lastDateKey = '';
+
+    function normalizeTimestamp(isoStr) {{
+        var s = isoStr.replace(' ', 'T');
+        if (!s.endsWith('Z') && s.indexOf('+') === -1 && s.indexOf('-', 8) === -1) {{
+            s += 'Z';
+        }}
+        return s;
+    }}
+
     function formatTime(isoStr) {{
         try {{
-            // SQLite stores UTC as "YYYY-MM-DD HH:MM:SS" with no timezone marker.
-            // Normalise to ISO 8601 + Z so the browser interprets it as UTC and
-            // toLocaleTimeString() converts it to the user's local timezone.
-            var s = isoStr.replace(' ', 'T');
-            if (!s.endsWith('Z') && s.indexOf('+') === -1 && s.indexOf('-', 8) === -1) {{
-                s += 'Z';
-            }}
-            const d = new Date(s);
+            const d = new Date(normalizeTimestamp(isoStr));
             if (isNaN(d.getTime())) return '';
             return d.toLocaleTimeString([], {{ hour: '2-digit', minute: '2-digit' }});
         }} catch(e) {{
             return '';
         }}
+    }}
+
+    function getDateKey(isoStr) {{
+        try {{
+            var d = new Date(normalizeTimestamp(isoStr));
+            if (isNaN(d.getTime())) return '';
+            return d.getFullYear() + '-' +
+                   String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                   String(d.getDate()).padStart(2, '0');
+        }} catch(e) {{ return ''; }}
+    }}
+
+    function formatDateLabel(dateKey) {{
+        if (!dateKey) return '';
+        var parts = dateKey.split('-');
+        var msgDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        var now = new Date();
+        var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        var yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (msgDate.getTime() === today.getTime()) return T.chat_today || 'Today';
+        if (msgDate.getTime() === yesterday.getTime()) return T.chat_yesterday || 'Yesterday';
+        return msgDate.toLocaleDateString(undefined, {{ day: 'numeric', month: 'long', year: 'numeric' }});
+    }}
+
+    function insertDaySeparatorIfNeeded(isoStr) {{
+        var dk = getDateKey(isoStr);
+        if (!dk || dk === lastDateKey) return;
+        lastDateKey = dk;
+        var sep = document.createElement('div');
+        sep.className = 'day-separator';
+        sep.innerHTML = '<span>' + escapeHtml(formatDateLabel(dk)) + '</span>';
+        var sentinel = document.getElementById('chat-bottom');
+        messagesEl.insertBefore(sep, sentinel);
     }}
 
     function renderMessageText(text) {{
@@ -568,6 +628,8 @@ def render_chat_widget(callsign, operator_name, rooms, all_histories,
             inputEl.focus();
         }});
 
+        insertDaySeparatorIfNeeded(time || new Date().toISOString());
+
         const sentinel = document.getElementById('chat-bottom');
         messagesEl.insertBefore(div, sentinel);
         saveLastRead(div.dataset.msgId);
@@ -603,8 +665,9 @@ def render_chat_widget(callsign, operator_name, rooms, all_histories,
     }}
 
     function loadRoomMessages(roomId) {{
-        // Clear messages area
+        // Clear messages area and reset day separator tracking
         messagesEl.innerHTML = '<div id="chat-bottom"></div>';
+        lastDateKey = '';
 
         var history = ALL_HISTORY[String(roomId)] || [];
         if (history.length > 0) {{

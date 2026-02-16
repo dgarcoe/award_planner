@@ -298,6 +298,8 @@ TRANSLATIONS = {
         'chat_all_rooms': 'All rooms',
         'chat_filter_room_optional': 'Filter by room (optional)',
         'chat_no_rooms': 'No chat rooms available.',
+        'chat_today': 'Today',
+        'chat_yesterday': 'Yesterday',
     },
     'es': {
         # General
@@ -593,6 +595,8 @@ TRANSLATIONS = {
         'chat_all_rooms': 'Todas las salas',
         'chat_filter_room_optional': 'Filtrar por sala (opcional)',
         'chat_no_rooms': 'No hay salas de chat disponibles.',
+        'chat_today': 'Hoy',
+        'chat_yesterday': 'Ayer',
     },
     'gl': {
         # General
@@ -888,6 +892,8 @@ TRANSLATIONS = {
         'chat_all_rooms': 'Todas as salas',
         'chat_filter_room_optional': 'Filtrar por sala (opcional)',
         'chat_no_rooms': 'Non hai salas de chat dispoñibles.',
+        'chat_today': 'Hoxe',
+        'chat_yesterday': 'Onte',
     }
 }
 
