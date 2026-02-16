@@ -505,7 +505,14 @@ def render_chat_widget(callsign, operator_name, rooms, all_histories,
 
     function formatTime(isoStr) {{
         try {{
-            const d = new Date(isoStr);
+            // SQLite stores UTC as "YYYY-MM-DD HH:MM:SS" with no timezone marker.
+            // Normalise to ISO 8601 + Z so the browser interprets it as UTC and
+            // toLocaleTimeString() converts it to the user's local timezone.
+            var s = isoStr.replace(' ', 'T');
+            if (!s.endsWith('Z') && s.indexOf('+') === -1 && s.indexOf('-', 8) === -1) {{
+                s += 'Z';
+            }}
+            const d = new Date(s);
             if (isNaN(d.getTime())) return '';
             return d.toLocaleTimeString([], {{ hour: '2-digit', minute: '2-digit' }});
         }} catch(e) {{
