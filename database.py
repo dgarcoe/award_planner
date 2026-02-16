@@ -8,6 +8,7 @@ for backward compatibility with existing code.
 # Core functions
 from core.database import (
     get_connection,
+    get_db,
     init_database,
     DATABASE_PATH,
 )

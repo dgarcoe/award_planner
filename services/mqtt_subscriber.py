@@ -9,73 +9,50 @@ Can run as a background thread within the Streamlit app or standalone.
 
 import json
 import logging
-import os
+import re
 import threading
 
 import paho.mqtt.client as mqtt
 
-from core.database import get_connection
+from config import MQTT_BROKER_HOST, MQTT_BROKER_PORT, MAX_CHAT_MESSAGE_LENGTH
+from core.database import get_db
+from features.chat import save_chat_message
 
 logger = logging.getLogger(__name__)
 
-MQTT_BROKER_HOST = os.getenv('MQTT_BROKER_HOST', 'mosquitto')
-MQTT_BROKER_PORT = int(os.getenv('MQTT_BROKER_PORT', '1883'))
+# Callsign format: 2-20 alphanumeric chars, may include /
+_CALLSIGN_RE = re.compile(r'^[A-Z0-9/]{2,20}$')
 
 # Track whether the subscriber is already running (one per process)
 _subscriber_started = False
 _subscriber_lock = threading.Lock()
 
 
-def _save_chat_message(room_id, callsign, message, source='app',
-                       reply_to_id=None, reply_to_callsign=None, reply_to_text=None):
-    """Persist a chat message to the database. Returns the inserted message ID."""
-    conn = get_connection()
-    try:
-        cursor = conn.execute(
-            '''INSERT INTO chat_messages
-               (room_id, operator_callsign, message, source,
-                reply_to_id, reply_to_callsign, reply_to_text)
-               VALUES (?, ?, ?, ?, ?, ?, ?)''',
-            (room_id, callsign, message, source,
-             reply_to_id, reply_to_callsign, reply_to_text)
-        )
-        conn.commit()
-        return cursor.lastrowid
-    except Exception:
-        logger.exception("Failed to save chat message")
-        return None
-    finally:
-        conn.close()
-
-
 def _create_mention_notifications(room_id, sender_callsign, message, mentions, chat_message_id):
     """Create a chat_notification row for each mentioned callsign."""
     if not mentions:
         return
-    conn = get_connection()
     try:
-        preview = message[:80] + '...' if len(message) > 80 else message
-        for callsign in mentions:
-            if callsign.upper() == sender_callsign.upper():
-                continue
-            existing = conn.execute(
-                'SELECT callsign FROM operators WHERE callsign = ?',
-                (callsign.upper(),)
-            ).fetchone()
-            if existing:
-                conn.execute(
-                    '''INSERT INTO chat_notifications
-                       (recipient_callsign, sender_callsign, room_id,
-                        message_preview, chat_message_id)
-                       VALUES (?, ?, ?, ?, ?)''',
-                    (callsign.upper(), sender_callsign.upper(),
-                     room_id, preview, chat_message_id)
-                )
-        conn.commit()
+        with get_db() as conn:
+            preview = message[:80] + '...' if len(message) > 80 else message
+            for callsign in mentions:
+                if callsign.upper() == sender_callsign.upper():
+                    continue
+                existing = conn.execute(
+                    'SELECT callsign FROM operators WHERE callsign = ?',
+                    (callsign.upper(),)
+                ).fetchone()
+                if existing:
+                    conn.execute(
+                        '''INSERT INTO chat_notifications
+                           (recipient_callsign, sender_callsign, room_id,
+                            message_preview, chat_message_id)
+                           VALUES (?, ?, ?, ?, ?)''',
+                        (callsign.upper(), sender_callsign.upper(),
+                         room_id, preview, chat_message_id)
+                    )
     except Exception:
         logger.exception("Failed to create mention notifications")
-    finally:
-        conn.close()
 
 
 def _on_connect(client, userdata, flags, reason_code, properties=None):
@@ -95,6 +72,17 @@ def _on_message(client, userdata, msg):
         if not callsign or not message:
             return
 
+        # Validate callsign format
+        if not _CALLSIGN_RE.match(callsign.upper()):
+            logger.warning("Invalid callsign format from MQTT: %s", callsign[:20])
+            return
+
+        # Enforce message length limit
+        if len(message) > MAX_CHAT_MESSAGE_LENGTH:
+            logger.warning("Message too long (%d chars) from %s, truncating",
+                          len(message), callsign)
+            message = message[:MAX_CHAT_MESSAGE_LENGTH]
+
         # Extract room_id from topic
         # New format: quendaward/chat/room/{room_id}
         # Legacy format: quendaward/chat/{award_id}
@@ -107,18 +95,15 @@ def _on_message(client, userdata, msg):
             except ValueError:
                 pass
         elif len(topic_parts) >= 3 and topic_parts[2] != 'global':
-            # Legacy: quendaward/chat/{award_id} — look up room by award_id
+            # Legacy: quendaward/chat/{award_id} -- look up room by award_id
             try:
                 award_id = int(topic_parts[2])
-                conn = get_connection()
-                try:
+                with get_db() as conn:
                     row = conn.execute(
                         'SELECT id FROM chat_rooms WHERE award_id = ?', (award_id,)
                     ).fetchone()
                     if row:
                         room_id = row[0]
-                finally:
-                    conn.close()
             except ValueError:
                 pass
 
@@ -136,7 +121,7 @@ def _on_message(client, userdata, msg):
             reply_to_callsign = reply_to.get('callsign')
             reply_to_text = (reply_to.get('text') or '')[:100]
 
-        msg_id = _save_chat_message(
+        msg_id = save_chat_message(
             room_id, callsign, message, source,
             reply_to_id, reply_to_callsign, reply_to_text
         )
@@ -155,7 +140,7 @@ def start_subscriber_thread():
     """
     Start the MQTT subscriber as a daemon thread.
 
-    Safe to call multiple times — only starts once per process.
+    Safe to call multiple times -- only starts once per process.
     """
     global _subscriber_started
 

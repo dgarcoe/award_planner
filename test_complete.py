@@ -7,7 +7,7 @@ import gc
 os.environ['DATABASE_PATH'] = 'test_complete.db'
 
 import database as db
-from translations import get_text, AVAILABLE_LANGUAGES
+from i18n.translations import get_text, AVAILABLE_LANGUAGES
 
 def wait_for_db():
     """Small delay to ensure DB operations complete."""
@@ -109,8 +109,8 @@ def run_tests():
     print("13. Testing translations...")
     en_text = get_text('app_title', 'en')
     es_text = get_text('app_title', 'es')
-    assert en_text == "Ham Radio Award Coordinator", f"Expected English title, got: {en_text}"
-    assert es_text == "Coordinador de Premios de Radio Aficionados", f"Expected Spanish title, got: {es_text}"
+    assert en_text == "QuendAward: Special Callsign Operator Coordination", f"Expected English title, got: {en_text}"
+    assert es_text == "QuendAward: Coordinación de Operadores para Indicativos Especiales", f"Expected Spanish title, got: {es_text}"
     print(f"✓ Translations working: EN='{en_text[:20]}...', ES='{es_text[:20]}...'\n")
 
     # Test available languages
@@ -121,16 +121,18 @@ def run_tests():
     assert AVAILABLE_LANGUAGES['es'] == 'Español', "Spanish language name incorrect"
     print(f"✓ Available languages: {', '.join(f'{k}={v}' for k, v in AVAILABLE_LANGUAGES.items())}\n")
 
-    # Test blocking/unblocking still works
+    # Test blocking/unblocking still works (requires an award)
     print("15. Testing band/mode blocking...")
     wait_for_db()
-    success, message = db.block_band_mode("W1XYZ", "20m", "SSB")
+    success, message, award_id = db.create_award("Test Award", "For testing")
+    assert success, f"Failed to create award: {message}"
+    success, message = db.block_band_mode("W1XYZ", "20m", "SSB", award_id)
     assert success, f"Failed to block: {message}"
     print(f"✓ Blocked: {message}\n")
 
     print("16. Testing unblocking...")
     wait_for_db()
-    success, message = db.unblock_band_mode("W1XYZ", "20m", "SSB")
+    success, message = db.unblock_band_mode("W1XYZ", "20m", "SSB", award_id)
     assert success, f"Failed to unblock: {message}"
     print(f"✓ Unblocked: {message}\n")
 
