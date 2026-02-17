@@ -237,7 +237,7 @@ def _render_dx_cluster_spot_section(t, award_id, callsign):
     """
     from config import (
         DX_CLUSTER_HOST, DX_CLUSTER_PORT, DX_CLUSTER_CALLSIGN,
-        BAND_FREQUENCIES,
+        DX_CLUSTER_PASSWORD, BAND_FREQUENCIES,
     )
 
     if not callsign or not award_id:
@@ -320,6 +320,7 @@ def _render_dx_cluster_spot_section(t, award_id, callsign):
                             spotted_callsign=spotted_callsign,
                             frequency=frequency,
                             comment=comment,
+                            password=DX_CLUSTER_PASSWORD,
                         )
 
                         # Log the spot attempt

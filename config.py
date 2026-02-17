@@ -56,6 +56,7 @@ DX_CLUSTER_ENABLED = os.getenv('DX_CLUSTER_ENABLED', 'false').lower() == 'true'
 DX_CLUSTER_HOST = os.getenv('DX_CLUSTER_HOST', '')
 DX_CLUSTER_PORT = _safe_int(os.getenv('DX_CLUSTER_PORT', '7300'), 7300)
 DX_CLUSTER_CALLSIGN = os.getenv('DX_CLUSTER_CALLSIGN', '')  # Login callsign for cluster
+DX_CLUSTER_PASSWORD = os.getenv('DX_CLUSTER_PASSWORD', '')  # Optional password for cluster auth
 
 # Default band-to-frequency mapping (kHz) used as defaults in the spot form
 BAND_FREQUENCIES = {

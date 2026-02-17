@@ -20,6 +20,7 @@ services:
       - DX_CLUSTER_HOST=${DX_CLUSTER_HOST:-}
       - DX_CLUSTER_PORT=${DX_CLUSTER_PORT:-7300}
       - DX_CLUSTER_CALLSIGN=${DX_CLUSTER_CALLSIGN:-}
+      - DX_CLUSTER_PASSWORD=${DX_CLUSTER_PASSWORD:-}
     restart: unless-stopped
     depends_on:
       - mosquitto

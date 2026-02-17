@@ -21,6 +21,7 @@ def send_spot_to_cluster(
     spotted_callsign: str,
     frequency: float,
     comment: str = "",
+    password: str = "",
     timeout: int = 15,
 ) -> Tuple[bool, str]:
     """
@@ -33,6 +34,7 @@ def send_spot_to_cluster(
         spotted_callsign: The callsign being spotted (e.g. the special callsign)
         frequency: Frequency in kHz (e.g. 14025.0)
         comment: Spot comment (max ~30 chars typically)
+        password: Optional password for clusters that require authentication
         timeout: Connection timeout in seconds
 
     Returns:
@@ -60,6 +62,19 @@ def send_spot_to_cluster(
         # Wait for cluster prompt after login
         login_response = _read_until_prompt(sock, timeout=timeout)
         logger.info("DX Cluster login response: %s", login_response[:200])
+
+        # Handle password prompt if the cluster requires authentication
+        response_lower = login_response.lower()
+        if "password" in response_lower:
+            if not password:
+                return False, "Cluster requires a password but DX_CLUSTER_PASSWORD is not set"
+            sock.sendall(f"{password}\r\n".encode("ascii"))
+            password_response = _read_until_prompt(sock, timeout=timeout)
+            logger.info("DX Cluster password response: %s", password_response[:200])
+            # Check for login failure
+            pw_lower = password_response.lower()
+            if "invalid" in pw_lower or "denied" in pw_lower or "fail" in pw_lower:
+                return False, "Cluster authentication failed (invalid password)"
 
         # Build and send the DX spot command
         # Format: DX <frequency> <callsign> <comment>
