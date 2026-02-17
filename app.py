@@ -391,6 +391,8 @@ def operator_panel():
                     'chat_not_configured': t.get('chat_not_configured', 'Chat not configured'),
                     'chat_no_messages': t.get('chat_no_messages', 'No messages yet. Start the conversation!'),
                     'chat_replying_to': t.get('chat_replying_to', 'Replying to'),
+                    'chat_today': t.get('chat_today', 'Today'),
+                    'chat_yesterday': t.get('chat_yesterday', 'Yesterday'),
                 }
                 all_operators = db.get_all_operators()
                 operators_for_chat = [
