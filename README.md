@@ -17,6 +17,7 @@ A web application for coordinating multiple operators activating the same specia
 | 📊 **Real-time Heatmap** | Interactive visualization of band/mode availability |
 | 🔒 **Band/Mode Blocking** | Reserve combinations while you're active |
 | 💬 **Real-time Chat** | MQTT-powered instant messaging between operators (no page refresh) |
+| 📡 **DX Cluster Spotting** | Send spots to DX Cluster nodes via Telnet to announce activity |
 | 📢 **Announcements** | Admin announcements with notification badges |
 | 🏆 **Multi-Award Support** | Manage multiple special callsigns/events |
 | 🌍 **Multi-Language** | English, Spanish, Galician |
@@ -64,6 +65,10 @@ streamlit run app.py
 | `MQTT_WS_URL` | MQTT WebSocket URL for real-time chat (e.g. `wss://yourdomain.com/mqtt`) | No (chat disabled when unset) |
 | `MQTT_BROKER_HOST` | MQTT broker hostname (internal) | No (default: `mosquitto`) |
 | `MQTT_BROKER_PORT` | MQTT broker port (internal) | No (default: `1883`) |
+| `DX_CLUSTER_HOST` | DX Cluster node hostname (e.g. `dxfun.com`) | No (spotting disabled when unset) |
+| `DX_CLUSTER_PORT` | DX Cluster Telnet port | No (default: `7300`) |
+| `DX_CLUSTER_CALLSIGN` | Callsign used to log in to the cluster | No |
+| `DX_CLUSTER_PASSWORD` | Password for cluster authentication (if required) | No |
 
 ---
 
@@ -97,6 +102,38 @@ When `MQTT_WS_URL` is not set, the chat tab is hidden and no MQTT connections ar
 
 ---
 
+## 📡 DX Cluster Spotting
+
+Operators can send spots to a DX Cluster node directly from the activity dashboard, announcing that a special callsign is active on a specific frequency.
+
+### How it works
+
+1. An operator **blocks a band/mode** on the heatmap (spotting requires an active block)
+2. The **DX Cluster Spot** section appears below the heatmap with band/mode autofilled from the block
+3. The operator enters the **spotted callsign**, **frequency**, and an optional **comment**
+4. QuendAward connects to the configured DX Cluster node via Telnet and sends the spot command
+
+```
+DX de EA1RFI:    14025.0  EG90IARU     QRV CW                        1423Z
+     └─ cluster login      └─ spotted    └─ comment
+```
+
+### Configuration
+
+Set the following environment variables to enable spotting:
+
+```bash
+# In .env
+DX_CLUSTER_HOST=dxfun.com
+DX_CLUSTER_PORT=8000
+DX_CLUSTER_CALLSIGN=EA1RFI
+DX_CLUSTER_PASSWORD=           # Only if the cluster requires authentication
+```
+
+When `DX_CLUSTER_HOST` is not set, the send button shows a configuration error. The spot section is always visible but requires an active block to use. Clusters that require password authentication after the callsign login are supported via the optional `DX_CLUSTER_PASSWORD` variable.
+
+---
+
 ## 📁 Project Structure
 
 ```
@@ -115,6 +152,7 @@ award_planner/
 │   ├── awards.py        # Special callsign management
 │   ├── blocks.py        # Band/mode blocking logic
 │   ├── chat.py          # Chat message persistence
+│   ├── dx_cluster.py    # DX Cluster Telnet spotting
 │   └── backup.py        # Database backup/restore
 │
 ├── services/            # Background services
