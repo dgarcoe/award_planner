@@ -68,6 +68,12 @@ from features.backup import (
     get_database_info,
 )
 
+from features.dx_cluster import (
+    send_spot_to_cluster,
+    log_spot,
+    get_recent_spots,
+)
+
 from features.chat import (
     # Chat rooms
     get_chat_rooms,
@@ -141,6 +147,10 @@ __all__ = [
     'get_database_backup',
     'restore_database_from_backup',
     'get_database_info',
+    # Features - DX Cluster
+    'send_spot_to_cluster',
+    'log_spot',
+    'get_recent_spots',
     # Features - Chat rooms
     'get_chat_rooms',
     'create_chat_room',

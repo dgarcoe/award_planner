@@ -300,6 +300,22 @@ TRANSLATIONS = {
         'chat_no_rooms': 'No chat rooms available.',
         'chat_today': 'Today',
         'chat_yesterday': 'Yesterday',
+
+        # DX Cluster
+        'dx_cluster_spot': 'DX Cluster Spot',
+        'dx_cluster_spot_info': 'Send a spot to a DX Cluster node to announce activity.',
+        'dx_spotted_callsign': 'Spotted Callsign',
+        'dx_spotted_callsign_help': 'The callsign to spot (e.g. the special callsign)',
+        'dx_frequency': 'Frequency (kHz)',
+        'dx_comment': 'Comment',
+        'dx_comment_help': 'Max 30 characters',
+        'dx_send_spot': 'Send Spot',
+        'dx_spot_success': 'Spot sent successfully!',
+        'dx_spot_error': 'Error sending spot',
+        'dx_recent_spots': 'Recent Spots',
+        'dx_fill_required': 'Please fill in the spotted callsign.',
+        'dx_no_block_warning': 'You must block a band/mode before sending a spot.',
+        'dx_cluster_not_configured': 'DX Cluster not configured. Set DX_CLUSTER_HOST and DX_CLUSTER_CALLSIGN environment variables.',
     },
     'es': {
         # General
@@ -597,6 +613,22 @@ TRANSLATIONS = {
         'chat_no_rooms': 'No hay salas de chat disponibles.',
         'chat_today': 'Hoy',
         'chat_yesterday': 'Ayer',
+
+        # DX Cluster
+        'dx_cluster_spot': 'Spot DX Cluster',
+        'dx_cluster_spot_info': 'Enviar un spot a un nodo DX Cluster para anunciar actividad.',
+        'dx_spotted_callsign': 'Indicativo Spotteado',
+        'dx_spotted_callsign_help': 'El indicativo a spottear (ej. el indicativo especial)',
+        'dx_frequency': 'Frecuencia (kHz)',
+        'dx_comment': 'Comentario',
+        'dx_comment_help': 'Maximo 30 caracteres',
+        'dx_send_spot': 'Enviar Spot',
+        'dx_spot_success': 'Spot enviado correctamente!',
+        'dx_spot_error': 'Error al enviar el spot',
+        'dx_recent_spots': 'Spots Recientes',
+        'dx_fill_required': 'Por favor complete el indicativo spotteado.',
+        'dx_no_block_warning': 'Debes bloquear una banda/modo antes de enviar un spot.',
+        'dx_cluster_not_configured': 'DX Cluster no configurado. Establece las variables de entorno DX_CLUSTER_HOST y DX_CLUSTER_CALLSIGN.',
     },
     'gl': {
         # General
@@ -894,6 +926,22 @@ TRANSLATIONS = {
         'chat_no_rooms': 'Non hai salas de chat dispoñibles.',
         'chat_today': 'Hoxe',
         'chat_yesterday': 'Onte',
+
+        # DX Cluster
+        'dx_cluster_spot': 'Spot DX Cluster',
+        'dx_cluster_spot_info': 'Enviar un spot a un nodo DX Cluster para anunciar actividade.',
+        'dx_spotted_callsign': 'Indicativo Spotteado',
+        'dx_spotted_callsign_help': 'O indicativo a spottear (ex. o indicativo especial)',
+        'dx_frequency': 'Frecuencia (kHz)',
+        'dx_comment': 'Comentario',
+        'dx_comment_help': 'Maximo 30 caracteres',
+        'dx_send_spot': 'Enviar Spot',
+        'dx_spot_success': 'Spot enviado correctamente!',
+        'dx_spot_error': 'Erro ao enviar o spot',
+        'dx_recent_spots': 'Spots Recentes',
+        'dx_fill_required': 'Por favor complete o indicativo spotteado.',
+        'dx_no_block_warning': 'Debes bloquear unha banda/modo antes de enviar un spot.',
+        'dx_cluster_not_configured': 'DX Cluster non configurado. Establece as variables de contorno DX_CLUSTER_HOST e DX_CLUSTER_CALLSIGN.',
     }
 }
 

@@ -222,6 +222,141 @@ def render_block_unblock_section(t, callsign, award_id):
         st.info(t['no_active_blocks'])
 
 
+def _render_dx_cluster_spot_section(t, award_id, callsign):
+    """
+    Render the DX Cluster spotting section below the heatmap.
+
+    Operators can send spots only when they have an active block.
+    Band/mode are autofilled from the block; frequency and comment are manual.
+    Cluster connection settings come from environment variables.
+
+    Args:
+        t: Translations dictionary
+        award_id: Current award ID
+        callsign: Current user's callsign
+    """
+    from config import (
+        DX_CLUSTER_HOST, DX_CLUSTER_PORT, DX_CLUSTER_CALLSIGN,
+        DX_CLUSTER_PASSWORD, BAND_FREQUENCIES,
+    )
+
+    if not callsign or not award_id:
+        return
+
+    # Get operator's active block for this award
+    my_blocks = db.get_operator_blocks(callsign, award_id)
+    active_block = my_blocks[0] if my_blocks else None
+
+    st.divider()
+    with st.expander(f"📡 {t.get('dx_cluster_spot', 'DX Cluster Spot')}", expanded=False):
+        st.caption(t.get('dx_cluster_spot_info', 'Send a spot to a DX Cluster node to announce activity.'))
+
+        # Gate: require an active block
+        if not active_block:
+            st.warning(t.get('dx_no_block_warning', 'You must block a band/mode before sending a spot.'))
+        else:
+            blocked_band = active_block['band']
+            blocked_mode = active_block['mode']
+
+            # Show autofilled band/mode (read-only)
+            info_col1, info_col2 = st.columns(2)
+            with info_col1:
+                st.text_input(
+                    t.get('band_label', 'Band'),
+                    value=blocked_band,
+                    disabled=True,
+                    key="dx_block_band",
+                )
+            with info_col2:
+                st.text_input(
+                    t.get('mode_label', 'Mode'),
+                    value=blocked_mode,
+                    disabled=True,
+                    key="dx_block_mode",
+                )
+
+            # Spotted callsign (manual for testing; future: auto from award)
+            spotted_callsign = st.text_input(
+                t.get('dx_spotted_callsign', 'Spotted Callsign'),
+                value=st.session_state.get('dx_spotted_cs', ''),
+                help=t.get('dx_spotted_callsign_help', 'The callsign to spot (e.g. the special callsign)'),
+                key="dx_input_spotted_cs",
+            ).upper().strip()
+
+            # Frequency (manual input, default from band/mode mapping)
+            default_freq = BAND_FREQUENCIES.get(blocked_band, {}).get(blocked_mode, 14000.0)
+            frequency = st.number_input(
+                t.get('dx_frequency', 'Frequency (kHz)'),
+                value=default_freq,
+                min_value=0.1,
+                max_value=999999.9,
+                step=0.1,
+                format="%.1f",
+                key="dx_input_freq",
+            )
+
+            # Comment
+            comment = st.text_input(
+                t.get('dx_comment', 'Comment'),
+                value=f"QRV {blocked_mode}",
+                max_chars=30,
+                help=t.get('dx_comment_help', 'Max 30 characters'),
+                key="dx_input_comment",
+            )
+
+            # Send button
+            if st.button(f"📡 {t.get('dx_send_spot', 'Send Spot')}", type="primary", key="dx_send_btn"):
+                if not DX_CLUSTER_HOST or not DX_CLUSTER_CALLSIGN:
+                    st.error(t.get('dx_cluster_not_configured', 'DX Cluster not configured. Set DX_CLUSTER_HOST and DX_CLUSTER_CALLSIGN environment variables.'))
+                elif not spotted_callsign:
+                    st.error(t.get('dx_fill_required', 'Please fill in the spotted callsign.'))
+                else:
+                    with st.spinner("Connecting to DX Cluster..."):
+                        from features.dx_cluster import send_spot_to_cluster, log_spot
+                        success, message = send_spot_to_cluster(
+                            host=DX_CLUSTER_HOST,
+                            port=DX_CLUSTER_PORT,
+                            login_callsign=DX_CLUSTER_CALLSIGN,
+                            spotted_callsign=spotted_callsign,
+                            frequency=frequency,
+                            comment=comment,
+                            password=DX_CLUSTER_PASSWORD,
+                        )
+
+                        # Log the spot attempt
+                        log_spot(
+                            award_id=award_id,
+                            operator_callsign=callsign,
+                            spotted_callsign=spotted_callsign,
+                            band=blocked_band,
+                            mode=blocked_mode,
+                            frequency=frequency,
+                            cluster_host=f"{DX_CLUSTER_HOST}:{DX_CLUSTER_PORT}",
+                            success=success,
+                            cluster_response=message,
+                        )
+
+                        if success:
+                            st.success(f"{t.get('dx_spot_success', 'Spot sent successfully!')} {message}")
+                        else:
+                            st.error(f"{t.get('dx_spot_error', 'Error sending spot')}: {message}")
+
+        # Recent spots log (always visible)
+        recent_spots = db.get_recent_spots(award_id=award_id, limit=5)
+        if recent_spots:
+            st.caption(t.get('dx_recent_spots', 'Recent Spots'))
+            for spot in recent_spots:
+                status_icon = "✅" if spot['success'] else "❌"
+                time_str = spot['spotted_at'][:16] if spot.get('spotted_at') else ""
+                freq_str = f"{spot['frequency']:.1f}" if spot.get('frequency') else ""
+                st.caption(
+                    f"{status_icon} {time_str} | "
+                    f"{spot.get('spotted_callsign', '')} | "
+                    f"{freq_str} kHz | "
+                    f"{spot.get('cluster_response', '')[:60]}"
+                )
+
+
 def render_activity_dashboard(t, award_id, callsign=None):
     """
     Render the activity dashboard with heatmap and statistics.
@@ -297,6 +432,9 @@ def render_activity_dashboard(t, award_id, callsign=None):
         else:
             # Cell is free - show block modal
             _show_block_modal(t, callsign, clicked_band, clicked_mode, award_id)
+
+    # DX Cluster spotting section
+    _render_dx_cluster_spot_section(t, award_id, callsign)
 
     # Show summary statistics
     st.divider()
