@@ -16,6 +16,10 @@ services:
       - MQTT_BROKER_HOST=mosquitto
       - MQTT_BROKER_PORT=1883
       - MQTT_WS_URL=${MQTT_WS_URL:-}
+      - DX_CLUSTER_ENABLED=${DX_CLUSTER_ENABLED:-false}
+      - DX_CLUSTER_HOST=${DX_CLUSTER_HOST:-}
+      - DX_CLUSTER_PORT=${DX_CLUSTER_PORT:-7300}
+      - DX_CLUSTER_CALLSIGN=${DX_CLUSTER_CALLSIGN:-}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
