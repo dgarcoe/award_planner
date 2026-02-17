@@ -399,13 +399,30 @@ def render_award_management_tab(t):
                         else:
                             st.error(message)
                 with col2:
-                    if st.button(t['delete_special_callsign'], key=f"delete_award_{award['id']}", type="secondary"):
-                        success, message = db.delete_award(award['id'])
-                        if success:
-                            st.success(message)
+                    pending_key = f"confirm_delete_award_{award['id']}"
+                    if st.session_state.get(pending_key):
+                        st.warning(t.get(
+                            'delete_special_callsign_warning',
+                            'This will permanently delete the special callsign, all its blocks, the chat room and all chat messages. This cannot be undone.'
+                        ))
+                        yes_col, no_col = st.columns(2)
+                        with yes_col:
+                            if st.button(t.get('confirm_delete', 'Yes, delete'), key=f"confirm_yes_{award['id']}", type="primary"):
+                                del st.session_state[pending_key]
+                                success, message = db.delete_award(award['id'])
+                                if success:
+                                    st.success(message)
+                                else:
+                                    st.error(message)
+                                st.rerun()
+                        with no_col:
+                            if st.button(t['cancel'], key=f"confirm_no_{award['id']}"):
+                                del st.session_state[pending_key]
+                                st.rerun()
+                    else:
+                        if st.button(t['delete_special_callsign'], key=f"delete_award_{award['id']}", type="secondary"):
+                            st.session_state[pending_key] = True
                             st.rerun()
-                        else:
-                            st.error(message)
     else:
         st.info(t['no_special_callsigns_created'])
 
