@@ -159,6 +159,23 @@ def _create_tables(cursor):
         )
     ''')
 
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS spot_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            award_id INTEGER NOT NULL,
+            operator_callsign TEXT NOT NULL,
+            spotted_callsign TEXT NOT NULL,
+            band TEXT,
+            mode TEXT,
+            frequency REAL,
+            cluster_host TEXT,
+            success INTEGER DEFAULT 0,
+            cluster_response TEXT,
+            spotted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (award_id) REFERENCES awards (id)
+        )
+    ''')
+
 
 # ---------------------------------------------------------------------------
 # Migrations
