@@ -278,5 +278,13 @@ def init_database():
                 (gen[0],)
             )
 
+    # Create app_settings key-value table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS app_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        )
+    ''')
+
     conn.commit()
     conn.close()

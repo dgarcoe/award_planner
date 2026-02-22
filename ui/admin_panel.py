@@ -751,3 +751,38 @@ def render_announcements_admin_tab(t):
                             st.error(message)
     else:
         st.info(t['no_announcements'])
+
+
+def render_feature_visibility_tab(t):
+    """
+    Render the feature visibility settings tab.
+    Only the env-admin can toggle features on/off for all users.
+    """
+    st.subheader(t.get('feature_visibility_title', 'Feature Visibility'))
+    st.info(t.get('feature_visibility_info',
+                   'Toggle which features are visible to operators. '
+                   'Changes take effect immediately for all users.'))
+
+    if not st.session_state.get('is_env_admin'):
+        st.warning(t.get('feature_visibility_env_admin_only',
+                         'Only the super administrator can change feature visibility.'))
+        return
+
+    flags = db.get_feature_flags()
+
+    new_announcements = st.toggle(
+        t.get('tab_announcements', 'Announcements'),
+        value=flags.get('feature_announcements', True),
+        key="fv_announcements"
+    )
+    new_chat = st.toggle(
+        t.get('tab_chat', 'Chat'),
+        value=flags.get('feature_chat', True),
+        key="fv_chat"
+    )
+
+    if st.button(t.get('save_changes', 'Save Changes'), type="primary", key="fv_save"):
+        db.set_app_setting('feature_announcements', '1' if new_announcements else '0')
+        db.set_app_setting('feature_chat', '1' if new_chat else '0')
+        st.success(t.get('changes_saved', 'Changes saved successfully'))
+        st.rerun()

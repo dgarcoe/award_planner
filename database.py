@@ -91,6 +91,12 @@ from features.chat import (
     mark_all_chat_notifications_read,
 )
 
+from features.settings import (
+    get_app_setting,
+    set_app_setting,
+    get_feature_flags,
+)
+
 __all__ = [
     # Core - Database
     'get_connection',
@@ -161,4 +167,8 @@ __all__ = [
     'get_unread_chat_notifications',
     'mark_chat_notification_read',
     'mark_all_chat_notifications_read',
+    # Features - Settings
+    'get_app_setting',
+    'set_app_setting',
+    'get_feature_flags',
 ]

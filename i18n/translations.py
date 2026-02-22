@@ -302,6 +302,12 @@ TRANSLATIONS = {
         'chat_no_rooms': 'No chat rooms available.',
         'chat_today': 'Today',
         'chat_yesterday': 'Yesterday',
+
+        # Feature Visibility
+        'tab_feature_visibility': 'Feature Visibility',
+        'feature_visibility_title': 'Feature Visibility',
+        'feature_visibility_info': 'Toggle which features are visible to operators. Changes take effect immediately for all users.',
+        'feature_visibility_env_admin_only': 'Only the super administrator can change feature visibility.',
     },
     'es': {
         # General
@@ -601,6 +607,12 @@ TRANSLATIONS = {
         'chat_no_rooms': 'No hay salas de chat disponibles.',
         'chat_today': 'Hoy',
         'chat_yesterday': 'Ayer',
+
+        # Feature Visibility
+        'tab_feature_visibility': 'Visibilidad de Funciones',
+        'feature_visibility_title': 'Visibilidad de Funciones',
+        'feature_visibility_info': 'Active o desactive las funciones visibles para los operadores. Los cambios surten efecto inmediatamente para todos los usuarios.',
+        'feature_visibility_env_admin_only': 'Solo el superadministrador puede cambiar la visibilidad de funciones.',
     },
     'gl': {
         # General
@@ -900,6 +912,12 @@ TRANSLATIONS = {
         'chat_no_rooms': 'Non hai salas de chat dispoñibles.',
         'chat_today': 'Hoxe',
         'chat_yesterday': 'Onte',
+
+        # Feature Visibility
+        'tab_feature_visibility': 'Visibilidade de Funcións',
+        'feature_visibility_title': 'Visibilidade de Funcións',
+        'feature_visibility_info': 'Active ou desactive as funcións visibles para os operadores. Os cambios teñen efecto inmediatamente para todos os usuarios.',
+        'feature_visibility_env_admin_only': 'Só o superadministrador pode cambiar a visibilidade de funcións.',
     }
 }
 
