@@ -2,14 +2,11 @@
 Band/mode block management functions.
 """
 import json
-from typing import List, Tuple, Optional
-
-from core.database import get_connection
-from features.events import post_system_event_to_award_room
 import logging
 from typing import List, Tuple, Optional
 
 from core.database import get_db
+from features.events import post_system_event_to_award_room
 
 logger = logging.getLogger(__name__)
 
@@ -93,8 +90,11 @@ def unblock_band_mode(operator_callsign: str, band: str, mode: str, award_id: in
             if existing['operator_callsign'] != operator_callsign.upper():
                 return False, f"Band {band} / Mode {mode} is blocked by {existing['operator_callsign']}, not by you"
 
-        conn.commit()
-        conn.close()
+            cursor.execute('''
+                DELETE FROM band_mode_blocks
+                WHERE band = ? AND mode = ? AND award_id = ?
+            ''', (band, mode, award_id))
+
         event_data = json.dumps({
             'event': 'unblocked',
             'callsign': operator_callsign.upper(),
@@ -159,16 +159,12 @@ def admin_unblock_band_mode(band: str, mode: str, award_id: int,
             ''', (band, mode, award_id))
             existing = cursor.fetchone()
 
-        blocked_by = existing['operator_callsign']
+            blocked_by = existing['operator_callsign']
 
-        # Unblock the band/mode
-        cursor.execute('''
-            DELETE FROM band_mode_blocks
-            WHERE band = ? AND mode = ? AND award_id = ?
-        ''', (band, mode, award_id))
-
-        conn.commit()
-        conn.close()
+            cursor.execute('''
+                DELETE FROM band_mode_blocks
+                WHERE band = ? AND mode = ? AND award_id = ?
+            ''', (band, mode, award_id))
 
         event = {
             'event': 'admin_unblocked',
