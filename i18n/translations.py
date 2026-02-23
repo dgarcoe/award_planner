@@ -303,6 +303,13 @@ TRANSLATIONS = {
         'chat_today': 'Today',
         'chat_yesterday': 'Yesterday',
 
+        # Chat system events (block/unblock)
+        'chat_event_blocked': '🔴 {callsign} blocked {band} / {mode}',
+        'chat_event_unblocked': '🟢 {callsign} unblocked {band} / {mode}',
+        'chat_event_switched': '🔄 {callsign} switched from {old_band}/{old_mode} to {band}/{mode}',
+        'chat_event_admin_unblocked': '🟢 {callsign} (admin) unblocked {band} / {mode} (was {blocked_by})',
+        'chat_event_admin_unblocked_anon': '🟢 Admin unblocked {band} / {mode} (was {blocked_by})',
+
         # Feature Visibility
         'tab_feature_visibility': 'Feature Visibility',
         'feature_visibility_title': 'Feature Visibility',
@@ -608,6 +615,13 @@ TRANSLATIONS = {
         'chat_today': 'Hoy',
         'chat_yesterday': 'Ayer',
 
+        # Chat system events (block/unblock)
+        'chat_event_blocked': '🔴 {callsign} bloqueó {band} / {mode}',
+        'chat_event_unblocked': '🟢 {callsign} desbloqueó {band} / {mode}',
+        'chat_event_switched': '🔄 {callsign} cambió de {old_band}/{old_mode} a {band}/{mode}',
+        'chat_event_admin_unblocked': '🟢 {callsign} (admin) desbloqueó {band} / {mode} (era {blocked_by})',
+        'chat_event_admin_unblocked_anon': '🟢 Admin desbloqueó {band} / {mode} (era {blocked_by})',
+
         # Feature Visibility
         'tab_feature_visibility': 'Visibilidad de Funciones',
         'feature_visibility_title': 'Visibilidad de Funciones',
@@ -912,6 +926,13 @@ TRANSLATIONS = {
         'chat_no_rooms': 'Non hai salas de chat dispoñibles.',
         'chat_today': 'Hoxe',
         'chat_yesterday': 'Onte',
+
+        # Chat system events (block/unblock)
+        'chat_event_blocked': '🔴 {callsign} bloqueou {band} / {mode}',
+        'chat_event_unblocked': '🟢 {callsign} desbloqueou {band} / {mode}',
+        'chat_event_switched': '🔄 {callsign} cambiou de {old_band}/{old_mode} a {band}/{mode}',
+        'chat_event_admin_unblocked': '🟢 {callsign} (admin) desbloqueou {band} / {mode} (era {blocked_by})',
+        'chat_event_admin_unblocked_anon': '🟢 Admin desbloqueou {band} / {mode} (era {blocked_by})',
 
         # Feature Visibility
         'tab_feature_visibility': 'Visibilidade de Funcións',

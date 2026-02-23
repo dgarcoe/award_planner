@@ -372,6 +372,11 @@ def operator_panel():
                     'chat_replying_to': t.get('chat_replying_to', 'Replying to'),
                     'chat_today': t.get('chat_today', 'Today'),
                     'chat_yesterday': t.get('chat_yesterday', 'Yesterday'),
+                    'chat_event_blocked': t.get('chat_event_blocked', ''),
+                    'chat_event_unblocked': t.get('chat_event_unblocked', ''),
+                    'chat_event_switched': t.get('chat_event_switched', ''),
+                    'chat_event_admin_unblocked': t.get('chat_event_admin_unblocked', ''),
+                    'chat_event_admin_unblocked_anon': t.get('chat_event_admin_unblocked_anon', ''),
                 }
                 all_operators = db.get_all_operators()
                 operators_for_chat = [

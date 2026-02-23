@@ -1,6 +1,7 @@
 """
 Band/mode block management functions.
 """
+import json
 from typing import List, Tuple, Optional
 
 from core.database import get_connection
@@ -48,14 +49,24 @@ def block_band_mode(operator_callsign: str, band: str, mode: str, award_id: int)
         conn.close()
 
         if existing_block:
-            event_msg = (
-                f"🔄 {operator_callsign.upper()} switched from "
-                f"{existing_block['band']}/{existing_block['mode']} to {band}/{mode}"
-            )
-            post_system_event_to_award_room(award_id, event_msg)
+            event_data = json.dumps({
+                'event': 'switched',
+                'callsign': operator_callsign.upper(),
+                'old_band': existing_block['band'],
+                'old_mode': existing_block['mode'],
+                'band': band,
+                'mode': mode,
+            })
+            post_system_event_to_award_room(award_id, event_data)
             return True, f"Successfully blocked (previous block {existing_block['band']}/{existing_block['mode']} released)"
 
-        post_system_event_to_award_room(award_id, f"🔴 {operator_callsign.upper()} blocked {band} / {mode}")
+        event_data = json.dumps({
+            'event': 'blocked',
+            'callsign': operator_callsign.upper(),
+            'band': band,
+            'mode': mode,
+        })
+        post_system_event_to_award_room(award_id, event_data)
         return True, "Successfully blocked"
     except Exception as e:
         print(f"Error blocking band/mode: {e}")
@@ -91,7 +102,13 @@ def unblock_band_mode(operator_callsign: str, band: str, mode: str, award_id: in
 
         conn.commit()
         conn.close()
-        post_system_event_to_award_room(award_id, f"🟢 {operator_callsign.upper()} unblocked {band} / {mode}")
+        event_data = json.dumps({
+            'event': 'unblocked',
+            'callsign': operator_callsign.upper(),
+            'band': band,
+            'mode': mode,
+        })
+        post_system_event_to_award_room(award_id, event_data)
         return True, "Successfully unblocked"
     except Exception as e:
         print(f"Error unblocking band/mode: {e}")
@@ -170,11 +187,15 @@ def admin_unblock_band_mode(band: str, mode: str, award_id: int,
         conn.commit()
         conn.close()
 
+        event = {
+            'event': 'admin_unblocked',
+            'band': band,
+            'mode': mode,
+            'blocked_by': blocked_by,
+        }
         if admin_callsign:
-            event_msg = f"🟢 {admin_callsign.upper()} (admin) unblocked {band} / {mode} (was {blocked_by})"
-        else:
-            event_msg = f"🟢 Admin unblocked {band} / {mode} (was {blocked_by})"
-        post_system_event_to_award_room(award_id, event_msg)
+            event['callsign'] = admin_callsign.upper()
+        post_system_event_to_award_room(award_id, json.dumps(event))
 
         return True, f"Successfully unblocked {band}/{mode} (was blocked by {blocked_by})"
     except Exception as e:
