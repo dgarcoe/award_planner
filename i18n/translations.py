@@ -126,8 +126,6 @@ TRANSLATIONS = {
         'created_label': 'Created',
         'toggle_status': 'Toggle Status',
         'delete_special_callsign': 'Delete Special Callsign',
-        'delete_special_callsign_warning': 'This will permanently delete the special callsign, all its blocks, the chat room and all chat messages. This cannot be undone.',
-        'confirm_delete': 'Yes, delete',
         'edit_special_callsign': 'Edit Special Callsign',
         'save_changes': 'Save Changes',
         'changes_saved': 'Changes saved successfully',
@@ -303,18 +301,6 @@ TRANSLATIONS = {
         'chat_today': 'Today',
         'chat_yesterday': 'Yesterday',
 
-        # Chat system events (block/unblock)
-        'chat_event_blocked': '🔴 {callsign} blocked {band} / {mode}',
-        'chat_event_unblocked': '🟢 {callsign} unblocked {band} / {mode}',
-        'chat_event_switched': '🔄 {callsign} switched from {old_band}/{old_mode} to {band}/{mode}',
-        'chat_event_admin_unblocked': '🟢 {callsign} (admin) unblocked {band} / {mode} (was {blocked_by})',
-        'chat_event_admin_unblocked_anon': '🟢 Admin unblocked {band} / {mode} (was {blocked_by})',
-
-        # Feature Visibility
-        'tab_feature_visibility': 'Feature Visibility',
-        'feature_visibility_title': 'Feature Visibility',
-        'feature_visibility_info': 'Toggle which features are visible to operators. Changes take effect immediately for all users.',
-        'feature_visibility_env_admin_only': 'Only the super administrator can change feature visibility.',
         # DX Cluster
         'dx_cluster_spot': 'DX Cluster Spot',
         'dx_cluster_spot_info': 'Send a spot to a DX Cluster node to announce activity.',
@@ -453,8 +439,6 @@ TRANSLATIONS = {
         'created_label': 'Creado',
         'toggle_status': 'Cambiar Estado',
         'delete_special_callsign': 'Eliminar Indicativo Especial',
-        'delete_special_callsign_warning': 'Esto eliminará permanentemente el indicativo especial, todos sus bloqueos, la sala de chat y todos los mensajes. Esta acción no se puede deshacer.',
-        'confirm_delete': 'Sí, eliminar',
         'edit_special_callsign': 'Editar Indicativo Especial',
         'save_changes': 'Guardar Cambios',
         'changes_saved': 'Cambios guardados correctamente',
@@ -630,18 +614,6 @@ TRANSLATIONS = {
         'chat_today': 'Hoy',
         'chat_yesterday': 'Ayer',
 
-        # Chat system events (block/unblock)
-        'chat_event_blocked': '🔴 {callsign} bloqueó {band} / {mode}',
-        'chat_event_unblocked': '🟢 {callsign} desbloqueó {band} / {mode}',
-        'chat_event_switched': '🔄 {callsign} cambió de {old_band}/{old_mode} a {band}/{mode}',
-        'chat_event_admin_unblocked': '🟢 {callsign} (admin) desbloqueó {band} / {mode} (era {blocked_by})',
-        'chat_event_admin_unblocked_anon': '🟢 Admin desbloqueó {band} / {mode} (era {blocked_by})',
-
-        # Feature Visibility
-        'tab_feature_visibility': 'Visibilidad de Funciones',
-        'feature_visibility_title': 'Visibilidad de Funciones',
-        'feature_visibility_info': 'Active o desactive las funciones visibles para los operadores. Los cambios surten efecto inmediatamente para todos los usuarios.',
-        'feature_visibility_env_admin_only': 'Solo el superadministrador puede cambiar la visibilidad de funciones.',
         # DX Cluster
         'dx_cluster_spot': 'Spot DX Cluster',
         'dx_cluster_spot_info': 'Enviar un spot a un nodo DX Cluster para anunciar actividad.',
@@ -780,8 +752,6 @@ TRANSLATIONS = {
         'created_label': 'Creado',
         'toggle_status': 'Cambiar Estado',
         'delete_special_callsign': 'Eliminar Indicativo Especial',
-        'delete_special_callsign_warning': 'Isto eliminará permanentemente o indicativo especial, todos os seus bloqueos, a sala de chat e todas as mensaxes. Esta acción non se pode desfacer.',
-        'confirm_delete': 'Si, eliminar',
         'edit_special_callsign': 'Editar Indicativo Especial',
         'save_changes': 'Gardar Cambios',
         'changes_saved': 'Cambios gardados correctamente',
@@ -957,18 +927,6 @@ TRANSLATIONS = {
         'chat_today': 'Hoxe',
         'chat_yesterday': 'Onte',
 
-        # Chat system events (block/unblock)
-        'chat_event_blocked': '🔴 {callsign} bloqueou {band} / {mode}',
-        'chat_event_unblocked': '🟢 {callsign} desbloqueou {band} / {mode}',
-        'chat_event_switched': '🔄 {callsign} cambiou de {old_band}/{old_mode} a {band}/{mode}',
-        'chat_event_admin_unblocked': '🟢 {callsign} (admin) desbloqueou {band} / {mode} (era {blocked_by})',
-        'chat_event_admin_unblocked_anon': '🟢 Admin desbloqueou {band} / {mode} (era {blocked_by})',
-
-        # Feature Visibility
-        'tab_feature_visibility': 'Visibilidade de Funcións',
-        'feature_visibility_title': 'Visibilidade de Funcións',
-        'feature_visibility_info': 'Active ou desactive as funcións visibles para os operadores. Os cambios teñen efecto inmediatamente para todos os usuarios.',
-        'feature_visibility_env_admin_only': 'Só o superadministrador pode cambiar a visibilidade de funcións.',
         # DX Cluster
         'dx_cluster_spot': 'Spot DX Cluster',
         'dx_cluster_spot_info': 'Enviar un spot a un nodo DX Cluster para anunciar actividade.',

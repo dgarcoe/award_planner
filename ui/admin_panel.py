@@ -177,10 +177,7 @@ def render_manage_blocks_tab(t):
                 st.write(f"{block['operator_name']} ({block['operator_callsign']})")
             with col4:
                 if st.button(t['unblock_selected'], key=f"admin_unblock_{block['id']}"):
-                    success, message = db.admin_unblock_band_mode(
-                        block['band'], block['mode'], block['award_id'],
-                        admin_callsign=st.session_state.get('callsign', '')
-                    )
+                    success, message = db.admin_unblock_band_mode(block['band'], block['mode'], block['award_id'])
                     if success:
                         st.success(message)
                         st.rerun()
@@ -405,30 +402,13 @@ def render_award_management_tab(t):
                         else:
                             st.error(message)
                 with col2:
-                    pending_key = f"confirm_delete_award_{award['id']}"
-                    if st.session_state.get(pending_key):
-                        st.warning(t.get(
-                            'delete_special_callsign_warning',
-                            'This will permanently delete the special callsign, all its blocks, the chat room and all chat messages. This cannot be undone.'
-                        ))
-                        yes_col, no_col = st.columns(2)
-                        with yes_col:
-                            if st.button(t.get('confirm_delete', 'Yes, delete'), key=f"confirm_yes_{award['id']}", type="primary"):
-                                del st.session_state[pending_key]
-                                success, message = db.delete_award(award['id'])
-                                if success:
-                                    st.success(message)
-                                else:
-                                    st.error(message)
-                                st.rerun()
-                        with no_col:
-                            if st.button(t['cancel'], key=f"confirm_no_{award['id']}"):
-                                del st.session_state[pending_key]
-                                st.rerun()
-                    else:
-                        if st.button(t['delete_special_callsign'], key=f"delete_award_{award['id']}", type="secondary"):
-                            st.session_state[pending_key] = True
+                    if st.button(t['delete_special_callsign'], key=f"delete_award_{award['id']}", type="secondary"):
+                        success, message = db.delete_award(award['id'])
+                        if success:
+                            st.success(message)
                             st.rerun()
+                        else:
+                            st.error(message)
     else:
         st.info(t['no_special_callsigns_created'])
 
@@ -756,38 +736,3 @@ def render_announcements_admin_tab(t):
                             st.error(message)
     else:
         st.info(t['no_announcements'])
-
-
-def render_feature_visibility_tab(t):
-    """
-    Render the feature visibility settings tab.
-    Only the env-admin can toggle features on/off for all users.
-    """
-    st.subheader(t.get('feature_visibility_title', 'Feature Visibility'))
-    st.info(t.get('feature_visibility_info',
-                   'Toggle which features are visible to operators. '
-                   'Changes take effect immediately for all users.'))
-
-    if not st.session_state.get('is_env_admin'):
-        st.warning(t.get('feature_visibility_env_admin_only',
-                         'Only the super administrator can change feature visibility.'))
-        return
-
-    flags = db.get_feature_flags()
-
-    new_announcements = st.toggle(
-        t.get('tab_announcements', 'Announcements'),
-        value=flags.get('feature_announcements', True),
-        key="fv_announcements"
-    )
-    new_chat = st.toggle(
-        t.get('tab_chat', 'Chat'),
-        value=flags.get('feature_chat', True),
-        key="fv_chat"
-    )
-
-    if st.button(t.get('save_changes', 'Save Changes'), type="primary", key="fv_save"):
-        db.set_app_setting('feature_announcements', '1' if new_announcements else '0')
-        db.set_app_setting('feature_chat', '1' if new_chat else '0')
-        st.success(t.get('changes_saved', 'Changes saved successfully'))
-        st.rerun()
