@@ -423,6 +423,27 @@ def render_chat_widget(callsign, operator_name, rooms, all_histories,
         color: #888;
         white-space: nowrap;
     }}
+
+    .system-event {{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 4px 16px;
+        user-select: none;
+    }}
+
+    .system-event .se-text {{
+        font-size: 12px;
+        color: #777;
+        font-style: italic;
+    }}
+
+    .system-event .se-time {{
+        font-size: 11px;
+        color: #555;
+        flex-shrink: 0;
+    }}
 </style>
 </head>
 <body>
@@ -635,6 +656,45 @@ def render_chat_widget(callsign, operator_name, rooms, all_histories,
         saveLastRead(div.dataset.msgId);
     }}
 
+    function formatSystemEvent(raw) {{
+        // Try to parse structured JSON event; fall back to plain text
+        try {{
+            var ev = JSON.parse(raw);
+            if (!ev.event) return escapeHtml(raw);
+            var tplMap = {{
+                'blocked':          T.chat_event_blocked,
+                'unblocked':        T.chat_event_unblocked,
+                'switched':         T.chat_event_switched,
+                'admin_unblocked':  ev.callsign ? T.chat_event_admin_unblocked
+                                                : T.chat_event_admin_unblocked_anon
+            }};
+            var tpl = tplMap[ev.event];
+            if (!tpl) return escapeHtml(raw);
+            return escapeHtml(tpl
+                .replace('{{callsign}}', ev.callsign || '')
+                .replace('{{band}}', ev.band || '')
+                .replace('{{mode}}', ev.mode || '')
+                .replace('{{old_band}}', ev.old_band || '')
+                .replace('{{old_mode}}', ev.old_mode || '')
+                .replace('{{blocked_by}}', ev.blocked_by || ''));
+        }} catch(e) {{
+            return escapeHtml(raw);
+        }}
+    }}
+
+    function appendSystemMessage(text, time, msgId) {{
+        insertDaySeparatorIfNeeded(time || new Date().toISOString());
+        var div = document.createElement('div');
+        div.className = 'system-event';
+        div.dataset.msgId = msgId || '0';
+        var timeStr = time ? formatTime(time) : '';
+        div.innerHTML =
+            '<span class="se-text">' + formatSystemEvent(text) + '</span>' +
+            (timeStr ? '<span class="se-time">' + escapeHtml(timeStr) + '</span>' : '');
+        var sentinel = document.getElementById('chat-bottom');
+        messagesEl.insertBefore(div, sentinel);
+    }}
+
     qpDismiss.addEventListener('click', function() {{
         quotedMessage = null;
         quotePreview.style.display = 'none';
@@ -672,6 +732,10 @@ def render_chat_widget(callsign, operator_name, rooms, all_histories,
         var history = ALL_HISTORY[String(roomId)] || [];
         if (history.length > 0) {{
             history.forEach(function(msg) {{
+                if (msg.source === 'system') {{
+                    appendSystemMessage(msg.message, msg.created_at, msg.id);
+                    return;
+                }}
                 var replyTo = msg.reply_to_callsign ? {{
                     callsign: msg.reply_to_callsign,
                     text: msg.reply_to_text || ''
@@ -849,17 +913,23 @@ def render_chat_widget(callsign, operator_name, rooms, all_histories,
                         var placeholder = document.getElementById('no-messages-placeholder');
                         if (placeholder) placeholder.remove();
 
-                        var replyTo = data.reply_to || null;
                         var atBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 60;
-                        appendMessage(
-                            data.callsign,
-                            data.name || '',
-                            data.message,
-                            data.timestamp || null,
-                            false,
-                            replyTo,
-                            0
-                        );
+
+                        if (data.source === 'system') {{
+                            appendSystemMessage(data.message, data.timestamp || null, 0);
+                        }} else {{
+                            var replyTo = data.reply_to || null;
+                            appendMessage(
+                                data.callsign,
+                                data.name || '',
+                                data.message,
+                                data.timestamp || null,
+                                false,
+                                replyTo,
+                                0
+                            );
+                        }}
+
                         if (atBottom) {{
                             messagesEl.scrollTop = messagesEl.scrollHeight;
                         }}

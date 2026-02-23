@@ -139,19 +139,36 @@ def toggle_award_status(award_id: int) -> Tuple[bool, str]:
 
 
 def delete_award(award_id: int) -> Tuple[bool, str]:
-    """Delete an award and all its associated blocks."""
+    """Delete an award and all its associated blocks, chat room and chat messages."""
     try:
-        with get_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute('SELECT name FROM awards WHERE id = ?', (award_id,))
-            award = cursor.fetchone()
+        conn = get_connection()
+        cursor = conn.cursor()
 
-            if not award:
-                return False, "Award not found"
+        cursor.execute('SELECT name FROM awards WHERE id = ?', (award_id,))
+        award = cursor.fetchone()
 
-            cursor.execute('DELETE FROM band_mode_blocks WHERE award_id = ?', (award_id,))
-            cursor.execute('DELETE FROM awards WHERE id = ?', (award_id,))
-            return True, f"Award '{award['name']}' and all associated blocks deleted"
-    except Exception:
-        logger.exception("Error deleting award")
-        return False, "An unexpected error occurred. Please try again."
+        if not award:
+            conn.close()
+            return False, "Award not found"
+
+        # Delete all blocks associated with this award
+        cursor.execute('DELETE FROM band_mode_blocks WHERE award_id = ?', (award_id,))
+
+        # Delete the linked chat room and its messages/notifications
+        cursor.execute('SELECT id FROM chat_rooms WHERE award_id = ?', (award_id,))
+        room = cursor.fetchone()
+        if room:
+            room_id = room[0]
+            cursor.execute('DELETE FROM chat_notifications WHERE room_id = ?', (room_id,))
+            cursor.execute('DELETE FROM chat_messages WHERE room_id = ?', (room_id,))
+            cursor.execute('DELETE FROM chat_rooms WHERE id = ?', (room_id,))
+
+        # Delete the award
+        cursor.execute('DELETE FROM awards WHERE id = ?', (award_id,))
+
+        conn.commit()
+        conn.close()
+        return True, f"Award '{award['name']}' and all associated data deleted"
+    except Exception as e:
+        print(f"Error deleting award: {e}")
+        return False, str(e)
