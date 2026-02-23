@@ -191,6 +191,14 @@ def _run_migrations(cursor, conn):
     _migrate_chat_messages_room_id(cursor)
     _migrate_chat_notifications_room_id(cursor)
 
+    # Create app_settings key-value table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS app_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        )
+    ''')
+
 
 def _get_column_names(cursor, table):
     """Helper to get column names for a table."""
@@ -318,17 +326,6 @@ def _migrate_chat_notifications_room_id(cursor):
                 'UPDATE chat_notifications SET room_id = ? WHERE room_id IS NULL',
                 (gen[0],)
             )
-
-    # Create app_settings key-value table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS app_settings (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL
-        )
-    ''')
-
-    conn.commit()
-    conn.close()
 
 # ---------------------------------------------------------------------------
 # Seed data & sync
