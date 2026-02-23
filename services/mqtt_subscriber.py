@@ -72,6 +72,11 @@ def _on_message(client, userdata, msg):
         if not callsign or not message:
             return
 
+        # System events are already persisted by features/events.py;
+        # only relay via MQTT for real-time delivery — skip re-saving.
+        if source == 'system':
+            return
+
         # Validate callsign format
         if not _CALLSIGN_RE.match(callsign.upper()):
             logger.warning("Invalid callsign format from MQTT: %s", callsign[:20])

@@ -47,6 +47,7 @@ from ui.admin_panel import (
     render_database_management_tab,
     render_announcements_admin_tab,
     render_chat_management_tab,
+    render_feature_visibility_tab,
 )
 
 # Import mobile styles
@@ -182,30 +183,42 @@ def admin_panel():
     ]
     if CHAT_ENABLED:
         admin_tab_labels.append(f"💬 {t['tab_chat_management']}")
+    admin_tab_labels.append(f"👁️ {t.get('tab_feature_visibility', 'Feature Visibility')}")
 
     admin_tabs = st.tabs(admin_tab_labels)
+    admin_idx = 0
 
-    with admin_tabs[0]:
+    with admin_tabs[admin_idx]:
         render_award_management_tab(t)
+    admin_idx += 1
 
-    with admin_tabs[1]:
+    with admin_tabs[admin_idx]:
         render_announcements_admin_tab(t)
+    admin_idx += 1
 
-    with admin_tabs[2]:
+    with admin_tabs[admin_idx]:
         render_operators_tab(t)
+    admin_idx += 1
 
-    with admin_tabs[3]:
+    with admin_tabs[admin_idx]:
         render_manage_blocks_tab(t)
+    admin_idx += 1
 
-    with admin_tabs[4]:
+    with admin_tabs[admin_idx]:
         render_system_stats_tab(t)
+    admin_idx += 1
 
-    with admin_tabs[5]:
+    with admin_tabs[admin_idx]:
         render_database_management_tab(t)
+    admin_idx += 1
 
     if CHAT_ENABLED:
-        with admin_tabs[6]:
+        with admin_tabs[admin_idx]:
             render_chat_management_tab(t)
+        admin_idx += 1
+
+    with admin_tabs[admin_idx]:
+        render_feature_visibility_tab(t)
 
 
 
@@ -251,15 +264,20 @@ def operator_panel():
     # Auto-refresh interval for fragment-based refresh
     refresh_interval = timedelta(milliseconds=AUTO_REFRESH_INTERVAL_MS)
 
+    # Load feature visibility flags
+    feature_flags = db.get_feature_flags()
+    show_announcements = feature_flags.get('feature_announcements', True)
+    show_chat = CHAT_ENABLED and feature_flags.get('feature_chat', True)
+
     st.title(f"🎙️ {t['app_title']}")
     st.subheader(f"{t['welcome']}, {st.session_state.operator_name} ({st.session_state.callsign})")
 
     # Bell notification and logout row
-    unread_ann_count = db.get_unread_announcement_count(st.session_state.callsign)
-    unread_mention_count = db.get_unread_chat_notification_count(st.session_state.callsign)
+    unread_ann_count = db.get_unread_announcement_count(st.session_state.callsign) if show_announcements else 0
+    unread_mention_count = db.get_unread_chat_notification_count(st.session_state.callsign) if show_chat else 0
     total_unread = unread_ann_count + unread_mention_count
-    unread_announcements = db.get_unread_announcements(st.session_state.callsign)
-    chat_notifications = db.get_unread_chat_notifications(st.session_state.callsign)
+    unread_announcements = db.get_unread_announcements(st.session_state.callsign) if show_announcements else []
+    chat_notifications = db.get_unread_chat_notifications(st.session_state.callsign) if show_chat else []
 
     col1, col2, col3 = st.columns([6, 1, 1])
     with col2:
@@ -336,12 +354,13 @@ def operator_panel():
             </script>
         """, height=0)
 
-    # Build tab list dynamically
+    # Build tab list dynamically based on feature flags
     tab_labels = [
         f"📊 {t['tab_activity_dashboard']}",
-        f"📢 {t['tab_announcements']}",
     ]
-    if CHAT_ENABLED:
+    if show_announcements:
+        tab_labels.append(f"📢 {t['tab_announcements']}")
+    if show_chat:
         tab_labels.append(f"💬 {t.get('tab_chat', 'Chat')}")
     if st.session_state.is_admin:
         tab_labels.append(f"🔐 {t['admin_panel']}")
@@ -357,14 +376,15 @@ def operator_panel():
         _dashboard_fragment()
     tab_idx += 1
 
-    with tabs[tab_idx]:
-        @st.fragment(run_every=refresh_interval)
-        def _announcements_fragment():
-            render_announcements_operator_tab(t, st.session_state.callsign)
-        _announcements_fragment()
-    tab_idx += 1
+    if show_announcements:
+        with tabs[tab_idx]:
+            @st.fragment(run_every=refresh_interval)
+            def _announcements_fragment():
+                render_announcements_operator_tab(t, st.session_state.callsign)
+            _announcements_fragment()
+        tab_idx += 1
 
-    if CHAT_ENABLED:
+    if show_chat:
         with tabs[tab_idx]:
             # Sync award rooms and load all available rooms
             db.sync_award_rooms()
@@ -393,6 +413,11 @@ def operator_panel():
                     'chat_replying_to': t.get('chat_replying_to', 'Replying to'),
                     'chat_today': t.get('chat_today', 'Today'),
                     'chat_yesterday': t.get('chat_yesterday', 'Yesterday'),
+                    'chat_event_blocked': t.get('chat_event_blocked', ''),
+                    'chat_event_unblocked': t.get('chat_event_unblocked', ''),
+                    'chat_event_switched': t.get('chat_event_switched', ''),
+                    'chat_event_admin_unblocked': t.get('chat_event_admin_unblocked', ''),
+                    'chat_event_admin_unblocked_anon': t.get('chat_event_admin_unblocked_anon', ''),
                 }
                 all_operators = db.get_all_operators()
                 operators_for_chat = [
