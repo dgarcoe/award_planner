@@ -1,8 +1,12 @@
 """Admin panel functions for QuendAward application."""
 
+from datetime import datetime
+
 import streamlit as st
 import pandas as pd
 import database as db
+
+from core.validation import validate_password
 
 
 @st.dialog("Reset Password")
@@ -24,7 +28,7 @@ def reset_password_dialog(callsign: str, t: dict):
                 st.error(t['error_enter_password'])
             elif new_password != confirm_password:
                 st.error(t['error_passwords_not_match'])
-            elif len(new_password) < 6:
+            elif not validate_password(new_password)[0]:
                 st.error(t['error_password_min_length'])
             else:
                 success, message = db.admin_reset_password(callsign, new_password)
@@ -55,7 +59,7 @@ def render_operators_tab(t):
                 st.error(t['error_fill_all_fields'])
             elif new_password != new_password_confirm:
                 st.error(t['error_passwords_not_match'])
-            elif len(new_password) < 6:
+            elif not validate_password(new_password)[0]:
                 st.error(t['error_password_min_length'])
             else:
                 success, message = db.create_operator(new_callsign, new_operator_name, new_password, is_admin)
@@ -86,7 +90,7 @@ def render_operators_tab(t):
         with header_cols[4]:
             st.write(f"**{t['actions']}**")
 
-        st.markdown("<hr style='margin: 0.5rem 0;'>", unsafe_allow_html=True)
+        st.divider()
 
         # Operator rows
         for op in operators:
@@ -275,7 +279,6 @@ def render_award_management_tab(t):
     awards = db.get_all_awards()
 
     if awards:
-        from datetime import datetime
         for award in awards:
             with st.expander(f"{'✅' if award['is_active'] else '❌'} {award['name']}", expanded=False):
                 # Show current image if exists
@@ -432,7 +435,6 @@ def render_award_management_tab(t):
 
 def render_database_management_tab(t):
     """Render the database backup and restore tab."""
-    from datetime import datetime
 
     st.subheader(f"💾 {t['database_management']}")
     st.info(t['database_management_info'])

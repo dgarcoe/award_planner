@@ -4,20 +4,27 @@ QuendAward: Ham Radio Award Operator Coordination Tool
 Main application file with Streamlit UI.
 """
 
+import hmac
+import logging
+import time
+from collections import defaultdict
 from datetime import timedelta
 
+import bcrypt
 import streamlit as st
 import database as db
 
 # Import configuration
 from config import (
     ADMIN_CALLSIGN,
-    ADMIN_PASSWORD,
+    ADMIN_PASSWORD_HASH,
     AUTO_REFRESH_INTERVAL_MS,
     DEFAULT_LANGUAGE,
     CHAT_ENABLED,
     MQTT_WS_URL,
     CHAT_HISTORY_LIMIT,
+    MAX_LOGIN_ATTEMPTS,
+    LOGIN_LOCKOUT_SECONDS,
 )
 
 # Import translations
@@ -49,6 +56,15 @@ from ui.styles import inject_all_mobile_optimizations
 # Import chat widget
 from ui.chat_widget import render_chat_widget
 
+# Import shared validation
+from core.validation import validate_password
+
+
+logger = logging.getLogger(__name__)
+
+# In-memory login rate limiter: callsign -> [timestamps of failed attempts]
+_login_attempts: dict[str, list[float]] = defaultdict(list)
+
 
 def init_session_state():
     """Initialize session state variables."""
@@ -68,11 +84,40 @@ def init_session_state():
         st.session_state.current_award_id = None
 
 
+def _check_rate_limit(callsign: str) -> bool:
+    """Return True if the callsign is rate-limited (too many failed attempts)."""
+    now = time.time()
+    attempts = _login_attempts[callsign]
+    # Prune old attempts outside the lockout window
+    _login_attempts[callsign] = [t for t in attempts if now - t < LOGIN_LOCKOUT_SECONDS]
+    return len(_login_attempts[callsign]) >= MAX_LOGIN_ATTEMPTS
+
+
+def _record_failed_attempt(callsign: str):
+    """Record a failed login attempt for rate limiting."""
+    _login_attempts[callsign].append(time.time())
+
+
+def _logout():
+    """Clear all session state and log out the current user."""
+    if st.session_state.callsign:
+        db.unblock_all_for_operator(st.session_state.callsign)
+    keys_to_clear = ['logged_in', 'callsign', 'operator_name', 'is_admin',
+                     'is_env_admin', 'current_award_id', 'go_to_announcements',
+                     'reset_password_callsign']
+    for key in keys_to_clear:
+        if key in st.session_state:
+            del st.session_state[key]
+    st.rerun()
+
+
 def authenticate_admin(callsign: str, password: str) -> bool:
-    """Check if credentials match admin environment variables."""
-    if not ADMIN_CALLSIGN or not ADMIN_PASSWORD:
+    """Check if credentials match admin environment variables using constant-time comparison."""
+    if not ADMIN_CALLSIGN or not ADMIN_PASSWORD_HASH:
         return False
-    return callsign.upper() == ADMIN_CALLSIGN and password == ADMIN_PASSWORD
+    callsign_match = hmac.compare_digest(callsign.upper(), ADMIN_CALLSIGN)
+    password_match = bcrypt.checkpw(password.encode('utf-8'), ADMIN_PASSWORD_HASH.encode('utf-8'))
+    return callsign_match and password_match
 
 
 def login_page():
@@ -95,6 +140,9 @@ def login_page():
         if submit:
             if not callsign or not password:
                 st.error(t['error_enter_credentials'])
+            elif _check_rate_limit(callsign):
+                st.error(t.get('error_too_many_attempts',
+                               'Too many failed attempts. Please try again later.'))
             else:
                 # Check if admin login (env-based)
                 if authenticate_admin(callsign, password):
@@ -117,6 +165,7 @@ def login_page():
                         st.success(f"{t['success_welcome']}, {operator['operator_name']}!")
                         st.rerun()
                     else:
+                        _record_failed_attempt(callsign)
                         st.error(message)
 
 
@@ -194,7 +243,7 @@ def render_settings_tab(t):
                     st.error(t['error_fill_all_fields'])
                 elif new_password != new_password_confirm:
                     st.error(t['error_passwords_not_match'])
-                elif len(new_password) < 6:
+                elif not validate_password(new_password)[0]:
                     st.error(t['error_password_min_length'])
                 else:
                     success, message = db.change_password(
@@ -276,15 +325,7 @@ def operator_panel():
                 st.info(t['no_announcements_available'])
     with col3:
         if st.button(t['logout']):
-            # Auto-liberate all blocks when logging out
-            if st.session_state.callsign:
-                db.unblock_all_for_operator(st.session_state.callsign)
-            st.session_state.logged_in = False
-            st.session_state.callsign = None
-            st.session_state.operator_name = None
-            st.session_state.is_admin = False
-            st.session_state.is_env_admin = False
-            st.rerun()
+            _logout()
 
     # Special callsign selector
     active_awards = db.get_active_awards()
@@ -408,6 +449,12 @@ def operator_panel():
 
 def main():
     """Main application entry point."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+
     st.set_page_config(
         page_title="QuendAward: Special Callsign Operator Coordination Tool",
         page_icon="🎙️",
@@ -421,7 +468,7 @@ def main():
     init_session_state()
 
     # Check if admin credentials are configured
-    if not ADMIN_CALLSIGN or not ADMIN_PASSWORD:
+    if not ADMIN_CALLSIGN or not ADMIN_PASSWORD_HASH:
         t = get_all_texts(st.session_state.language)
         st.error(f"⚠️ {t['error_admin_not_configured']}")
         st.info(f"{t['error_set_env_vars']}\n\n- `ADMIN_CALLSIGN`\n- `ADMIN_PASSWORD`")

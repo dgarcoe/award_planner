@@ -1,9 +1,12 @@
 """
 Announcement management functions.
 """
+import logging
 from typing import List, Tuple
 
-from core.database import get_connection
+from core.database import get_db
+
+logger = logging.getLogger(__name__)
 
 
 def create_announcement(title: str, content: str, created_by: str) -> Tuple[bool, str]:
@@ -18,20 +21,17 @@ def create_announcement(title: str, content: str, created_by: str) -> Tuple[bool
     Returns:
         Tuple of (success, message)
     """
-    conn = get_connection()
-    cursor = conn.cursor()
-
     try:
-        cursor.execute('''
-            INSERT INTO announcements (title, content, created_by)
-            VALUES (?, ?, ?)
-        ''', (title, content, created_by))
-        conn.commit()
-        return True, "Announcement created successfully"
-    except Exception as e:
-        return False, f"Error creating announcement: {str(e)}"
-    finally:
-        conn.close()
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO announcements (title, content, created_by)
+                VALUES (?, ?, ?)
+            ''', (title, content, created_by))
+            return True, "Announcement created successfully"
+    except Exception:
+        logger.exception("Error creating announcement")
+        return False, "An unexpected error occurred. Please try again."
 
 
 def get_all_announcements() -> List[dict]:
@@ -41,18 +41,14 @@ def get_all_announcements() -> List[dict]:
     Returns:
         List of announcement dictionaries
     """
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        SELECT id, title, content, created_by, created_at, is_active
-        FROM announcements
-        ORDER BY created_at DESC
-    ''')
-
-    announcements = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return announcements
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id, title, content, created_by, created_at, is_active
+            FROM announcements
+            ORDER BY created_at DESC
+        ''')
+        return [dict(row) for row in cursor.fetchall()]
 
 
 def get_active_announcements() -> List[dict]:
@@ -62,19 +58,15 @@ def get_active_announcements() -> List[dict]:
     Returns:
         List of active announcement dictionaries
     """
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        SELECT id, title, content, created_by, created_at, is_active
-        FROM announcements
-        WHERE is_active = 1
-        ORDER BY created_at DESC
-    ''')
-
-    announcements = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return announcements
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id, title, content, created_by, created_at, is_active
+            FROM announcements
+            WHERE is_active = 1
+            ORDER BY created_at DESC
+        ''')
+        return [dict(row) for row in cursor.fetchall()]
 
 
 def toggle_announcement_status(announcement_id: int) -> Tuple[bool, str]:
@@ -87,25 +79,22 @@ def toggle_announcement_status(announcement_id: int) -> Tuple[bool, str]:
     Returns:
         Tuple of (success, message)
     """
-    conn = get_connection()
-    cursor = conn.cursor()
-
     try:
-        cursor.execute('''
-            UPDATE announcements
-            SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END
-            WHERE id = ?
-        ''', (announcement_id,))
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE announcements
+                SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END
+                WHERE id = ?
+            ''', (announcement_id,))
 
-        if cursor.rowcount == 0:
-            return False, "Announcement not found"
+            if cursor.rowcount == 0:
+                return False, "Announcement not found"
 
-        conn.commit()
-        return True, "Announcement status updated"
-    except Exception as e:
-        return False, f"Error updating announcement: {str(e)}"
-    finally:
-        conn.close()
+            return True, "Announcement status updated"
+    except Exception:
+        logger.exception("Error updating announcement")
+        return False, "An unexpected error occurred. Please try again."
 
 
 def delete_announcement(announcement_id: int) -> Tuple[bool, str]:
@@ -118,25 +107,21 @@ def delete_announcement(announcement_id: int) -> Tuple[bool, str]:
     Returns:
         Tuple of (success, message)
     """
-    conn = get_connection()
-    cursor = conn.cursor()
-
     try:
-        # Delete read records first (foreign key)
-        cursor.execute('DELETE FROM announcement_reads WHERE announcement_id = ?', (announcement_id,))
+        with get_db() as conn:
+            cursor = conn.cursor()
+            # Delete read records first (foreign key)
+            cursor.execute('DELETE FROM announcement_reads WHERE announcement_id = ?', (announcement_id,))
+            # Delete the announcement
+            cursor.execute('DELETE FROM announcements WHERE id = ?', (announcement_id,))
 
-        # Delete the announcement
-        cursor.execute('DELETE FROM announcements WHERE id = ?', (announcement_id,))
+            if cursor.rowcount == 0:
+                return False, "Announcement not found"
 
-        if cursor.rowcount == 0:
-            return False, "Announcement not found"
-
-        conn.commit()
-        return True, "Announcement deleted successfully"
-    except Exception as e:
-        return False, f"Error deleting announcement: {str(e)}"
-    finally:
-        conn.close()
+            return True, "Announcement deleted successfully"
+    except Exception:
+        logger.exception("Error deleting announcement")
+        return False, "An unexpected error occurred. Please try again."
 
 
 def mark_announcement_read(announcement_id: int, operator_callsign: str) -> Tuple[bool, str]:
@@ -150,20 +135,17 @@ def mark_announcement_read(announcement_id: int, operator_callsign: str) -> Tupl
     Returns:
         Tuple of (success, message)
     """
-    conn = get_connection()
-    cursor = conn.cursor()
-
     try:
-        cursor.execute('''
-            INSERT OR IGNORE INTO announcement_reads (announcement_id, operator_callsign)
-            VALUES (?, ?)
-        ''', (announcement_id, operator_callsign))
-        conn.commit()
-        return True, "Announcement marked as read"
-    except Exception as e:
-        return False, f"Error marking announcement as read: {str(e)}"
-    finally:
-        conn.close()
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT OR IGNORE INTO announcement_reads (announcement_id, operator_callsign)
+                VALUES (?, ?)
+            ''', (announcement_id, operator_callsign))
+            return True, "Announcement marked as read"
+    except Exception:
+        logger.exception("Error marking announcement as read")
+        return False, "An unexpected error occurred. Please try again."
 
 
 def mark_all_announcements_read(operator_callsign: str) -> Tuple[bool, str]:
@@ -176,34 +158,31 @@ def mark_all_announcements_read(operator_callsign: str) -> Tuple[bool, str]:
     Returns:
         Tuple of (success, message)
     """
-    conn = get_connection()
-    cursor = conn.cursor()
-
     try:
-        # Get all active announcement IDs not yet read by this operator
-        cursor.execute('''
-            SELECT id FROM announcements
-            WHERE is_active = 1 AND id NOT IN (
-                SELECT announcement_id FROM announcement_reads
-                WHERE operator_callsign = ?
-            )
-        ''', (operator_callsign,))
-
-        unread_ids = [row[0] for row in cursor.fetchall()]
-
-        # Mark each as read
-        for ann_id in unread_ids:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            # Get all active announcement IDs not yet read by this operator
             cursor.execute('''
-                INSERT OR IGNORE INTO announcement_reads (announcement_id, operator_callsign)
-                VALUES (?, ?)
-            ''', (ann_id, operator_callsign))
+                SELECT id FROM announcements
+                WHERE is_active = 1 AND id NOT IN (
+                    SELECT announcement_id FROM announcement_reads
+                    WHERE operator_callsign = ?
+                )
+            ''', (operator_callsign,))
 
-        conn.commit()
-        return True, f"Marked {len(unread_ids)} announcements as read"
-    except Exception as e:
-        return False, f"Error marking announcements as read: {str(e)}"
-    finally:
-        conn.close()
+            unread_ids = [row[0] for row in cursor.fetchall()]
+
+            # Mark each as read
+            for ann_id in unread_ids:
+                cursor.execute('''
+                    INSERT OR IGNORE INTO announcement_reads (announcement_id, operator_callsign)
+                    VALUES (?, ?)
+                ''', (ann_id, operator_callsign))
+
+            return True, f"Marked {len(unread_ids)} announcements as read"
+    except Exception:
+        logger.exception("Error marking announcements as read")
+        return False, "An unexpected error occurred. Please try again."
 
 
 def get_unread_announcement_count(operator_callsign: str) -> int:
@@ -216,20 +195,16 @@ def get_unread_announcement_count(operator_callsign: str) -> int:
     Returns:
         Number of unread announcements
     """
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        SELECT COUNT(*) FROM announcements
-        WHERE is_active = 1 AND id NOT IN (
-            SELECT announcement_id FROM announcement_reads
-            WHERE operator_callsign = ?
-        )
-    ''', (operator_callsign,))
-
-    count = cursor.fetchone()[0]
-    conn.close()
-    return count
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT COUNT(*) FROM announcements
+            WHERE is_active = 1 AND id NOT IN (
+                SELECT announcement_id FROM announcement_reads
+                WHERE operator_callsign = ?
+            )
+        ''', (operator_callsign,))
+        return cursor.fetchone()[0]
 
 
 def get_unread_announcements(operator_callsign: str) -> List[dict]:
@@ -242,22 +217,18 @@ def get_unread_announcements(operator_callsign: str) -> List[dict]:
     Returns:
         List of unread announcement dictionaries
     """
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        SELECT id, title, content, created_by, created_at
-        FROM announcements
-        WHERE is_active = 1 AND id NOT IN (
-            SELECT announcement_id FROM announcement_reads
-            WHERE operator_callsign = ?
-        )
-        ORDER BY created_at DESC
-    ''', (operator_callsign,))
-
-    announcements = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return announcements
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id, title, content, created_by, created_at
+            FROM announcements
+            WHERE is_active = 1 AND id NOT IN (
+                SELECT announcement_id FROM announcement_reads
+                WHERE operator_callsign = ?
+            )
+            ORDER BY created_at DESC
+        ''', (operator_callsign,))
+        return [dict(row) for row in cursor.fetchall()]
 
 
 def get_announcements_with_read_status(operator_callsign: str) -> List[dict]:
@@ -270,20 +241,16 @@ def get_announcements_with_read_status(operator_callsign: str) -> List[dict]:
     Returns:
         List of announcement dictionaries with 'is_read' field
     """
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        SELECT
-            a.id, a.title, a.content, a.created_by, a.created_at, a.is_active,
-            CASE WHEN ar.id IS NOT NULL THEN 1 ELSE 0 END as is_read
-        FROM announcements a
-        LEFT JOIN announcement_reads ar
-            ON a.id = ar.announcement_id AND ar.operator_callsign = ?
-        WHERE a.is_active = 1
-        ORDER BY a.created_at DESC
-    ''', (operator_callsign,))
-
-    announcements = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return announcements
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT
+                a.id, a.title, a.content, a.created_by, a.created_at, a.is_active,
+                CASE WHEN ar.id IS NOT NULL THEN 1 ELSE 0 END as is_read
+            FROM announcements a
+            LEFT JOIN announcement_reads ar
+                ON a.id = ar.announcement_id AND ar.operator_callsign = ?
+            WHERE a.is_active = 1
+            ORDER BY a.created_at DESC
+        ''', (operator_callsign,))
+        return [dict(row) for row in cursor.fetchall()]
