@@ -173,7 +173,10 @@ def render_manage_blocks_tab(t):
                 st.write(f"{block['operator_name']} ({block['operator_callsign']})")
             with col4:
                 if st.button(t['unblock_selected'], key=f"admin_unblock_{block['id']}"):
-                    success, message = db.admin_unblock_band_mode(block['band'], block['mode'], block['award_id'])
+                    success, message = db.admin_unblock_band_mode(
+                        block['band'], block['mode'], block['award_id'],
+                        admin_callsign=st.session_state.get('callsign', '')
+                    )
                     if success:
                         st.success(message)
                         st.rerun()

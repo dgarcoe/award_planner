@@ -4,6 +4,7 @@ Band/mode block management functions.
 from typing import List, Tuple, Optional
 
 from core.database import get_connection
+from features.events import post_system_event_to_award_room
 
 
 def block_band_mode(operator_callsign: str, band: str, mode: str, award_id: int) -> Tuple[bool, str]:
@@ -47,7 +48,14 @@ def block_band_mode(operator_callsign: str, band: str, mode: str, award_id: int)
         conn.close()
 
         if existing_block:
+            event_msg = (
+                f"🔄 {operator_callsign.upper()} switched from "
+                f"{existing_block['band']}/{existing_block['mode']} to {band}/{mode}"
+            )
+            post_system_event_to_award_room(award_id, event_msg)
             return True, f"Successfully blocked (previous block {existing_block['band']}/{existing_block['mode']} released)"
+
+        post_system_event_to_award_room(award_id, f"🔴 {operator_callsign.upper()} blocked {band} / {mode}")
         return True, "Successfully blocked"
     except Exception as e:
         print(f"Error blocking band/mode: {e}")
@@ -83,6 +91,7 @@ def unblock_band_mode(operator_callsign: str, band: str, mode: str, award_id: in
 
         conn.commit()
         conn.close()
+        post_system_event_to_award_room(award_id, f"🟢 {operator_callsign.upper()} unblocked {band} / {mode}")
         return True, "Successfully unblocked"
     except Exception as e:
         print(f"Error unblocking band/mode: {e}")
@@ -132,7 +141,8 @@ def unblock_all_for_operator(operator_callsign: str, award_id: Optional[int] = N
         return False, str(e), 0
 
 
-def admin_unblock_band_mode(band: str, mode: str, award_id: int) -> Tuple[bool, str]:
+def admin_unblock_band_mode(band: str, mode: str, award_id: int,
+                            admin_callsign: str = '') -> Tuple[bool, str]:
     """Admin unblock any band/mode combination for a specific award."""
     try:
         conn = get_connection()
@@ -149,6 +159,8 @@ def admin_unblock_band_mode(band: str, mode: str, award_id: int) -> Tuple[bool, 
             conn.close()
             return False, f"Band {band} / Mode {mode} is not blocked"
 
+        blocked_by = existing['operator_callsign']
+
         # Unblock the band/mode
         cursor.execute('''
             DELETE FROM band_mode_blocks
@@ -157,7 +169,14 @@ def admin_unblock_band_mode(band: str, mode: str, award_id: int) -> Tuple[bool, 
 
         conn.commit()
         conn.close()
-        return True, f"Successfully unblocked {band}/{mode} (was blocked by {existing['operator_callsign']})"
+
+        if admin_callsign:
+            event_msg = f"🟢 {admin_callsign.upper()} (admin) unblocked {band} / {mode} (was {blocked_by})"
+        else:
+            event_msg = f"🟢 Admin unblocked {band} / {mode} (was {blocked_by})"
+        post_system_event_to_award_room(award_id, event_msg)
+
+        return True, f"Successfully unblocked {band}/{mode} (was blocked by {blocked_by})"
     except Exception as e:
         print(f"Error admin unblocking band/mode: {e}")
         return False, str(e)
