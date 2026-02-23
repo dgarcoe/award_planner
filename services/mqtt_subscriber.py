@@ -95,6 +95,11 @@ def _on_message(client, userdata, msg):
         if not callsign or not message:
             return
 
+        # System events are already persisted by features/events.py;
+        # only relay via MQTT for real-time delivery — skip re-saving.
+        if source == 'system':
+            return
+
         # Extract room_id from topic
         # New format: quendaward/chat/room/{room_id}
         # Legacy format: quendaward/chat/{award_id}
