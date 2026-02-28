@@ -785,9 +785,15 @@ def render_feature_visibility_tab(t):
         value=flags.get('feature_chat', True),
         key="fv_chat"
     )
+    new_qso_log = st.toggle(
+        t.get('feature_qso_log', 'QSO Log'),
+        value=flags.get('feature_qso_log', True),
+        key="fv_qso_log"
+    )
 
     if st.button(t.get('save_changes', 'Save Changes'), type="primary", key="fv_save"):
         db.set_app_setting('feature_announcements', '1' if new_announcements else '0')
         db.set_app_setting('feature_chat', '1' if new_chat else '0')
+        db.set_app_setting('feature_qso_log', '1' if new_qso_log else '0')
         st.success(t.get('changes_saved', 'Changes saved successfully'))
         st.rerun()

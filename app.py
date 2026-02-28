@@ -50,6 +50,9 @@ from ui.admin_panel import (
     render_feature_visibility_tab,
 )
 
+# Import QSO Log tab
+from ui.qso_log_tab import render_qso_log_tab
+
 # Import mobile styles
 from ui.styles import inject_all_mobile_optimizations
 
@@ -268,6 +271,7 @@ def operator_panel():
     feature_flags = db.get_feature_flags()
     show_announcements = feature_flags.get('feature_announcements', True)
     show_chat = CHAT_ENABLED and feature_flags.get('feature_chat', True)
+    show_qso_log = feature_flags.get('feature_qso_log', True)
 
     st.title(f"🎙️ {t['app_title']}")
     st.subheader(f"{t['welcome']}, {st.session_state.operator_name} ({st.session_state.callsign})")
@@ -358,6 +362,8 @@ def operator_panel():
     tab_labels = [
         f"📊 {t['tab_activity_dashboard']}",
     ]
+    if show_qso_log:
+        tab_labels.append(f"📋 {t.get('tab_qso_log', 'QSO Log')}")
     if show_announcements:
         tab_labels.append(f"📢 {t['tab_announcements']}")
     if show_chat:
@@ -375,6 +381,16 @@ def operator_panel():
             render_activity_dashboard(t, st.session_state.current_award_id, st.session_state.callsign)
         _dashboard_fragment()
     tab_idx += 1
+
+    if show_qso_log:
+        with tabs[tab_idx]:
+            render_qso_log_tab(
+                t,
+                st.session_state.current_award_id,
+                st.session_state.callsign,
+                st.session_state.is_admin,
+            )
+        tab_idx += 1
 
     if show_announcements:
         with tabs[tab_idx]:

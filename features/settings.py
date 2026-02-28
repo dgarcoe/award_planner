@@ -10,6 +10,7 @@ from core.database import get_connection
 FEATURE_DEFAULTS = {
     'feature_announcements': '1',
     'feature_chat': '1',
+    'feature_qso_log': '1',
 }
 
 

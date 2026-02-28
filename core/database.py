@@ -190,6 +190,7 @@ def _run_migrations(cursor, conn):
     _migrate_chat_messages_reply(cursor)
     _migrate_chat_messages_room_id(cursor)
     _migrate_chat_notifications_room_id(cursor)
+    _migrate_create_qso_log_table(cursor)
 
     # Create app_settings key-value table
     cursor.execute('''
@@ -326,6 +327,55 @@ def _migrate_chat_notifications_room_id(cursor):
                 'UPDATE chat_notifications SET room_id = ? WHERE room_id IS NULL',
                 (gen[0],)
             )
+
+def _migrate_create_qso_log_table(cursor):
+    """Create the qso_log table for ADIF upload / QSO logging feature."""
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS qso_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            award_id INTEGER NOT NULL,
+            operator_callsign TEXT NOT NULL,
+            call TEXT NOT NULL,
+            band TEXT NOT NULL,
+            mode TEXT NOT NULL,
+            qso_date TEXT NOT NULL,
+            time_on TEXT NOT NULL,
+            rst_sent TEXT DEFAULT '599',
+            rst_rcvd TEXT DEFAULT '599',
+            freq REAL,
+            time_off TEXT,
+            name TEXT,
+            qth TEXT,
+            gridsquare TEXT,
+            comment TEXT,
+            contest_id TEXT,
+            srx TEXT,
+            stx TEXT,
+            srx_string TEXT,
+            stx_string TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (award_id) REFERENCES awards (id),
+            FOREIGN KEY (operator_callsign) REFERENCES operators (callsign)
+        )
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_qso_log_award
+        ON qso_log(award_id, qso_date DESC)
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_qso_log_operator
+        ON qso_log(operator_callsign)
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_qso_log_call
+        ON qso_log(call)
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_qso_log_band_mode
+        ON qso_log(award_id, band, mode)
+    ''')
+
 
 # ---------------------------------------------------------------------------
 # Seed data & sync

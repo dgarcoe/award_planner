@@ -104,6 +104,22 @@ from features.settings import (
     get_feature_flags,
 )
 
+from features.qso_log import (
+    insert_qso,
+    insert_qsos_bulk,
+    get_qsos,
+    get_qso_count,
+    get_qso_stats,
+    update_qso,
+    delete_qso,
+    delete_qsos_by_operator,
+    export_qsos_to_adif,
+)
+
+from features.adif_parser import (
+    parse_adif,
+)
+
 __all__ = [
     # Core - Database
     'get_connection',
@@ -182,4 +198,16 @@ __all__ = [
     'get_app_setting',
     'set_app_setting',
     'get_feature_flags',
+    # Features - QSO Log
+    'insert_qso',
+    'insert_qsos_bulk',
+    'get_qsos',
+    'get_qso_count',
+    'get_qso_stats',
+    'update_qso',
+    'delete_qso',
+    'delete_qsos_by_operator',
+    'export_qsos_to_adif',
+    # Features - ADIF Parser
+    'parse_adif',
 ]
