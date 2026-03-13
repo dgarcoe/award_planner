@@ -483,63 +483,19 @@ def _get_distinct_values(award_id: int, column: str) -> list[str]:
 # Main entry point
 # ---------------------------------------------------------------------------
 
-def _detect_mobile() -> bool:
-    """Detect mobile via JS, storing result in session state.
-
-    Returns True on mobile, False on desktop, False on first load
-    (before JS has reported back).
-    """
-    key = "_is_mobile_device"
-    # Inject a tiny JS snippet that reports screen width back via query params
-    if key not in st.session_state:
-        st.session_state[key] = False
-        import streamlit.components.v1 as components
-        components.html(
-            """<script>
-            const isMobile = window.innerWidth <= 768;
-            const url = new URL(window.parent.location);
-            if (isMobile && url.searchParams.get('mob') !== '1') {
-                url.searchParams.set('mob', '1');
-                window.parent.history.replaceState({}, '', url);
-                window.parent.document.querySelector('[data-testid="stAppViewBlockContainer"]')
-                    && window.parent.location.reload();
-            } else if (!isMobile && url.searchParams.get('mob') === '1') {
-                url.searchParams.delete('mob');
-                window.parent.history.replaceState({}, '', url);
-                window.parent.location.reload();
-            }
-            </script>""",
-            height=0,
-        )
-
-    # Check query params for the mobile flag
-    params = st.query_params
-    is_mobile = params.get("mob") == "1"
-    st.session_state[key] = is_mobile
-    return is_mobile
-
-
 def render_qso_log_tab(t: dict, award_id: int | None, callsign: str, is_admin: bool):
     """Render the full QSO Log tab."""
     if not award_id:
         st.warning(t['qso_upload_select_award'])
         return
 
-    # Stats section — visible to everyone
+    # Stats section
     with st.expander(f"📊 {t['qso_stats_title']}", expanded=True):
         _render_stats(t, award_id)
 
-    # Upload section — visible to everyone
+    # Upload section
     with st.expander(f"📤 {t['qso_upload_title']}", expanded=False):
         _render_upload_section(t, award_id, callsign)
 
-    # Consolidated log — admin only, desktop only
-    if not is_admin:
-        return
-
-    is_mobile = _detect_mobile()
-    if is_mobile:
-        st.info(t.get('qso_log_desktop_only', 'The consolidated log is available on the desktop version.'))
-        return
-
+    # Consolidated log
     _render_log_table(t, award_id, callsign, is_admin)
