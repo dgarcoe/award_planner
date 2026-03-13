@@ -384,14 +384,14 @@ def operator_panel():
 
     if show_qso_log:
         with tabs[tab_idx]:
+            # Read session state outside fragment to avoid SessionInfo race
+            _qso_award_id = st.session_state.current_award_id
+            _qso_callsign = st.session_state.callsign
+            _qso_is_admin = st.session_state.is_admin
+
             @st.fragment
             def _qso_log_fragment():
-                render_qso_log_tab(
-                    t,
-                    st.session_state.current_award_id,
-                    st.session_state.callsign,
-                    st.session_state.is_admin,
-                )
+                render_qso_log_tab(t, _qso_award_id, _qso_callsign, _qso_is_admin)
             _qso_log_fragment()
         tab_idx += 1
 
