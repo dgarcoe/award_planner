@@ -41,6 +41,23 @@ services:
     networks:
       - ea1rfi-network
 
+  telegram-bot:
+    build: .
+    container_name: quendaward-telegram-bot
+    command: python -m services.telegram_bot
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DATABASE_PATH=/app/data/ham_coordinator.db
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - MQTT_BROKER_HOST=mosquitto
+      - MQTT_BROKER_PORT=1883
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+    networks:
+      - ea1rfi-network
+
 volumes:
   mosquitto_data:
   mosquitto_log:

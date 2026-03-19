@@ -176,6 +176,21 @@ def _create_tables(cursor):
         )
     ''')
 
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS telegram_links (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            operator_callsign TEXT NOT NULL UNIQUE,
+            telegram_chat_id INTEGER NOT NULL UNIQUE,
+            telegram_username TEXT,
+            linked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            notifications_enabled INTEGER DEFAULT 1,
+            default_award_id INTEGER,
+            language TEXT DEFAULT 'en',
+            FOREIGN KEY (operator_callsign) REFERENCES operators (callsign),
+            FOREIGN KEY (default_award_id) REFERENCES awards (id)
+        )
+    ''')
+
 
 # ---------------------------------------------------------------------------
 # Migrations

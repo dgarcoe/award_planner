@@ -58,6 +58,10 @@ DX_CLUSTER_PORT = _safe_int(os.getenv('DX_CLUSTER_PORT', '7300'), 7300)
 DX_CLUSTER_CALLSIGN = os.getenv('DX_CLUSTER_CALLSIGN', '')  # Login callsign for cluster
 DX_CLUSTER_PASSWORD = os.getenv('DX_CLUSTER_PASSWORD', '')  # Optional password for cluster auth
 
+# Telegram Bot Configuration
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
+TELEGRAM_BOT_ENABLED = bool(TELEGRAM_BOT_TOKEN)
+
 # Default band-to-frequency mapping (kHz) used as defaults in the spot form
 BAND_FREQUENCIES = {
     '160m': {'SSB': 1845.0, 'CW': 1820.0, 'FT8': 1840.0, 'FT4': 1840.0, 'RTTY': 1842.0},
