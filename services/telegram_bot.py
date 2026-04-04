@@ -95,10 +95,10 @@ BOT_TRANSLATIONS = {
         'myblocks_list': "Your blocks:\n\n{blocks}",
         'select_band': "Select a band:",
         'select_mode': "Select a mode for {band}:",
-        'block_success': "Blocked {band}/{mode}",
-        'block_switched': "Switched to {band}/{mode} (released previous block)",
-        'block_failed': "Failed to block: {error}",
-        'unblock_success': "Released {count} block(s).",
+        'block_success': "🔴 Blocked {band}/{mode}",
+        'block_switched': "🔄 Switched to {band}/{mode} (released previous block)",
+        'block_failed': "❌ Failed to block: {error}",
+        'unblock_success': "🟢 Released {count} block(s).",
         'unblock_none': "You have no blocks to release.",
         'notifications_usage': "Usage: /notifications on|off",
         'notifications_enabled': "Notifications enabled.",
@@ -113,13 +113,15 @@ BOT_TRANSLATIONS = {
             "Notifications: {notifications}\n"
             "Language: {language}"
         ),
-        'notify_block': "{callsign} blocked {band}/{mode}",
-        'notify_unblock': "{callsign} unblocked {band}/{mode}",
-        'notify_switch': "{callsign} switched from {old_band}/{old_mode} to {band}/{mode}",
-        'notify_mention': "{sender} mentioned you: {preview}",
+        'notify_block': "🔴 {callsign} blocked {band}/{mode}",
+        'notify_unblock': "🟢 {callsign} unblocked {band}/{mode}",
+        'notify_switch': "🔄 {callsign} switched from {old_band}/{old_mode} to {band}/{mode}",
+        'notify_admin_unblock': "🟢 {callsign} (admin) unblocked {band}/{mode} (was {blocked_by})",
+        'notify_admin_unblock_anon': "🟢 Admin unblocked {band}/{mode} (was {blocked_by})",
+        'notify_mention': "💬 {sender} mentioned you: {preview}",
         'cancel': "Cancel",
         'cancelled': "Operation cancelled.",
-        'already_blocked': "This band/mode is already blocked by {callsign}.",
+        'already_blocked': "⚠️ This band/mode is already blocked by {callsign}.",
     },
     'es': {
         'welcome': (
@@ -163,10 +165,10 @@ BOT_TRANSLATIONS = {
         'myblocks_list': "Tus bloqueos:\n\n{blocks}",
         'select_band': "Selecciona una banda:",
         'select_mode': "Selecciona un modo para {band}:",
-        'block_success': "Bloqueado {band}/{mode}",
-        'block_switched': "Cambiado a {band}/{mode} (liberado bloqueo anterior)",
-        'block_failed': "Error al bloquear: {error}",
-        'unblock_success': "Liberado(s) {count} bloqueo(s).",
+        'block_success': "🔴 Bloqueado {band}/{mode}",
+        'block_switched': "🔄 Cambiado a {band}/{mode} (liberado bloqueo anterior)",
+        'block_failed': "❌ Error al bloquear: {error}",
+        'unblock_success': "🟢 Liberado(s) {count} bloqueo(s).",
         'unblock_none': "No tienes bloqueos para liberar.",
         'notifications_usage': "Uso: /notifications on|off",
         'notifications_enabled': "Notificaciones activadas.",
@@ -181,13 +183,15 @@ BOT_TRANSLATIONS = {
             "Notificaciones: {notifications}\n"
             "Idioma: {language}"
         ),
-        'notify_block': "{callsign} bloqueo {band}/{mode}",
-        'notify_unblock': "{callsign} desbloqueo {band}/{mode}",
-        'notify_switch': "{callsign} cambio de {old_band}/{old_mode} a {band}/{mode}",
-        'notify_mention': "{sender} te menciono: {preview}",
+        'notify_block': "🔴 {callsign} bloqueo {band}/{mode}",
+        'notify_unblock': "🟢 {callsign} desbloqueo {band}/{mode}",
+        'notify_switch': "🔄 {callsign} cambio de {old_band}/{old_mode} a {band}/{mode}",
+        'notify_admin_unblock': "🟢 {callsign} (admin) desbloqueo {band}/{mode} (era {blocked_by})",
+        'notify_admin_unblock_anon': "🟢 Admin desbloqueo {band}/{mode} (era {blocked_by})",
+        'notify_mention': "💬 {sender} te menciono: {preview}",
         'cancel': "Cancelar",
         'cancelled': "Operacion cancelada.",
-        'already_blocked': "Esta banda/modo ya esta bloqueado por {callsign}.",
+        'already_blocked': "⚠️ Esta banda/modo ya esta bloqueado por {callsign}.",
     },
     'gl': {
         'welcome': (
@@ -231,10 +235,10 @@ BOT_TRANSLATIONS = {
         'myblocks_list': "Os teus bloqueos:\n\n{blocks}",
         'select_band': "Selecciona unha banda:",
         'select_mode': "Selecciona un modo para {band}:",
-        'block_success': "Bloqueado {band}/{mode}",
-        'block_switched': "Cambiado a {band}/{mode} (liberado bloqueo anterior)",
-        'block_failed': "Erro ao bloquear: {error}",
-        'unblock_success': "Liberado(s) {count} bloqueo(s).",
+        'block_success': "🔴 Bloqueado {band}/{mode}",
+        'block_switched': "🔄 Cambiado a {band}/{mode} (liberado bloqueo anterior)",
+        'block_failed': "❌ Erro ao bloquear: {error}",
+        'unblock_success': "🟢 Liberado(s) {count} bloqueo(s).",
         'unblock_none': "Non tes bloqueos para liberar.",
         'notifications_usage': "Uso: /notifications on|off",
         'notifications_enabled': "Notificacions activadas.",
@@ -249,13 +253,15 @@ BOT_TRANSLATIONS = {
             "Notificacions: {notifications}\n"
             "Idioma: {language}"
         ),
-        'notify_block': "{callsign} bloqueou {band}/{mode}",
-        'notify_unblock': "{callsign} desbloqueou {band}/{mode}",
-        'notify_switch': "{callsign} cambiou de {old_band}/{old_mode} a {band}/{mode}",
-        'notify_mention': "{sender} mencionoute: {preview}",
+        'notify_block': "🔴 {callsign} bloqueou {band}/{mode}",
+        'notify_unblock': "🟢 {callsign} desbloqueou {band}/{mode}",
+        'notify_switch': "🔄 {callsign} cambiou de {old_band}/{old_mode} a {band}/{mode}",
+        'notify_admin_unblock': "🟢 {callsign} (admin) desbloqueou {band}/{mode} (era {blocked_by})",
+        'notify_admin_unblock_anon': "🟢 Admin desbloqueou {band}/{mode} (era {blocked_by})",
+        'notify_mention': "💬 {sender} mencionoute: {preview}",
         'cancel': "Cancelar",
         'cancelled': "Operacion cancelada.",
-        'already_blocked': "Esta banda/modo xa esta bloqueado por {callsign}.",
+        'already_blocked': "⚠️ Esta banda/modo xa esta bloqueado por {callsign}.",
     },
 }
 
@@ -727,6 +733,15 @@ class MQTTNotifier:
                              callsign=callsign,
                              old_band=old_band, old_mode=old_mode,
                              band=band, mode=mode)
+                elif event == 'admin_unblocked':
+                    blocked_by = event_data.get('blocked_by', '')
+                    if callsign:
+                        text = t('notify_admin_unblock', lang,
+                                 callsign=callsign, band=band, mode=mode,
+                                 blocked_by=blocked_by)
+                    else:
+                        text = t('notify_admin_unblock_anon', lang,
+                                 band=band, mode=mode, blocked_by=blocked_by)
                 else:
                     continue
 

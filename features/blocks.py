@@ -111,20 +111,22 @@ def unblock_band_mode(operator_callsign: str, band: str, mode: str, award_id: in
 def unblock_all_for_operator(operator_callsign: str, award_id: Optional[int] = None) -> Tuple[bool, str, int]:
     """Unblock all band/mode combinations for an operator, optionally for a specific award."""
     try:
+        blocks_removed = []
         with get_db() as conn:
             cursor = conn.cursor()
 
             if award_id:
                 cursor.execute('''
-                    SELECT COUNT(*) as count FROM band_mode_blocks
+                    SELECT band, mode, award_id FROM band_mode_blocks
                     WHERE operator_callsign = ? AND award_id = ?
                 ''', (operator_callsign.upper(), award_id))
             else:
                 cursor.execute('''
-                    SELECT COUNT(*) as count FROM band_mode_blocks
+                    SELECT band, mode, award_id FROM band_mode_blocks
                     WHERE operator_callsign = ?
                 ''', (operator_callsign.upper(),))
-            count = cursor.fetchone()['count']
+            blocks_removed = [dict(row) for row in cursor.fetchall()]
+            count = len(blocks_removed)
 
             if count == 0:
                 return True, "No blocks to release", 0
@@ -140,7 +142,16 @@ def unblock_all_for_operator(operator_callsign: str, award_id: Optional[int] = N
                     WHERE operator_callsign = ?
                 ''', (operator_callsign.upper(),))
 
-            return True, f"Released {count} block(s)", count
+        for block in blocks_removed:
+            event_data = json.dumps({
+                'event': 'unblocked',
+                'callsign': operator_callsign.upper(),
+                'band': block['band'],
+                'mode': block['mode'],
+            })
+            post_system_event_to_award_room(block['award_id'], event_data)
+
+        return True, f"Released {count} block(s)", count
     except Exception:
         logger.exception("Error unblocking all")
         return False, "An unexpected error occurred. Please try again.", 0

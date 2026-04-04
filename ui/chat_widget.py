@@ -732,7 +732,7 @@ def render_chat_widget(callsign, operator_name, rooms, all_histories,
         var history = ALL_HISTORY[String(roomId)] || [];
         if (history.length > 0) {{
             history.forEach(function(msg) {{
-                if (msg.source === 'system') {{
+                if (msg.source === 'system' || msg.operator_callsign === 'SYSTEM') {{
                     appendSystemMessage(msg.message, msg.created_at, msg.id);
                     return;
                 }}
@@ -915,7 +915,7 @@ def render_chat_widget(callsign, operator_name, rooms, all_histories,
 
                         var atBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 60;
 
-                        if (data.source === 'system') {{
+                        if (data.source === 'system' || data.callsign === 'SYSTEM') {{
                             appendSystemMessage(data.message, data.timestamp || null, 0);
                         }} else {{
                             var replyTo = data.reply_to || null;

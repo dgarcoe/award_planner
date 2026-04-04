@@ -205,6 +205,7 @@ def _run_migrations(cursor, conn):
     _migrate_chat_messages_reply(cursor)
     _migrate_chat_messages_room_id(cursor)
     _migrate_chat_notifications_room_id(cursor)
+    _migrate_chat_messages_system_source(cursor)
 
     # Create app_settings key-value table
     cursor.execute('''
@@ -341,6 +342,14 @@ def _migrate_chat_notifications_room_id(cursor):
                 'UPDATE chat_notifications SET room_id = ? WHERE room_id IS NULL',
                 (gen[0],)
             )
+
+def _migrate_chat_messages_system_source(cursor):
+    """Fix any chat messages from 'SYSTEM' that were stored with wrong source."""
+    cursor.execute(
+        "UPDATE chat_messages SET source = 'system' "
+        "WHERE operator_callsign = 'SYSTEM' AND source != 'system'"
+    )
+
 
 # ---------------------------------------------------------------------------
 # Seed data & sync
