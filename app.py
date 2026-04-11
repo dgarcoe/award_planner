@@ -66,6 +66,102 @@ logger = logging.getLogger(__name__)
 _login_attempts: dict[str, list[float]] = defaultdict(list)
 
 
+# ---------------------------------------------------------------------------
+# Cached data accessors
+#
+# Streamlit fragments re-run every 5 seconds and each rerun hits the database
+# for things that rarely change (feature flags, awards, operator list,
+# translation dicts). Wrapping those calls with st.cache_data collapses the
+# work to a single query per TTL window and is shared across all concurrent
+# operators in the same Streamlit process.
+# ---------------------------------------------------------------------------
+
+@st.cache_data(ttl=30)
+def _cached_feature_flags():
+    return db.get_feature_flags()
+
+
+@st.cache_data(ttl=15)
+def _cached_active_awards():
+    return db.get_active_awards()
+
+
+@st.cache_data(ttl=30)
+def _cached_all_operators():
+    return db.get_all_operators()
+
+
+@st.cache_data(ttl=600)
+def _cached_texts(language: str):
+    return get_all_texts(language)
+
+
+def _get_notification_summary(callsign: str, show_announcements: bool, show_chat: bool):
+    """Fetch all bell/notification state in a single connection.
+
+    Previously the operator panel opened 4 separate DB connections per rerun
+    to gather unread counts and lists. Sharing one connection eliminates the
+    open/close overhead and keeps everything consistent.
+    """
+    from core.database import get_db
+    summary = {
+        'unread_ann_count': 0,
+        'unread_announcements': [],
+        'unread_mention_count': 0,
+        'chat_notifications': [],
+    }
+    if not (show_announcements or show_chat):
+        return summary
+
+    cs = callsign.upper()
+    with get_db() as conn:
+        if show_announcements:
+            row = conn.execute(
+                '''SELECT COUNT(*) FROM announcements a
+                   WHERE a.is_active = 1
+                   AND NOT EXISTS (
+                       SELECT 1 FROM announcement_reads ar
+                       WHERE ar.announcement_id = a.id AND ar.operator_callsign = ?
+                   )''',
+                (cs,)
+            ).fetchone()
+            summary['unread_ann_count'] = row[0] if row else 0
+
+            cursor = conn.execute(
+                '''SELECT a.* FROM announcements a
+                   WHERE a.is_active = 1
+                   AND NOT EXISTS (
+                       SELECT 1 FROM announcement_reads ar
+                       WHERE ar.announcement_id = a.id AND ar.operator_callsign = ?
+                   )
+                   ORDER BY a.created_at DESC''',
+                (cs,)
+            )
+            summary['unread_announcements'] = [dict(r) for r in cursor.fetchall()]
+
+        if show_chat:
+            row = conn.execute(
+                'SELECT COUNT(*) FROM chat_notifications '
+                'WHERE recipient_callsign = ? AND is_read = 0',
+                (cs,)
+            ).fetchone()
+            summary['unread_mention_count'] = row[0] if row else 0
+
+            cursor = conn.execute(
+                '''SELECT cn.id, cn.sender_callsign, cn.room_id, cn.message_preview,
+                          cn.created_at, cr.name AS room_name
+                   FROM chat_notifications cn
+                   LEFT JOIN chat_rooms cr ON cr.id = cn.room_id
+                   WHERE cn.recipient_callsign = ? AND cn.is_read = 0
+                   ORDER BY cn.created_at DESC
+                   LIMIT 20''',
+                (cs,)
+            )
+            summary['chat_notifications'] = [dict(r) for r in cursor.fetchall()]
+
+    return summary
+
+
 def init_session_state():
     """Initialize session state variables."""
     if 'logged_in' not in st.session_state:
@@ -87,10 +183,15 @@ def init_session_state():
 def _check_rate_limit(callsign: str) -> bool:
     """Return True if the callsign is rate-limited (too many failed attempts)."""
     now = time.time()
-    attempts = _login_attempts[callsign]
+    attempts = _login_attempts.get(callsign, [])
     # Prune old attempts outside the lockout window
-    _login_attempts[callsign] = [t for t in attempts if now - t < LOGIN_LOCKOUT_SECONDS]
-    return len(_login_attempts[callsign]) >= MAX_LOGIN_ATTEMPTS
+    fresh = [t for t in attempts if now - t < LOGIN_LOCKOUT_SECONDS]
+    if fresh:
+        _login_attempts[callsign] = fresh
+    elif callsign in _login_attempts:
+        # Drop empty entries so the dict does not grow unbounded over long uptimes
+        del _login_attempts[callsign]
+    return len(fresh) >= MAX_LOGIN_ATTEMPTS
 
 
 def _record_failed_attempt(callsign: str):
@@ -122,7 +223,7 @@ def authenticate_admin(callsign: str, password: str) -> bool:
 
 def login_page():
     """Display the login page."""
-    t = get_all_texts(st.session_state.language)
+    t = _cached_texts(st.session_state.language)
 
     st.title(f"🎙️ {t['app_title']}")
     st.subheader(t['operator_login'])
@@ -171,7 +272,7 @@ def login_page():
 
 def admin_panel():
     """Display the admin management panel."""
-    t = get_all_texts(st.session_state.language)
+    t = _cached_texts(st.session_state.language)
 
     admin_tab_labels = [
         f"🏆 {t['tab_manage_special_callsigns']}",
@@ -222,6 +323,11 @@ def admin_panel():
 
 
 
+def _invalidate_feature_flag_cache():
+    """Admin action hook: clear the cached feature flags after toggling them."""
+    _cached_feature_flags.clear()
+
+
 def render_settings_tab(t):
     """Render the settings tab."""
 
@@ -259,25 +365,26 @@ def render_settings_tab(t):
 
 def operator_panel():
     """Display the operator coordination panel."""
-    t = get_all_texts(st.session_state.language)
+    t = _cached_texts(st.session_state.language)
 
     # Auto-refresh interval for fragment-based refresh
     refresh_interval = timedelta(milliseconds=AUTO_REFRESH_INTERVAL_MS)
 
-    # Load feature visibility flags
-    feature_flags = db.get_feature_flags()
+    # Load feature visibility flags (cached 30s - flip is an admin action)
+    feature_flags = _cached_feature_flags()
     show_announcements = feature_flags.get('feature_announcements', True)
     show_chat = CHAT_ENABLED and feature_flags.get('feature_chat', True)
 
     st.title(f"🎙️ {t['app_title']}")
     st.subheader(f"{t['welcome']}, {st.session_state.operator_name} ({st.session_state.callsign})")
 
-    # Bell notification and logout row
-    unread_ann_count = db.get_unread_announcement_count(st.session_state.callsign) if show_announcements else 0
-    unread_mention_count = db.get_unread_chat_notification_count(st.session_state.callsign) if show_chat else 0
+    # Bell notification and logout row - consolidated into a single DB pass
+    notif = _get_notification_summary(st.session_state.callsign, show_announcements, show_chat)
+    unread_ann_count = notif['unread_ann_count']
+    unread_mention_count = notif['unread_mention_count']
     total_unread = unread_ann_count + unread_mention_count
-    unread_announcements = db.get_unread_announcements(st.session_state.callsign) if show_announcements else []
-    chat_notifications = db.get_unread_chat_notifications(st.session_state.callsign) if show_chat else []
+    unread_announcements = notif['unread_announcements']
+    chat_notifications = notif['chat_notifications']
 
     col1, col2, col3 = st.columns([6, 1, 1])
     with col2:
@@ -328,7 +435,7 @@ def operator_panel():
             _logout()
 
     # Special callsign selector
-    active_awards = db.get_active_awards()
+    active_awards = _cached_active_awards()
     if not active_awards:
         if st.session_state.is_admin:
             st.warning(f"⚠️ {t['error_no_special_callsigns_admin']}")
@@ -386,20 +493,20 @@ def operator_panel():
 
     if show_chat:
         with tabs[tab_idx]:
-            # Sync award rooms and load all available rooms
-            db.sync_award_rooms()
+            # Sync award rooms once per session instead of on every chat tab view
+            if not st.session_state.get('_rooms_synced'):
+                db.sync_award_rooms()
+                st.session_state._rooms_synced = True
             rooms = db.get_chat_rooms(is_admin=st.session_state.is_admin)
             if rooms:
                 # Determine initial room (General first, then first available)
                 general_rooms = [r for r in rooms if r['room_type'] == 'general']
                 default_room_id = general_rooms[0]['id'] if general_rooms else rooms[0]['id']
 
-                # Load history for every room
-                all_histories = {}
-                for room in rooms:
-                    all_histories[room['id']] = db.get_chat_history_by_room(
-                        room['id'], CHAT_HISTORY_LIMIT
-                    )
+                # Batch-fetch history for all rooms with a single connection
+                all_histories = db.get_chat_histories_by_rooms(
+                    [r['id'] for r in rooms], CHAT_HISTORY_LIMIT
+                )
 
                 chat_translations = {
                     'chat_title': t.get('chat_title', 'Chat'),
@@ -419,7 +526,7 @@ def operator_panel():
                     'chat_event_admin_unblocked': t.get('chat_event_admin_unblocked', ''),
                     'chat_event_admin_unblocked_anon': t.get('chat_event_admin_unblocked_anon', ''),
                 }
-                all_operators = db.get_all_operators()
+                all_operators = _cached_all_operators()
                 operators_for_chat = [
                     {'callsign': op['callsign'], 'name': op['operator_name']}
                     for op in all_operators

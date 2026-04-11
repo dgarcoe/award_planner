@@ -64,6 +64,7 @@ def render_operators_tab(t):
             else:
                 success, message = db.create_operator(new_callsign, new_operator_name, new_password, is_admin)
                 if success:
+                    st.cache_data.clear()
                     st.success(message)
                     admin_text = f" ({t['admin_status']})" if is_admin else ""
                     st.info(f"**{t['credentials_to_provide']}**\n\n{t['callsign']}: `{new_callsign}`{admin_text}\n\n{t['password']}: `{new_password}`")
@@ -115,6 +116,7 @@ def render_operators_tab(t):
                         if st.button("⬇", key=f"demote_{op['callsign']}", help=t['demote']):
                             success, message = db.demote_from_admin(op['callsign'])
                             if success:
+                                st.cache_data.clear()
                                 st.success(message)
                                 st.rerun()
                             else:
@@ -123,6 +125,7 @@ def render_operators_tab(t):
                         if st.button("⬆", key=f"promote_{op['callsign']}", help=t['promote']):
                             success, message = db.promote_to_admin(op['callsign'])
                             if success:
+                                st.cache_data.clear()
                                 st.success(message)
                                 st.rerun()
                             else:
@@ -135,6 +138,7 @@ def render_operators_tab(t):
                     if st.button("🗑", key=f"delete_{op['callsign']}", help=t['delete_operator']):
                         success, message = db.delete_operator(op['callsign'])
                         if success:
+                            st.cache_data.clear()
                             st.success(message)
                             st.rerun()
                         else:
@@ -267,6 +271,7 @@ def render_award_management_tab(t):
                 qrz_link=qrz_link
             )
             if success:
+                st.cache_data.clear()
                 st.success(message)
                 st.rerun()
             else:
@@ -349,6 +354,7 @@ def render_award_management_tab(t):
                         end_str = edit_end.strftime("%Y-%m-%d") if edit_end else ""
                         success, message = db.update_award(award['id'], edit_name, edit_description, start_str, end_str, edit_qrz)
                         if success:
+                            st.cache_data.clear()
                             st.success(t['changes_saved'])
                             st.rerun()
                         else:
@@ -380,6 +386,7 @@ def render_award_management_tab(t):
                                 img_type = new_image.type
                                 success, message = db.update_award_image(award['id'], img_data, img_type)
                                 if success:
+                                    st.cache_data.clear()
                                     st.success(t['image_updated'])
                                     st.rerun()
                                 else:
@@ -389,6 +396,7 @@ def render_award_management_tab(t):
                         if st.button(t['remove_image'], key=f"remove_image_{award['id']}", type="secondary"):
                             success, message = db.update_award_image(award['id'], None, None)
                             if success:
+                                st.cache_data.clear()
                                 st.success(t['image_removed'])
                                 st.rerun()
                             else:
@@ -400,6 +408,7 @@ def render_award_management_tab(t):
                     if st.button(t['toggle_status'], key=f"toggle_award_{award['id']}"):
                         success, message = db.toggle_award_status(award['id'])
                         if success:
+                            st.cache_data.clear()
                             st.success(message)
                             st.rerun()
                         else:
@@ -417,6 +426,7 @@ def render_award_management_tab(t):
                                 del st.session_state[pending_key]
                                 success, message = db.delete_award(award['id'])
                                 if success:
+                                    st.cache_data.clear()
                                     st.success(message)
                                 else:
                                     st.error(message)
@@ -789,5 +799,8 @@ def render_feature_visibility_tab(t):
     if st.button(t.get('save_changes', 'Save Changes'), type="primary", key="fv_save"):
         db.set_app_setting('feature_announcements', '1' if new_announcements else '0')
         db.set_app_setting('feature_chat', '1' if new_chat else '0')
+        # Feature flags are cached at the app level; flush so operators
+        # see the change on their next rerun instead of up to 30s later.
+        st.cache_data.clear()
         st.success(t.get('changes_saved', 'Changes saved successfully'))
         st.rerun()

@@ -1,8 +1,17 @@
 """Reusable UI components for QuendAward application."""
 
+import concurrent.futures
+
 import streamlit as st
 from i18n import AVAILABLE_LANGUAGES, get_all_texts
 import database as db
+
+
+# Award images rarely change and can be several hundred KB each. Cache them
+# aggressively so we do not pull BLOBs out of SQLite on every 5 second refresh.
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_award_image(award_id):
+    return db.get_award_image(award_id)
 
 
 def _show_block_modal(t, callsign, band, mode, award_id):
@@ -129,7 +138,7 @@ def render_award_selector(active_awards, t):
     current_award = next((a for a in active_awards if a['id'] == st.session_state.current_award_id), None)
     if current_award:
         # Check if there's an image, description, or QRZ link to show
-        image_result = db.get_award_image(current_award['id'])
+        image_result = _cached_award_image(current_award['id'])
         has_content = current_award.get('description') or image_result or current_award.get('qrz_link')
 
         if has_content:
@@ -311,35 +320,41 @@ def _render_dx_cluster_spot_section(t, award_id, callsign):
                 elif not spotted_callsign:
                     st.error(t.get('dx_fill_required', 'Please fill in the spotted callsign.'))
                 else:
-                    with st.spinner("Connecting to DX Cluster..."):
-                        from features.dx_cluster import send_spot_to_cluster, log_spot
-                        success, message = send_spot_to_cluster(
-                            host=DX_CLUSTER_HOST,
-                            port=DX_CLUSTER_PORT,
-                            login_callsign=DX_CLUSTER_CALLSIGN,
-                            spotted_callsign=spotted_callsign,
-                            frequency=frequency,
-                            comment=comment,
-                            password=DX_CLUSTER_PASSWORD,
-                        )
+                    from features.dx_cluster import send_spot_async, log_spot
+                    # Kick off the telnet send on a worker thread so the
+                    # Streamlit script isn't blocked for up to 15 seconds.
+                    future = send_spot_async(
+                        host=DX_CLUSTER_HOST,
+                        port=DX_CLUSTER_PORT,
+                        login_callsign=DX_CLUSTER_CALLSIGN,
+                        spotted_callsign=spotted_callsign,
+                        frequency=frequency,
+                        comment=comment,
+                        password=DX_CLUSTER_PASSWORD,
+                    )
+                    with st.spinner(t.get('dx_sending_spot', 'Connecting to DX Cluster...')):
+                        try:
+                            success, message = future.result(timeout=20)
+                        except concurrent.futures.TimeoutError:
+                            success, message = False, "Spot sending timed out"
 
-                        # Log the spot attempt
-                        log_spot(
-                            award_id=award_id,
-                            operator_callsign=callsign,
-                            spotted_callsign=spotted_callsign,
-                            band=blocked_band,
-                            mode=blocked_mode,
-                            frequency=frequency,
-                            cluster_host=f"{DX_CLUSTER_HOST}:{DX_CLUSTER_PORT}",
-                            success=success,
-                            cluster_response=message,
-                        )
+                    # Log the spot attempt
+                    log_spot(
+                        award_id=award_id,
+                        operator_callsign=callsign,
+                        spotted_callsign=spotted_callsign,
+                        band=blocked_band,
+                        mode=blocked_mode,
+                        frequency=frequency,
+                        cluster_host=f"{DX_CLUSTER_HOST}:{DX_CLUSTER_PORT}",
+                        success=success,
+                        cluster_response=message,
+                    )
 
-                        if success:
-                            st.success(f"{t.get('dx_spot_success', 'Spot sent successfully!')} {message}")
-                        else:
-                            st.error(f"{t.get('dx_spot_error', 'Error sending spot')}: {message}")
+                    if success:
+                        st.success(f"{t.get('dx_spot_success', 'Spot sent successfully!')} {message}")
+                    else:
+                        st.error(f"{t.get('dx_spot_error', 'Error sending spot')}: {message}")
 
         # Recent spots log (always visible)
         recent_spots = db.get_recent_spots(award_id=award_id, limit=5)
@@ -380,8 +395,25 @@ def render_activity_dashboard(t, award_id, callsign=None):
 
     all_blocks = db.get_all_blocks(award_id)
 
-    # Display heatmap with click events
-    fig = create_availability_heatmap(all_blocks, t)
+    # Skip the Plotly rebuild if nothing has actually changed since the last
+    # fragment tick. Rebuilding the heatmap allocates ~90 annotation objects
+    # for a 15x6 grid, which is wasted work every 5 seconds when idle.
+    blocks_fingerprint = (
+        award_id,
+        st.session_state.language,
+        tuple(
+            (b['operator_callsign'], b['operator_name'], b['band'], b['mode'], b['blocked_at'])
+            for b in all_blocks
+        ),
+    )
+    prev_fingerprint = st.session_state.get('_blocks_fingerprint')
+    cached_fig = st.session_state.get('_cached_heatmap_fig')
+    if blocks_fingerprint != prev_fingerprint or cached_fig is None:
+        fig = create_availability_heatmap(all_blocks, t)
+        st.session_state._blocks_fingerprint = blocks_fingerprint
+        st.session_state._cached_heatmap_fig = fig
+    else:
+        fig = cached_fig
 
     # Disable modebar in figure config
     fig.update_layout(

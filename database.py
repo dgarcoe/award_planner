@@ -10,6 +10,7 @@ from core.database import (
     get_connection,
     get_db,
     init_database,
+    reset_thread_connection,
     DATABASE_PATH,
 )
 
@@ -84,6 +85,7 @@ from features.chat import (
     save_chat_message,
     get_chat_history,
     get_chat_history_by_room,
+    get_chat_histories_by_rooms,
     get_chat_history_global,
     get_chat_stats,
     get_chat_stats_by_user,
@@ -166,6 +168,7 @@ __all__ = [
     'save_chat_message',
     'get_chat_history',
     'get_chat_history_by_room',
+    'get_chat_histories_by_rooms',
     'get_chat_history_global',
     'get_chat_stats',
     'get_chat_stats_by_user',

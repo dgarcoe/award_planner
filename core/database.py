@@ -4,23 +4,63 @@ Core database module - base connection and initialization.
 import logging
 import sqlite3
 import os
+import threading
 from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
 DATABASE_PATH = os.getenv('DATABASE_PATH', 'ham_coordinator.db')
 
+# Thread-local storage for per-thread SQLite connections.
+# SQLite connections are cheap to create, but open/close on every query adds up
+# when operators poll every 5 seconds. Reusing a connection per thread avoids
+# that overhead and lets WAL mode amortize journaling across queries.
+_local = threading.local()
 
-def get_connection():
-    """Create and return a database connection."""
+
+def _new_connection():
+    """Create a fresh SQLite connection with performance PRAGMAs applied."""
     conn = sqlite3.connect(DATABASE_PATH, check_same_thread=False, timeout=30.0)
     conn.row_factory = sqlite3.Row
+    # WAL gives us better concurrent read/write characteristics - readers
+    # no longer block writers, which matters when many operators poll
+    # simultaneously while someone else is blocking a band/mode.
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
     return conn
+
+
+def get_connection():
+    """Return a thread-local database connection, creating one if needed."""
+    conn = getattr(_local, 'connection', None)
+    if conn is None:
+        conn = _new_connection()
+        _local.connection = conn
+    return conn
+
+
+def reset_thread_connection():
+    """Close and clear the thread-local connection (e.g. after restore).
+
+    The next call to get_connection() will open a fresh one. Safe to call
+    from any thread; only affects the calling thread's connection.
+    """
+    conn = getattr(_local, 'connection', None)
+    if conn is not None:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        _local.connection = None
 
 
 @contextmanager
 def get_db():
-    """Context manager for database connections. Auto-commits on success, rolls back on error."""
+    """Context manager yielding the thread-local connection.
+
+    Commits on success, rolls back on error. The connection itself is kept
+    alive for reuse by the next caller on this thread.
+    """
     conn = get_connection()
     try:
         yield conn
@@ -28,22 +68,19 @@ def get_db():
     except Exception:
         conn.rollback()
         raise
-    finally:
-        conn.close()
 
 
 def init_database():
     """Initialize the database with required tables and run all migrations."""
     conn = get_connection()
     cursor = conn.cursor()
-    try:
-        _create_tables(cursor)
-        _run_migrations(cursor, conn)
-        _seed_data(cursor)
-        _sync_chat_rooms(cursor)
-        conn.commit()
-    finally:
-        conn.close()
+    _create_tables(cursor)
+    _run_migrations(cursor, conn)
+    _seed_data(cursor)
+    _sync_chat_rooms(cursor)
+    conn.commit()
+    # Intentionally do not close: the connection is thread-local and will
+    # be reused by subsequent queries on this thread.
 
 
 # ---------------------------------------------------------------------------
@@ -87,6 +124,14 @@ def _create_tables(cursor):
             UNIQUE(award_id, band, mode)
         )
     ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_band_mode_blocks_award
+        ON band_mode_blocks(award_id)
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_band_mode_blocks_operator
+        ON band_mode_blocks(operator_callsign, award_id)
+    ''')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS announcements (
@@ -99,6 +144,10 @@ def _create_tables(cursor):
             FOREIGN KEY (created_by) REFERENCES operators (callsign)
         )
     ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_announcements_active
+        ON announcements(is_active, created_at)
+    ''')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS announcement_reads (
@@ -110,6 +159,10 @@ def _create_tables(cursor):
             FOREIGN KEY (operator_callsign) REFERENCES operators (callsign),
             UNIQUE(announcement_id, operator_callsign)
         )
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_announcement_reads_lookup
+        ON announcement_reads(announcement_id, operator_callsign)
     ''')
 
     cursor.execute('''
@@ -174,6 +227,10 @@ def _create_tables(cursor):
             spotted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (award_id) REFERENCES awards (id)
         )
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_spot_log_award
+        ON spot_log(award_id, spotted_at DESC)
     ''')
 
     cursor.execute('''

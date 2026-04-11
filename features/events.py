@@ -10,7 +10,7 @@ import logging
 import os
 from datetime import datetime, timezone
 
-from core.database import get_connection
+from core.database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +26,8 @@ def post_system_event_to_award_room(award_id: int, message_text: str) -> None:
     Silently no-ops if the award has no linked chat room or MQTT is unavailable.
     """
     try:
-        conn = get_connection()
-        try:
+        room_id = None
+        with get_db() as conn:
             row = conn.execute(
                 'SELECT id FROM chat_rooms WHERE award_id = ? AND room_type = "award"',
                 (award_id,)
@@ -41,11 +41,9 @@ def post_system_event_to_award_room(award_id: int, message_text: str) -> None:
                    VALUES (?, ?, ?, ?)''',
                 (room_id, 'SYSTEM', message_text, 'system')
             )
-            conn.commit()
-        finally:
-            conn.close()
 
-        _publish_system_mqtt(room_id, message_text)
+        if room_id is not None:
+            _publish_system_mqtt(room_id, message_text)
 
     except Exception:
         logger.warning("post_system_event_to_award_room failed", exc_info=True)
