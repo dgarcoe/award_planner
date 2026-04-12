@@ -134,6 +134,29 @@ def _create_tables(cursor):
     ''')
 
     cursor.execute('''
+        CREATE TABLE IF NOT EXISTS block_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            award_id INTEGER NOT NULL,
+            operator_callsign TEXT NOT NULL,
+            band TEXT NOT NULL,
+            mode TEXT NOT NULL,
+            blocked_at TIMESTAMP NOT NULL,
+            unblocked_at TIMESTAMP,
+            duration_seconds INTEGER,
+            FOREIGN KEY (award_id) REFERENCES awards (id),
+            FOREIGN KEY (operator_callsign) REFERENCES operators (callsign)
+        )
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_block_history_award
+        ON block_history(award_id, blocked_at DESC)
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_block_history_operator
+        ON block_history(operator_callsign, award_id, blocked_at DESC)
+    ''')
+
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS announcements (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,

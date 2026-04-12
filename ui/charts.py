@@ -480,3 +480,257 @@ def create_qso_operator_chart(by_operator, t):
         ),
     )
     return fig
+
+
+# ---------------------------------------------------------------------------
+# Operator Activation Stats Charts
+# ---------------------------------------------------------------------------
+
+def _format_duration(seconds):
+    """Format seconds as 'Xh Ym' string."""
+    if seconds is None or seconds < 0:
+        return "0m"
+    h = seconds // 3600
+    m = (seconds % 3600) // 60
+    if h > 0:
+        return f"{h}h {m}m"
+    return f"{m}m"
+
+
+def create_activation_operator_chart(by_operator, t):
+    """Horizontal bar chart of total activation time per operator.
+
+    Args:
+        by_operator: dict[callsign, {activations, seconds}] sorted by seconds desc.
+        t: Translations dict.
+    Returns:
+        Plotly Figure.
+    """
+    if not by_operator:
+        return None
+
+    items = list(by_operator.items())[:15]
+    callsigns = [i[0] for i in reversed(items)]
+    hours = [i[1]['seconds'] / 3600 for i in reversed(items)]
+    texts = [
+        f"{_format_duration(i[1]['seconds'])} ({i[1]['activations']}x)"
+        for i in reversed(items)
+    ]
+
+    fig = go.Figure(data=go.Bar(
+        x=hours, y=callsigns,
+        orientation='h',
+        marker_color='#FFD54F',
+        text=texts,
+        textposition='outside',
+        textfont=dict(color='white', size=11),
+        hovertemplate='%{y}: %{text}<extra></extra>',
+    ))
+    fig.update_layout(
+        **_QSO_LAYOUT,
+        height=max(200, len(callsigns) * 30 + 60),
+        margin=dict(l=80, r=80, t=10, b=10),
+        xaxis=dict(
+            title=t.get('act_chart_hours', 'Hours'),
+            tickfont=dict(color='white'), title_font=dict(color='white'),
+            fixedrange=True, showgrid=False,
+        ),
+        yaxis=dict(tickfont=dict(color='white'), fixedrange=True),
+    )
+    return fig
+
+
+def create_activation_band_chart(by_band, t):
+    """Horizontal bar chart of activation time per band.
+
+    Args:
+        by_band: dict[band, {activations, seconds}] sorted by seconds desc.
+        t: Translations dict.
+    Returns:
+        Plotly Figure.
+    """
+    if not by_band:
+        return None
+
+    ordered = [(b, by_band[b]) for b in BANDS if b in by_band]
+    config_set = set(BANDS)
+    for b, v in by_band.items():
+        if b not in config_set:
+            ordered.append((b, v))
+
+    if not ordered:
+        return None
+
+    bands = [o[0] for o in ordered]
+    hours = [o[1]['seconds'] / 3600 for o in ordered]
+    texts = [
+        f"{_format_duration(o[1]['seconds'])} ({o[1]['activations']}x)"
+        for o in ordered
+    ]
+
+    fig = go.Figure(data=go.Bar(
+        x=hours, y=bands,
+        orientation='h',
+        marker_color='#4FC3F7',
+        text=texts,
+        textposition='outside',
+        textfont=dict(color='white', size=11),
+        hovertemplate='%{y}: %{text}<extra></extra>',
+    ))
+    fig.update_layout(
+        **_QSO_LAYOUT,
+        height=max(200, len(bands) * 28 + 60),
+        margin=dict(l=55, r=80, t=10, b=10),
+        xaxis=dict(
+            title=t.get('act_chart_hours', 'Hours'),
+            tickfont=dict(color='white'), title_font=dict(color='white'),
+            fixedrange=True, showgrid=False,
+        ),
+        yaxis=dict(
+            tickfont=dict(color='white'), fixedrange=True,
+            autorange='reversed',
+        ),
+    )
+    return fig
+
+
+def create_activation_mode_chart(by_mode, t):
+    """Donut chart of activation time per mode.
+
+    Args:
+        by_mode: dict[mode, {activations, seconds}] sorted by seconds desc.
+        t: Translations dict.
+    Returns:
+        Plotly Figure.
+    """
+    if not by_mode:
+        return None
+
+    modes = list(by_mode.keys())
+    hours = [v['seconds'] / 3600 for v in by_mode.values()]
+    custom = [
+        f"{m}: {_format_duration(by_mode[m]['seconds'])} ({by_mode[m]['activations']}x)"
+        for m in modes
+    ]
+
+    colors = [
+        '#4FC3F7', '#FFD54F', '#81C784', '#FF8A65',
+        '#BA68C8', '#4DB6AC', '#E57373', '#90A4AE',
+    ]
+
+    fig = go.Figure(data=go.Pie(
+        labels=modes, values=hours,
+        hole=0.45,
+        marker=dict(colors=colors[:len(modes)]),
+        textinfo='label+percent',
+        textfont=dict(color='white', size=12),
+        customdata=custom,
+        hovertemplate='%{customdata}<extra></extra>',
+    ))
+    fig.update_layout(
+        **_QSO_LAYOUT,
+        height=280,
+        margin=dict(l=10, r=10, t=10, b=10),
+        showlegend=False,
+    )
+    return fig
+
+
+def create_activation_timeline_chart(by_date, t):
+    """Bar chart of activation time per day.
+
+    Args:
+        by_date: list[{date, activations, seconds}] sorted by date asc.
+        t: Translations dict.
+    Returns:
+        Plotly Figure.
+    """
+    if not by_date:
+        return None
+
+    dates = [r['date'] for r in by_date]
+    hours = [r['seconds'] / 3600 for r in by_date]
+    acts = [r['activations'] for r in by_date]
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=dates, y=hours,
+        name=t.get('act_chart_hours', 'Hours'),
+        marker_color='#4FC3F7',
+        hovertemplate='%{x}: %{y:.1f}h<extra></extra>',
+    ))
+    fig.add_trace(go.Scatter(
+        x=dates, y=acts,
+        name=t.get('act_chart_activations', 'Activations'),
+        mode='lines+markers',
+        line=dict(color='#FFD54F', width=2),
+        marker=dict(size=5),
+        yaxis='y2',
+        hovertemplate='%{x}: %{y} activations<extra></extra>',
+    ))
+    fig.update_layout(
+        **_QSO_LAYOUT,
+        height=300,
+        margin=dict(l=50, r=50, t=30, b=40),
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+        xaxis=dict(tickfont=dict(color='white'), fixedrange=True),
+        yaxis=dict(
+            title=t.get('act_chart_hours', 'Hours'),
+            tickfont=dict(color='white'), title_font=dict(color='#4FC3F7'),
+            fixedrange=True,
+        ),
+        yaxis2=dict(
+            title=t.get('act_chart_activations', 'Activations'),
+            overlaying='y', side='right',
+            tickfont=dict(color='#FFD54F'), title_font=dict(color='#FFD54F'),
+            fixedrange=True,
+        ),
+        bargap=0.15,
+    )
+    return fig
+
+
+def create_activation_hourly_chart(by_hour, t):
+    """Bar chart of activation count by hour of day.
+
+    Args:
+        by_hour: list[{hour, activations}] sorted by hour asc.
+        t: Translations dict.
+    Returns:
+        Plotly Figure.
+    """
+    if not by_hour:
+        return None
+
+    hour_counts = {r['hour']: r['activations'] for r in by_hour}
+    hours = list(range(24))
+    counts = [hour_counts.get(h, 0) for h in hours]
+    labels = [f"{h:02d}" for h in hours]
+
+    max_cnt = max(counts) if counts else 1
+    colors = [
+        f'rgba(79, 195, 247, {0.3 + 0.7 * (c / max_cnt)})' if c > 0
+        else 'rgba(79, 195, 247, 0.1)'
+        for c in counts
+    ]
+
+    fig = go.Figure(data=go.Bar(
+        x=labels, y=counts,
+        marker_color=colors,
+        hovertemplate='%{x}:00 UTC: %{y} activations<extra></extra>',
+    ))
+    fig.update_layout(
+        **_QSO_LAYOUT,
+        height=250,
+        margin=dict(l=40, r=10, t=30, b=40),
+        xaxis=dict(
+            title='UTC',
+            tickfont=dict(color='white'), title_font=dict(color='white'),
+            fixedrange=True, dtick=2,
+        ),
+        yaxis=dict(
+            tickfont=dict(color='white'), title_font=dict(color='white'),
+            fixedrange=True,
+        ),
+    )
+    return fig

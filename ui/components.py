@@ -486,6 +486,105 @@ def render_activity_dashboard(t, award_id, callsign=None):
         fig_bar = create_blocks_by_band_chart(all_blocks, t)
         st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
+    # Activation history stats
+    _render_activation_stats(t, award_id)
+
+
+def _render_activation_stats(t, award_id):
+    """Render operator activation statistics with charts."""
+    from ui.charts import (
+        create_activation_operator_chart,
+        create_activation_band_chart,
+        create_activation_mode_chart,
+        create_activation_timeline_chart,
+        create_activation_hourly_chart,
+        _format_duration,
+    )
+
+    stats = db.get_activation_stats(award_id)
+    if stats['total_activations'] == 0:
+        return
+
+    st.divider()
+    st.subheader(t.get('act_stats_title', 'Activation Statistics'))
+
+    # Top-level metrics
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.metric(
+            t.get('act_total_activations', 'Activations'),
+            f"{stats['total_activations']:,}",
+        )
+    with c2:
+        st.metric(
+            t.get('act_total_time', 'Total time'),
+            _format_duration(stats['total_seconds']),
+        )
+    with c3:
+        avg_sec = stats['total_seconds'] // stats['total_activations'] if stats['total_activations'] else 0
+        st.metric(
+            t.get('act_avg_duration', 'Avg duration'),
+            _format_duration(avg_sec),
+        )
+    with c4:
+        st.metric(
+            t.get('act_operators_count', 'Operators'),
+            str(len(stats['by_operator'])),
+        )
+
+    # Timeline chart
+    if stats['by_date'] and len(stats['by_date']) > 1:
+        st.caption(t.get('act_chart_timeline', 'Activity over time'))
+        fig_tl = create_activation_timeline_chart(stats['by_date'], t)
+        if fig_tl:
+            st.plotly_chart(fig_tl, use_container_width=True)
+
+    # Operator leaderboard
+    if stats['by_operator']:
+        st.caption(t.get('act_chart_operator_title', 'Time per operator'))
+        fig_op = create_activation_operator_chart(stats['by_operator'], t)
+        if fig_op:
+            st.plotly_chart(fig_op, use_container_width=True)
+
+    # Band + Mode side by side
+    if stats['by_band'] or stats['by_mode']:
+        bcol, mcol = st.columns(2)
+        with bcol:
+            st.caption(t.get('act_chart_band_title', 'Time per band'))
+            fig_b = create_activation_band_chart(stats['by_band'], t)
+            if fig_b:
+                st.plotly_chart(fig_b, use_container_width=True)
+        with mcol:
+            st.caption(t.get('act_chart_mode_title', 'Time per mode'))
+            fig_m = create_activation_mode_chart(stats['by_mode'], t)
+            if fig_m:
+                st.plotly_chart(fig_m, use_container_width=True)
+
+    # Hourly activity
+    if stats['by_hour']:
+        st.caption(t.get('act_chart_hourly_title', 'Activations by hour (UTC)'))
+        fig_h = create_activation_hourly_chart(stats['by_hour'], t)
+        if fig_h:
+            st.plotly_chart(fig_h, use_container_width=True)
+
+    # Recent activations table
+    if stats['recent']:
+        with st.expander(
+            t.get('act_recent_title', 'Recent activations'),
+            expanded=False,
+        ):
+            rows = []
+            for r in stats['recent']:
+                rows.append({
+                    t.get('qso_col_op', 'Op'): r['operator_callsign'],
+                    t.get('qso_col_band', 'Band'): r['band'],
+                    t.get('qso_col_mode', 'Mode'): r['mode'],
+                    t.get('act_col_start', 'Start'): (r.get('blocked_at') or '')[:16],
+                    t.get('act_col_end', 'End'): (r.get('unblocked_at') or '')[:16],
+                    t.get('act_col_duration', 'Duration'): _format_duration(r.get('duration_seconds')),
+                })
+            st.dataframe(rows, use_container_width=True, hide_index=True)
+
 
 def render_announcements_operator_tab(t, operator_callsign):
     """

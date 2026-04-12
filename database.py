@@ -36,6 +36,7 @@ from features.blocks import (
     admin_unblock_band_mode,
     get_all_blocks,
     get_operator_blocks,
+    get_activation_stats,
 )
 
 from features.awards import (
@@ -147,6 +148,7 @@ __all__ = [
     'admin_unblock_band_mode',
     'get_all_blocks',
     'get_operator_blocks',
+    'get_activation_stats',
     # Features - Awards
     'create_award',
     'get_all_awards',
