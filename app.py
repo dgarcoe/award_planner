@@ -37,6 +37,7 @@ from ui.components import (
     render_activity_dashboard,
     render_announcements_operator_tab,
     render_qso_log_tab,
+    render_stats_tab,
 )
 
 # Import admin functions
@@ -466,6 +467,7 @@ def operator_panel():
     # Build tab list dynamically based on feature flags
     tab_labels = [
         f"📊 {t['tab_activity_dashboard']}",
+        f"📈 {t.get('tab_stats', 'Stats')}",
     ]
     if show_announcements:
         tab_labels.append(f"📢 {t['tab_announcements']}")
@@ -485,6 +487,10 @@ def operator_panel():
         def _dashboard_fragment():
             render_activity_dashboard(t, st.session_state.current_award_id, st.session_state.callsign)
         _dashboard_fragment()
+    tab_idx += 1
+
+    with tabs[tab_idx]:
+        render_stats_tab(t, st.session_state.current_award_id)
     tab_idx += 1
 
     if show_announcements:

@@ -331,6 +331,8 @@ TRANSLATIONS = {
         'dx_no_block_warning': 'You must block a band/mode before sending a spot.',
         'dx_cluster_not_configured': 'DX Cluster not configured. Set DX_CLUSTER_HOST and DX_CLUSTER_CALLSIGN environment variables.',
 
+        # Stats tab
+        'tab_stats': 'Stats',
         # QSO Log
         'tab_qso_log': 'QSO Log',
         'qso_log_title': 'QSO Log',
@@ -406,6 +408,7 @@ TRANSLATIONS = {
         'act_col_start': 'Start',
         'act_col_end': 'End',
         'act_col_duration': 'Duration',
+        'act_no_data': 'No activation data yet. Stats will appear once operators start blocking bands.',
     },
     'es': {
         # General
@@ -734,6 +737,8 @@ TRANSLATIONS = {
         'dx_no_block_warning': 'Debes bloquear una banda/modo antes de enviar un spot.',
         'dx_cluster_not_configured': 'DX Cluster no configurado. Establece las variables de entorno DX_CLUSTER_HOST y DX_CLUSTER_CALLSIGN.',
 
+        # Stats tab
+        'tab_stats': 'Estadísticas',
         # QSO Log
         'tab_qso_log': 'Libro de QSOs',
         'qso_log_title': 'Libro de QSOs',
@@ -809,6 +814,7 @@ TRANSLATIONS = {
         'act_col_start': 'Inicio',
         'act_col_end': 'Fin',
         'act_col_duration': 'Duración',
+        'act_no_data': 'Aún no hay datos de activación. Las estadísticas aparecerán cuando los operadores empiecen a bloquear bandas.',
     },
     'gl': {
         # General
@@ -1137,6 +1143,8 @@ TRANSLATIONS = {
         'dx_no_block_warning': 'Debes bloquear unha banda/modo antes de enviar un spot.',
         'dx_cluster_not_configured': 'DX Cluster non configurado. Establece as variables de contorno DX_CLUSTER_HOST e DX_CLUSTER_CALLSIGN.',
 
+        # Stats tab
+        'tab_stats': 'Estatísticas',
         # QSO Log
         'tab_qso_log': 'Libro de QSOs',
         'qso_log_title': 'Libro de QSOs',
@@ -1212,6 +1220,7 @@ TRANSLATIONS = {
         'act_col_start': 'Inicio',
         'act_col_end': 'Fin',
         'act_col_duration': 'Duración',
+        'act_no_data': 'Aínda non hai datos de activación. As estatísticas aparecerán cando os operadores comecen a bloquear bandas.',
     }
 }
 

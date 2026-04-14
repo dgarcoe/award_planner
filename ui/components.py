@@ -486,7 +486,10 @@ def render_activity_dashboard(t, award_id, callsign=None):
         fig_bar = create_blocks_by_band_chart(all_blocks, t)
         st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
-    # Activation history stats
+
+def render_stats_tab(t, award_id):
+    """Render the dedicated Stats tab with operator activation statistics."""
+    st.subheader(f"📊 {t.get('act_stats_title', 'Activation Statistics')}")
     _render_activation_stats(t, award_id)
 
 
@@ -503,10 +506,8 @@ def _render_activation_stats(t, award_id):
 
     stats = db.get_activation_stats(award_id)
     if stats['total_activations'] == 0:
+        st.info(t.get('act_no_data', 'No activation data yet. Stats will appear once operators start blocking bands.'))
         return
-
-    st.divider()
-    st.subheader(t.get('act_stats_title', 'Activation Statistics'))
 
     # Top-level metrics
     c1, c2, c3, c4 = st.columns(4)
