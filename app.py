@@ -506,7 +506,10 @@ def operator_panel():
     tab_idx += 1
 
     with tabs[tab_idx]:
-        render_stats_tab(t, st.session_state.current_award_id)
+        @st.fragment(run_every=timedelta(seconds=30))
+        def _stats_fragment():
+            render_stats_tab(t, st.session_state.current_award_id)
+        _stats_fragment()
     tab_idx += 1
 
     if show_announcements:
@@ -573,26 +576,35 @@ def operator_panel():
 
     if show_qso_log:
         with tabs[tab_idx]:
-            render_qso_log_tab(
-                t,
-                st.session_state.current_award_id,
-                st.session_state.callsign,
-                is_admin=st.session_state.is_admin,
-            )
+            @st.fragment()
+            def _qso_log_fragment():
+                render_qso_log_tab(
+                    t,
+                    st.session_state.current_award_id,
+                    st.session_state.callsign,
+                    is_admin=st.session_state.is_admin,
+                )
+            _qso_log_fragment()
         tab_idx += 1
 
     if show_manage:
         with tabs[tab_idx]:
-            render_manage_award_tab(
-                t,
-                st.session_state.callsign,
-                is_admin=st.session_state.is_admin,
-            )
+            @st.fragment()
+            def _manage_fragment():
+                render_manage_award_tab(
+                    t,
+                    st.session_state.callsign,
+                    is_admin=st.session_state.is_admin,
+                )
+            _manage_fragment()
         tab_idx += 1
 
     if st.session_state.is_admin:
         with tabs[tab_idx]:
-            admin_panel()
+            @st.fragment()
+            def _admin_fragment():
+                admin_panel()
+            _admin_fragment()
         tab_idx += 1
 
     with tabs[tab_idx]:

@@ -54,6 +54,10 @@ def block_band_mode(operator_callsign: str, band: str, mode: str, award_id: int,
                     is_admin: bool = False) -> Tuple[bool, str]:
     """Block a band/mode combination for an operator within an award. One block per operator per award."""
     from features.award_access import can_block_on_award
+    from config import is_band_mode_legal
+
+    if not is_band_mode_legal(band, mode):
+        return False, f"{mode} is not used on the {band} band"
 
     if not can_block_on_award(operator_callsign, award_id, is_admin=is_admin):
         return False, "You are not a member of this award. Ask a manager to add you."

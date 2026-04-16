@@ -577,10 +577,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Store selected band in context
         context.user_data['selected_band'] = band
 
-        # Show mode selection
+        # Show mode selection (only modes legally usable on this band)
+        from config import BAND_MODES
+        allowed_modes = BAND_MODES.get(band, [])
         keyboard = []
         row = []
-        for mode in MODES:
+        for mode in allowed_modes:
             row.append(InlineKeyboardButton(mode, callback_data=f"mode:{mode}"))
             if len(row) == 3:
                 keyboard.append(row)

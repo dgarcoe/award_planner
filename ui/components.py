@@ -187,7 +187,7 @@ def render_block_unblock_section(t, callsign, award_id):
     Returns:
         None
     """
-    from config import BANDS, MODES
+    from config import BANDS, BAND_MODES
 
     if not award_id:
         st.warning(f"⚠️ {t['error_no_special_callsign_selected']}")
@@ -199,10 +199,14 @@ def render_block_unblock_section(t, callsign, award_id):
     with col1:
         band_to_block = st.selectbox(t['select_band'], BANDS, key="block_band")
     with col2:
-        mode_to_block = st.selectbox(t['select_mode'], MODES, key="block_mode")
+        allowed_modes = BAND_MODES.get(band_to_block, [])
+        mode_to_block = st.selectbox(t['select_mode'], allowed_modes, key=f"block_mode_{band_to_block}")
 
     if st.button(t['block'], type="primary"):
-        success, message = db.block_band_mode(callsign, band_to_block, mode_to_block, award_id)
+        success, message = db.block_band_mode(
+            callsign, band_to_block, mode_to_block, award_id,
+            is_admin=st.session_state.get('is_admin', False),
+        )
         if success:
             st.success(message)
             st.rerun()
@@ -398,7 +402,7 @@ def render_activity_dashboard(t, award_id, callsign=None):
         st.warning(f"⚠️ {t['error_no_special_callsign_selected']}")
         return
 
-    all_blocks = db.get_all_blocks(award_id)
+    all_blocks = _cached_all_blocks(award_id)
 
     # Skip the Plotly rebuild if nothing has actually changed since the last
     # fragment tick. Rebuilding the heatmap allocates ~90 annotation objects
@@ -455,6 +459,11 @@ def render_activity_dashboard(t, award_id, callsign=None):
         clicked_band = BANDS[y_idx]
         clicked_mode = MODES[x_idx]
 
+        from config import is_band_mode_legal
+        if not is_band_mode_legal(clicked_band, clicked_mode):
+            st.info(f"ℹ️ {clicked_mode} {t.get('error_band_mode_illegal_short', 'is not used on the')} {clicked_band} {t.get('band_label', 'band')}")
+            return
+
         # Check if this combination is blocked
         block_info = next((b for b in all_blocks if b['band'] == clicked_band and b['mode'] == clicked_mode), None)
 
@@ -492,6 +501,21 @@ def render_activity_dashboard(t, award_id, callsign=None):
         st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
 
+@st.cache_data(ttl=5, show_spinner=False)
+def _cached_all_blocks(award_id):
+    return db.get_all_blocks(award_id)
+
+
+@st.cache_data(ttl=20, show_spinner=False)
+def _cached_activation_stats(award_id):
+    return db.get_activation_stats(award_id)
+
+
+@st.cache_data(ttl=20, show_spinner=False)
+def _cached_qso_stats(award_id, operator_callsign):
+    return db.get_qso_stats(award_id, operator_callsign=operator_callsign)
+
+
 def render_stats_tab(t, award_id):
     """Render the dedicated Stats tab with operator activation statistics."""
     st.subheader(f"📊 {t.get('act_stats_title', 'Activation Statistics')}")
@@ -499,7 +523,7 @@ def render_stats_tab(t, award_id):
 
 
 def _render_activation_stats(t, award_id):
-    """Render operator activation statistics with charts."""
+    """Render operator activation statistics with lazy sub-tabs."""
     from ui.charts import (
         create_activation_operator_chart,
         create_activation_band_chart,
@@ -509,12 +533,12 @@ def _render_activation_stats(t, award_id):
         _format_duration,
     )
 
-    stats = db.get_activation_stats(award_id)
+    stats = _cached_activation_stats(award_id)
     if stats['total_activations'] == 0:
         st.info(t.get('act_no_data', 'No activation data yet. Stats will appear once operators start blocking bands.'))
         return
 
-    # Top-level metrics
+    # Top-level metrics (always visible)
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.metric(
@@ -538,47 +562,53 @@ def _render_activation_stats(t, award_id):
             str(len(stats['by_operator'])),
         )
 
-    # Timeline chart
-    if stats['by_date'] and len(stats['by_date']) > 1:
-        st.caption(t.get('act_chart_timeline', 'Activity over time'))
-        fig_tl = create_activation_timeline_chart(stats['by_date'], t)
-        if fig_tl:
-            st.plotly_chart(fig_tl, use_container_width=True)
+    # Lazy sub-tabs: only the active sub-tab builds its chart
+    sub_tabs = st.tabs([
+        t.get('act_chart_timeline', 'Timeline'),
+        t.get('act_chart_operator_title', 'By operator'),
+        t.get('act_subtab_band_mode', 'Band / Mode'),
+        t.get('act_chart_hourly_title', 'By hour'),
+        t.get('act_recent_title', 'Recent'),
+    ])
 
-    # Operator leaderboard
-    if stats['by_operator']:
-        st.caption(t.get('act_chart_operator_title', 'Time per operator'))
-        fig_op = create_activation_operator_chart(stats['by_operator'], t)
-        if fig_op:
-            st.plotly_chart(fig_op, use_container_width=True)
+    with sub_tabs[0]:
+        if stats['by_date'] and len(stats['by_date']) > 1:
+            fig_tl = create_activation_timeline_chart(stats['by_date'], t)
+            if fig_tl:
+                st.plotly_chart(fig_tl, use_container_width=True)
+        else:
+            st.info(t.get('act_no_data', 'Not enough data yet.'))
 
-    # Band + Mode side by side
-    if stats['by_band'] or stats['by_mode']:
-        bcol, mcol = st.columns(2)
-        with bcol:
-            st.caption(t.get('act_chart_band_title', 'Time per band'))
-            fig_b = create_activation_band_chart(stats['by_band'], t)
-            if fig_b:
-                st.plotly_chart(fig_b, use_container_width=True)
-        with mcol:
-            st.caption(t.get('act_chart_mode_title', 'Time per mode'))
-            fig_m = create_activation_mode_chart(stats['by_mode'], t)
-            if fig_m:
-                st.plotly_chart(fig_m, use_container_width=True)
+    with sub_tabs[1]:
+        if stats['by_operator']:
+            fig_op = create_activation_operator_chart(stats['by_operator'], t)
+            if fig_op:
+                st.plotly_chart(fig_op, use_container_width=True)
 
-    # Hourly activity
-    if stats['by_hour']:
-        st.caption(t.get('act_chart_hourly_title', 'Activations by hour (UTC)'))
-        fig_h = create_activation_hourly_chart(stats['by_hour'], t)
-        if fig_h:
-            st.plotly_chart(fig_h, use_container_width=True)
+    with sub_tabs[2]:
+        if stats['by_band'] or stats['by_mode']:
+            bcol, mcol = st.columns(2)
+            with bcol:
+                st.caption(t.get('act_chart_band_title', 'Time per band'))
+                fig_b = create_activation_band_chart(stats['by_band'], t)
+                if fig_b:
+                    st.plotly_chart(fig_b, use_container_width=True)
+            with mcol:
+                st.caption(t.get('act_chart_mode_title', 'Time per mode'))
+                fig_m = create_activation_mode_chart(stats['by_mode'], t)
+                if fig_m:
+                    st.plotly_chart(fig_m, use_container_width=True)
 
-    # Recent activations table
-    if stats['recent']:
-        with st.expander(
-            t.get('act_recent_title', 'Recent activations'),
-            expanded=False,
-        ):
+    with sub_tabs[3]:
+        if stats['by_hour']:
+            fig_h = create_activation_hourly_chart(stats['by_hour'], t)
+            if fig_h:
+                st.plotly_chart(fig_h, use_container_width=True)
+        else:
+            st.info(t.get('act_no_data', 'Not enough data yet.'))
+
+    with sub_tabs[4]:
+        if stats['recent']:
             rows = []
             for r in stats['recent']:
                 rows.append({
@@ -673,7 +703,7 @@ def render_qso_log_tab(t, award_id, operator_callsign, is_admin=False):
     st.divider()
 
     # --- Stats + Charts
-    stats = db.get_qso_stats(award_id, operator_callsign=scoped_operator)
+    stats = _cached_qso_stats(award_id, scoped_operator)
 
     if stats['total'] == 0:
         st.info(t.get('qso_no_qsos', 'No QSOs uploaded yet.'))

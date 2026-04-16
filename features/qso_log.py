@@ -266,9 +266,9 @@ def ingest_adif_bytes(
     except UnicodeDecodeError:
         text = file_bytes.decode("ascii", errors="replace")
 
-    # First pass: parse + normalize. We materialize the list because we
-    # need its length for reporting and because executemany iterates twice
-    # internally on some SQLite versions.
+    _INGEST_BATCH_SIZE = 500
+
+    # First pass: parse + normalize into a flat list.
     parsed_rows: List[Tuple] = []
     parsed_total = 0
     errors = 0
@@ -281,8 +281,8 @@ def ingest_adif_bytes(
         parsed_rows.append(row)
 
     # Second pass: open a write transaction, create the batch row so we can
-    # tag each QSO with it, then executemany the rows. INSERT OR IGNORE
-    # silently drops duplicates caught by idx_qso_dedup.
+    # tag each QSO with it, then insert in chunks to bound peak memory.
+    # INSERT OR IGNORE silently drops duplicates caught by idx_qso_dedup.
     batch_id: Optional[int] = None
     inserted = 0
     with get_db() as conn:
@@ -297,21 +297,21 @@ def ingest_adif_bytes(
         )
         batch_id = cursor.lastrowid
 
-        # Rewrite the rows with the batch_id now that we know it.
-        tagged_rows = [
-            (r[0], r[1], batch_id) + r[3:] for r in parsed_rows
-        ]
+        insert_sql = (
+            f'''INSERT OR IGNORE INTO qso_log
+                 ({", ".join(_QSO_COLUMNS)})
+                VALUES ({", ".join("?" * len(_QSO_COLUMNS))})'''
+        )
 
-        if tagged_rows:
-            cursor.executemany(
-                f'''INSERT OR IGNORE INTO qso_log
-                     ({", ".join(_QSO_COLUMNS)})
-                    VALUES ({", ".join("?" * len(_QSO_COLUMNS))})''',
-                tagged_rows,
-            )
-            inserted = cursor.rowcount
+        for i in range(0, len(parsed_rows), _INGEST_BATCH_SIZE):
+            chunk = [
+                (r[0], r[1], batch_id) + r[3:]
+                for r in parsed_rows[i:i + _INGEST_BATCH_SIZE]
+            ]
+            cursor.executemany(insert_sql, chunk)
+            inserted += cursor.rowcount
 
-        duplicates = len(tagged_rows) - inserted
+        duplicates = len(parsed_rows) - inserted
         cursor.execute(
             '''UPDATE qso_upload_batch
                  SET inserted = ?, duplicates = ?

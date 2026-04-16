@@ -30,12 +30,18 @@ def create_award(name: str, description: str = "", start_date: str = "", end_dat
         return False, "An unexpected error occurred. Please try again.", None
 
 
+_AWARD_LIST_COLUMNS = (
+    'id, name, description, start_date, end_date, is_active, '
+    'is_restricted, qrz_link, image_type, created_at'
+)
+
+
 def get_all_awards() -> List[dict]:
-    """Get all awards."""
+    """Get all awards (metadata only; BLOB image_data excluded)."""
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute('''
-            SELECT * FROM awards
+        cursor.execute(f'''
+            SELECT {_AWARD_LIST_COLUMNS} FROM awards
             ORDER BY created_at DESC
         ''')
         results = cursor.fetchall()
@@ -43,11 +49,11 @@ def get_all_awards() -> List[dict]:
 
 
 def get_active_awards() -> List[dict]:
-    """Get only active awards."""
+    """Get only active awards (metadata only; BLOB image_data excluded)."""
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute('''
-            SELECT * FROM awards
+        cursor.execute(f'''
+            SELECT {_AWARD_LIST_COLUMNS} FROM awards
             WHERE is_active = 1
             ORDER BY created_at DESC
         ''')

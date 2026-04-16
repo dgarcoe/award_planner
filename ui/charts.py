@@ -1,7 +1,9 @@
 """Chart creation functions for QuendAward application."""
 
 import plotly.graph_objects as go
-from config import BANDS, MODES, CHART_COLOR_FREE, CHART_COLOR_BLOCKED, CHART_BACKGROUND
+from config import BANDS, MODES, BAND_MODES, CHART_COLOR_FREE, CHART_COLOR_BLOCKED, CHART_BACKGROUND
+
+CHART_COLOR_UNAVAILABLE = '#555555'
 
 # Shared dark-mode layout defaults for QSO charts
 _QSO_LAYOUT = dict(
@@ -42,9 +44,15 @@ def create_availability_heatmap(all_blocks, t):
         text_row = []
         hover_row = []
         color_row = []
+        allowed = BAND_MODES.get(band, [])
         for mode in MODES:
             key = (band, mode)
-            if key in blocks_dict:
+            if mode not in allowed:
+                z_row.append(0.5)  # Unavailable band/mode combo
+                text_row.append('—')
+                color_row.append('#cccccc')
+                hover_row.append(f"<b>{band} / {mode}</b><br>{t.get('status_unavailable', 'Not usable on this band')}")
+            elif key in blocks_dict:
                 z_row.append(1)  # Blocked
                 text_row.append(blocks_dict[key])
                 color_row.append('white')  # White text on red background
@@ -70,11 +78,12 @@ def create_availability_heatmap(all_blocks, t):
         y=BANDS,
         hoverinfo='none',  # Disable hover - info shown in modal on tap
         colorscale=[
-            [0, CHART_COLOR_FREE],  # Green for FREE
-            [1, CHART_COLOR_BLOCKED]   # Red for BLOCKED
+            [0.0, CHART_COLOR_FREE],          # Green for FREE
+            [0.5, CHART_COLOR_UNAVAILABLE],   # Grey for illegal band/mode
+            [1.0, CHART_COLOR_BLOCKED],       # Red for BLOCKED
         ],
-        zmin=0,  # Force minimum of color scale
-        zmax=1,  # Force maximum of color scale
+        zmin=0,
+        zmax=1,
         showscale=False,
         xgap=2,
         ygap=2

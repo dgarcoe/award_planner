@@ -187,6 +187,11 @@ def _create_tables(cursor):
         CREATE INDEX IF NOT EXISTS idx_block_history_operator
         ON block_history(operator_callsign, award_id, blocked_at DESC)
     ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_block_history_award_duration
+        ON block_history(award_id, duration_seconds)
+        WHERE duration_seconds IS NOT NULL
+    ''')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS announcements (
@@ -218,6 +223,10 @@ def _create_tables(cursor):
     cursor.execute('''
         CREATE INDEX IF NOT EXISTS idx_announcement_reads_lookup
         ON announcement_reads(announcement_id, operator_callsign)
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_announcement_reads_recipient
+        ON announcement_reads(operator_callsign, announcement_id)
     ''')
 
     cursor.execute('''
@@ -252,6 +261,11 @@ def _create_tables(cursor):
     cursor.execute('''
         CREATE INDEX IF NOT EXISTS idx_chat_notifications_recipient
         ON chat_notifications(recipient_callsign, is_read, created_at)
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_chat_notifications_unread
+        ON chat_notifications(recipient_callsign, is_read)
+        WHERE is_read = 0
     ''')
 
     cursor.execute('''
@@ -361,6 +375,10 @@ def _create_tables(cursor):
     cursor.execute('''
         CREATE INDEX IF NOT EXISTS idx_qso_batch
         ON qso_log(batch_id)
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_qso_log_award_band_mode
+        ON qso_log(award_id, band, mode)
     ''')
 
 

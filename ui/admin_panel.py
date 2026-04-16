@@ -9,6 +9,16 @@ import database as db
 from core.validation import validate_password
 
 
+@st.cache_data(ttl=15, show_spinner=False)
+def _cached_all_awards():
+    return db.get_all_awards()
+
+
+@st.cache_data(ttl=10, show_spinner=False)
+def _cached_all_blocks(award_id=None):
+    return db.get_all_blocks(award_id)
+
+
 @st.dialog("Reset Password")
 def reset_password_dialog(callsign: str, t: dict):
     """Dialog for resetting an operator's password."""
@@ -157,7 +167,7 @@ def render_manage_blocks_tab(t):
     st.info(t['manage_blocks_info'])
 
     # Special callsign filter for admin
-    all_awards_admin = db.get_all_awards()
+    all_awards_admin = _cached_all_awards()
     if all_awards_admin:
         selected_admin_award = st.selectbox(
             t['filter_by_special_callsign'],
@@ -165,7 +175,7 @@ def render_manage_blocks_tab(t):
             format_func=lambda x: next((a['name'] for a in all_awards_admin if a['id'] == x), ''),
             key="admin_award_filter"
         )
-        all_blocks = db.get_all_blocks(selected_admin_award)
+        all_blocks = _cached_all_blocks(selected_admin_award)
     else:
         all_blocks = []
         st.warning(t['no_special_callsigns_exist'])
@@ -198,7 +208,7 @@ def render_system_stats_tab(t):
     """Render the system statistics tab."""
     st.subheader(t['system_statistics'])
     operators = db.get_all_operators()
-    blocks = db.get_all_blocks()
+    blocks = _cached_all_blocks()
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -281,7 +291,7 @@ def render_award_management_tab(t):
 
     # List and manage existing special callsigns
     st.subheader(t['existing_special_callsigns'])
-    awards = db.get_all_awards()
+    awards = _cached_all_awards()
 
     if awards:
         for award in awards:
