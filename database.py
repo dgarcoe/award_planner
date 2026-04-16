@@ -124,6 +124,23 @@ from features.settings import (
     get_feature_flags,
 )
 
+from features.award_access import (
+    is_manager,
+    is_member,
+    is_restricted,
+    can_block_on_award,
+    can_manage_award,
+    get_managers,
+    add_manager,
+    remove_manager,
+    get_managed_awards,
+    get_members,
+    add_member,
+    remove_member,
+    set_award_restricted,
+    filter_visible_awards,
+)
+
 __all__ = [
     # Core - Database
     'get_connection',
@@ -219,4 +236,19 @@ __all__ = [
     'get_app_setting',
     'set_app_setting',
     'get_feature_flags',
+    # Features - Award access
+    'is_manager',
+    'is_member',
+    'is_restricted',
+    'can_block_on_award',
+    'can_manage_award',
+    'get_managers',
+    'add_manager',
+    'remove_manager',
+    'get_managed_awards',
+    'get_members',
+    'add_member',
+    'remove_member',
+    'set_award_restricted',
+    'filter_visible_awards',
 ]

@@ -153,6 +153,10 @@ def delete_award(award_id: int) -> Tuple[bool, str]:
             # Delete all blocks associated with this award
             cursor.execute('DELETE FROM band_mode_blocks WHERE award_id = ?', (award_id,))
 
+            # Clean up per-award access rosters
+            cursor.execute('DELETE FROM award_managers WHERE award_id = ?', (award_id,))
+            cursor.execute('DELETE FROM award_members WHERE award_id = ?', (award_id,))
+
             # Delete the linked chat room and its messages/notifications
             cursor.execute('SELECT id FROM chat_rooms WHERE award_id = ?', (award_id,))
             room = cursor.fetchone()

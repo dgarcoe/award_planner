@@ -50,8 +50,13 @@ def _close_history_records(cursor, award_id, operator_callsign, band=None, mode=
 # Block / unblock operations
 # ---------------------------------------------------------------------------
 
-def block_band_mode(operator_callsign: str, band: str, mode: str, award_id: int) -> Tuple[bool, str]:
+def block_band_mode(operator_callsign: str, band: str, mode: str, award_id: int,
+                    is_admin: bool = False) -> Tuple[bool, str]:
     """Block a band/mode combination for an operator within an award. One block per operator per award."""
+    from features.award_access import can_block_on_award
+
+    if not can_block_on_award(operator_callsign, award_id, is_admin=is_admin):
+        return False, "You are not a member of this award. Ask a manager to add you."
     try:
         with get_db() as conn:
             cursor = conn.cursor()

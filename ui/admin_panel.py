@@ -402,6 +402,70 @@ def render_award_management_tab(t):
                             else:
                                 st.error(message)
 
+                # Access control: is_restricted toggle + managers list
+                st.write("---")
+                st.write(f"**{t.get('access_control', 'Access control')}**")
+                is_restricted = bool(award.get('is_restricted'))
+                new_restricted = st.checkbox(
+                    t.get('restricted_access_label', 'Restricted access (only members can block)'),
+                    value=is_restricted,
+                    key=f"restricted_{award['id']}",
+                    help=t.get('restricted_access_help',
+                               'When enabled, only approved members, managers, and admins can block bands on this award.'),
+                )
+                if new_restricted != is_restricted:
+                    ok, msg = db.set_award_restricted(award['id'], new_restricted)
+                    if ok:
+                        st.cache_data.clear()
+                        st.success(msg)
+                        st.rerun()
+                    else:
+                        st.error(msg)
+
+                # Managers list
+                st.write(f"**{t.get('managers_label', 'Managers')}**")
+                current_managers = db.get_managers(award['id'])
+                if current_managers:
+                    for mgr in current_managers:
+                        mcol1, mcol2 = st.columns([5, 1])
+                        with mcol1:
+                            st.write(f"👤 **{mgr['operator_callsign']}** — {mgr.get('operator_name') or ''}")
+                        with mcol2:
+                            if st.button("✖", key=f"rm_mgr_{award['id']}_{mgr['operator_callsign']}",
+                                         help=t.get('remove_manager', 'Remove manager')):
+                                ok, msg = db.remove_manager(mgr['operator_callsign'], award['id'])
+                                if ok:
+                                    st.success(msg)
+                                    st.rerun()
+                                else:
+                                    st.error(msg)
+                else:
+                    st.caption(t.get('no_managers', 'No managers yet.'))
+
+                # Add manager
+                all_ops = db.get_all_operators()
+                mgr_callsigns = {m['operator_callsign'] for m in current_managers}
+                candidates = [op for op in all_ops if op['callsign'] not in mgr_callsigns]
+                if candidates:
+                    add_col1, add_col2 = st.columns([4, 1])
+                    with add_col1:
+                        selected = st.selectbox(
+                            t.get('add_manager', 'Add manager'),
+                            options=[op['callsign'] for op in candidates],
+                            format_func=lambda c: f"{c} — {next((op['operator_name'] for op in candidates if op['callsign'] == c), '')}",
+                            key=f"add_mgr_sel_{award['id']}",
+                        )
+                    with add_col2:
+                        st.write("")
+                        if st.button("➕", key=f"add_mgr_btn_{award['id']}",
+                                     help=t.get('add_manager', 'Add manager')):
+                            ok, msg = db.add_manager(selected, award['id'])
+                            if ok:
+                                st.success(msg)
+                                st.rerun()
+                            else:
+                                st.error(msg)
+
                 st.write("---")
                 col1, col2 = st.columns(2)
                 with col1:

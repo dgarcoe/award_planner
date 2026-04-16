@@ -107,8 +107,40 @@ def _create_tables(cursor):
             start_date TEXT,
             end_date TEXT,
             is_active INTEGER DEFAULT 1,
+            is_restricted INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS award_managers (
+            award_id INTEGER NOT NULL,
+            operator_callsign TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (award_id, operator_callsign),
+            FOREIGN KEY (award_id) REFERENCES awards (id) ON DELETE CASCADE,
+            FOREIGN KEY (operator_callsign) REFERENCES operators (callsign) ON DELETE CASCADE
+        )
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_award_managers_operator
+        ON award_managers(operator_callsign)
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS award_members (
+            award_id INTEGER NOT NULL,
+            operator_callsign TEXT NOT NULL,
+            added_by TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (award_id, operator_callsign),
+            FOREIGN KEY (award_id) REFERENCES awards (id) ON DELETE CASCADE,
+            FOREIGN KEY (operator_callsign) REFERENCES operators (callsign) ON DELETE CASCADE
+        )
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_award_members_operator
+        ON award_members(operator_callsign)
     ''')
 
     cursor.execute('''
@@ -342,6 +374,7 @@ def _run_migrations(cursor, conn):
     _migrate_band_mode_blocks_award_id(cursor, conn)
     _migrate_awards_image_data(cursor)
     _migrate_awards_qrz_link(cursor)
+    _migrate_awards_is_restricted(cursor)
     _migrate_chat_messages_reply(cursor)
     _migrate_chat_messages_room_id(cursor)
     _migrate_chat_notifications_room_id(cursor)
@@ -420,6 +453,12 @@ def _migrate_awards_qrz_link(cursor):
     """Add qrz_link column to awards if missing."""
     if 'qrz_link' not in _get_column_names(cursor, 'awards'):
         cursor.execute('ALTER TABLE awards ADD COLUMN qrz_link TEXT')
+
+
+def _migrate_awards_is_restricted(cursor):
+    """Add is_restricted column to awards if missing."""
+    if 'is_restricted' not in _get_column_names(cursor, 'awards'):
+        cursor.execute('ALTER TABLE awards ADD COLUMN is_restricted INTEGER DEFAULT 0')
 
 
 def _migrate_chat_messages_reply(cursor):

@@ -33,7 +33,10 @@ def _show_block_modal(t, callsign, band, mode, award_id):
         col1, col2 = st.columns(2)
         with col1:
             if st.button(f"✅ {t.get('confirm', 'Confirm')}", key="modal_confirm_block", type="primary", use_container_width=True):
-                success, message = db.block_band_mode(callsign, band, mode, award_id)
+                success, message = db.block_band_mode(
+                    callsign, band, mode, award_id,
+                    is_admin=st.session_state.get('is_admin', False),
+                )
                 if success:
                     st.success(message)
                     st.session_state._click_version = st.session_state.get('_click_version', 0) + 1
@@ -1071,3 +1074,193 @@ def _get_logger():
     """Small helper so we don't need to import logging at module top."""
     import logging
     return logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Per-award manager panel
+# ---------------------------------------------------------------------------
+
+def render_manage_award_tab(t, callsign, is_admin=False):
+    """Per-award management tab for operators who manage at least one award.
+
+    Lets them: toggle restricted access, add/remove members, unblock anyone
+    on that award, and edit basic award details.
+    """
+    from datetime import datetime
+    from config import BANDS, MODES
+
+    managed = db.get_managed_awards(callsign)
+    if not managed:
+        st.info(t.get('manage_no_awards', 'You are not a manager of any award yet.'))
+        return
+
+    st.subheader(f"🛠️ {t.get('manage_awards_title', 'Manage awards')}")
+
+    # Award picker (only show if multiple)
+    if len(managed) == 1:
+        selected = managed[0]
+    else:
+        selected_id = st.selectbox(
+            t.get('manage_award_select', 'Select award to manage'),
+            options=[a['id'] for a in managed],
+            format_func=lambda i: next((a['name'] for a in managed if a['id'] == i), ''),
+            key="manage_award_picker",
+        )
+        selected = next((a for a in managed if a['id'] == selected_id), managed[0])
+
+    award_id = selected['id']
+    full = db.get_award_by_id(award_id) or selected
+
+    st.write(f"### 🏆 {full['name']}")
+
+    # Restricted toggle
+    is_restricted = bool(full.get('is_restricted'))
+    new_restricted = st.checkbox(
+        t.get('restricted_access_label', 'Restricted access (only members can block)'),
+        value=is_restricted,
+        key=f"mgr_restricted_{award_id}",
+        help=t.get('restricted_access_help',
+                   'When enabled, only approved members, managers, and admins can block bands on this award.'),
+    )
+    if new_restricted != is_restricted:
+        ok, msg = db.set_award_restricted(award_id, new_restricted)
+        if ok:
+            st.cache_data.clear()
+            st.success(msg)
+            st.rerun()
+        else:
+            st.error(msg)
+
+    st.divider()
+
+    # Members section
+    st.write(f"**👥 {t.get('members_label', 'Members')}**")
+    members = db.get_members(award_id)
+    if members:
+        for m in members:
+            mc1, mc2 = st.columns([5, 1])
+            with mc1:
+                added_by = m.get('added_by') or ''
+                suffix = f" — {t.get('added_by', 'added by')} {added_by}" if added_by else ''
+                st.write(f"👤 **{m['operator_callsign']}** — {m.get('operator_name') or ''}{suffix}")
+            with mc2:
+                if st.button("✖", key=f"mgr_rm_member_{award_id}_{m['operator_callsign']}",
+                             help=t.get('remove_member', 'Remove member')):
+                    ok, msg = db.remove_member(m['operator_callsign'], award_id)
+                    if ok:
+                        st.success(msg)
+                        st.rerun()
+                    else:
+                        st.error(msg)
+    else:
+        st.caption(t.get('no_members', 'No members yet.'))
+
+    # Add member dropdown
+    all_ops = db.get_all_operators()
+    member_callsigns = {m['operator_callsign'] for m in members}
+    candidates = [op for op in all_ops if op['callsign'] not in member_callsigns]
+    if candidates:
+        ac1, ac2 = st.columns([4, 1])
+        with ac1:
+            selected_member = st.selectbox(
+                t.get('add_member', 'Add member'),
+                options=[op['callsign'] for op in candidates],
+                format_func=lambda c: f"{c} — {next((op['operator_name'] for op in candidates if op['callsign'] == c), '')}",
+                key=f"mgr_add_member_sel_{award_id}",
+            )
+        with ac2:
+            st.write("")
+            if st.button("➕", key=f"mgr_add_member_btn_{award_id}",
+                         help=t.get('add_member', 'Add member')):
+                ok, msg = db.add_member(selected_member, award_id, added_by=callsign)
+                if ok:
+                    st.success(msg)
+                    st.rerun()
+                else:
+                    st.error(msg)
+    else:
+        st.caption(t.get('all_operators_are_members', 'All operators are already members.'))
+
+    st.divider()
+
+    # Active blocks on this award (manager can unblock anyone)
+    st.write(f"**🚫 {t.get('active_blocks_label', 'Active blocks')}**")
+    blocks = db.get_all_blocks(award_id)
+    if blocks:
+        for b in blocks:
+            bc1, bc2 = st.columns([5, 1])
+            with bc1:
+                st.write(f"📡 **{b['band']}/{b['mode']}** — {b['operator_callsign']} ({b.get('operator_name') or ''})")
+            with bc2:
+                if st.button("✖", key=f"mgr_unblock_{award_id}_{b['band']}_{b['mode']}",
+                             help=t.get('unblock_label', 'Unblock')):
+                    ok, msg = db.admin_unblock_band_mode(
+                        b['band'], b['mode'], award_id, admin_callsign=callsign,
+                    )
+                    if ok:
+                        st.success(msg)
+                        st.rerun()
+                    else:
+                        st.error(msg)
+    else:
+        st.caption(t.get('no_active_blocks', 'No active blocks.'))
+
+    st.divider()
+
+    # Edit award details
+    with st.expander(f"✏️ {t.get('edit_special_callsign', 'Edit award details')}", expanded=False):
+        edit_name = st.text_input(
+            t.get('special_callsign_name', 'Name'),
+            value=full['name'], max_chars=100, key=f"mgr_edit_name_{award_id}",
+        )
+        edit_description = st.text_area(
+            t.get('description', 'Description'),
+            value=full.get('description') or '', max_chars=500,
+            key=f"mgr_edit_desc_{award_id}",
+        )
+        dc1, dc2 = st.columns(2)
+        with dc1:
+            start_val = None
+            if full.get('start_date'):
+                try:
+                    start_val = datetime.strptime(full['start_date'], "%Y-%m-%d").date()
+                except ValueError:
+                    pass
+            edit_start = st.date_input(
+                t.get('start_date', 'Start date'),
+                value=start_val, key=f"mgr_edit_start_{award_id}",
+            )
+        with dc2:
+            end_val = None
+            if full.get('end_date'):
+                try:
+                    end_val = datetime.strptime(full['end_date'], "%Y-%m-%d").date()
+                except ValueError:
+                    pass
+            edit_end = st.date_input(
+                t.get('end_date', 'End date'),
+                value=end_val, key=f"mgr_edit_end_{award_id}",
+            )
+        edit_qrz = st.text_input(
+            t.get('qrz_link', 'QRZ link'),
+            value=full.get('qrz_link') or '',
+            key=f"mgr_edit_qrz_{award_id}",
+        )
+        if st.button(t.get('save_changes', 'Save changes'),
+                     key=f"mgr_save_{award_id}", type='primary'):
+            if not edit_name:
+                st.error(t.get('error_special_callsign_name_required',
+                               'Name is required'))
+            else:
+                start_str = edit_start.strftime("%Y-%m-%d") if edit_start else ""
+                end_str = edit_end.strftime("%Y-%m-%d") if edit_end else ""
+                ok, msg = db.update_award(
+                    award_id, edit_name, edit_description,
+                    start_str, end_str, edit_qrz,
+                )
+                if ok:
+                    st.cache_data.clear()
+                    st.success(t.get('changes_saved', 'Saved.'))
+                    st.rerun()
+                else:
+                    st.error(msg)

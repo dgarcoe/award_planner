@@ -38,6 +38,7 @@ from ui.components import (
     render_announcements_operator_tab,
     render_qso_log_tab,
     render_stats_tab,
+    render_manage_award_tab,
 )
 
 # Import admin functions
@@ -437,8 +438,12 @@ def operator_panel():
         if st.button(t['logout']):
             _logout()
 
-    # Special callsign selector
-    active_awards = _cached_active_awards()
+    # Special callsign selector (hide restricted awards from non-members)
+    active_awards = db.filter_visible_awards(
+        _cached_active_awards(),
+        st.session_state.callsign,
+        is_admin=st.session_state.is_admin,
+    )
     if not active_awards:
         if st.session_state.is_admin:
             st.warning(f"⚠️ {t['error_no_special_callsigns_admin']}")
@@ -446,6 +451,11 @@ def operator_panel():
         else:
             st.error(f"⚠️ {t['error_no_special_callsigns_operator']}")
             st.stop()
+
+    # If the previously-selected award is no longer visible, reset.
+    if (st.session_state.current_award_id
+            and not any(a['id'] == st.session_state.current_award_id for a in active_awards)):
+        st.session_state.current_award_id = active_awards[0]['id']
 
     if active_awards:
         render_award_selector(active_awards, t)
@@ -464,6 +474,10 @@ def operator_panel():
             </script>
         """, height=0)
 
+    # Show the Manage tab if the operator is a manager of any award.
+    managed_awards = db.get_managed_awards(st.session_state.callsign)
+    show_manage = bool(managed_awards)
+
     # Build tab list dynamically based on feature flags
     tab_labels = [
         f"📊 {t['tab_activity_dashboard']}",
@@ -475,6 +489,8 @@ def operator_panel():
         tab_labels.append(f"💬 {t.get('tab_chat', 'Chat')}")
     if show_qso_log:
         tab_labels.append(f"📋 {t.get('tab_qso_log', 'QSO Log')}")
+    if show_manage:
+        tab_labels.append(f"🛠️ {t.get('tab_manage', 'Manage')}")
     if st.session_state.is_admin:
         tab_labels.append(f"🔐 {t['admin_panel']}")
     tab_labels.append(f"⚙️ {t['tab_settings']}")
@@ -560,6 +576,15 @@ def operator_panel():
             render_qso_log_tab(
                 t,
                 st.session_state.current_award_id,
+                st.session_state.callsign,
+                is_admin=st.session_state.is_admin,
+            )
+        tab_idx += 1
+
+    if show_manage:
+        with tabs[tab_idx]:
+            render_manage_award_tab(
+                t,
                 st.session_state.callsign,
                 is_admin=st.session_state.is_admin,
             )
