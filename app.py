@@ -458,9 +458,6 @@ def operator_panel():
             and not any(a['id'] == st.session_state.current_award_id for a in active_awards)):
         st.session_state.current_award_id = active_awards[0]['id']
 
-    if active_awards:
-        render_award_selector(active_awards, t)
-
     # Navigate to announcements tab if coming from notification click
     if st.session_state.get('go_to_announcements'):
         st.session_state.go_to_announcements = False
@@ -502,6 +499,8 @@ def operator_panel():
     with tabs[tab_idx]:
         @st.fragment(run_every=refresh_interval)
         def _dashboard_fragment():
+            if active_awards:
+                render_award_selector(active_awards, t, key_suffix="_activity", show_details=True)
             render_activity_dashboard(t, st.session_state.current_award_id, st.session_state.callsign)
         _dashboard_fragment()
     tab_idx += 1
@@ -509,6 +508,8 @@ def operator_panel():
     with tabs[tab_idx]:
         @st.fragment(run_every=timedelta(seconds=30))
         def _stats_fragment():
+            if active_awards:
+                render_award_selector(active_awards, t, key_suffix="_stats", show_details=False)
             render_stats_tab(t, st.session_state.current_award_id)
         _stats_fragment()
     tab_idx += 1
@@ -579,6 +580,8 @@ def operator_panel():
         with tabs[tab_idx]:
             @st.fragment()
             def _qso_log_fragment():
+                if active_awards:
+                    render_award_selector(active_awards, t, key_suffix="_qso", show_details=False)
                 render_qso_log_tab(
                     t,
                     st.session_state.current_award_id,

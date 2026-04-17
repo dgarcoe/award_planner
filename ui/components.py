@@ -113,13 +113,15 @@ def render_language_selector(t, key_suffix=""):
         st.rerun()
 
 
-def render_award_selector(active_awards, t):
+def render_award_selector(active_awards, t, key_suffix="", show_details=True):
     """
-    Render special callsign selector dropdown and information expander.
+    Render special callsign selector dropdown and optional information expander.
 
     Args:
         active_awards: List of active award dictionaries
         t: Translations dictionary for current language
+        key_suffix: Suffix for unique widget keys (required when rendered in multiple tabs)
+        show_details: Whether to show the info expander with image/description
 
     Returns:
         None (updates session state)
@@ -127,19 +129,21 @@ def render_award_selector(active_awards, t):
     if not st.session_state.current_award_id and active_awards:
         st.session_state.current_award_id = active_awards[0]['id']
 
-    st.write("---")
     selected_award = st.selectbox(
         f"🏆 {t['select_special_callsign']}",
         options=[award['id'] for award in active_awards],
         format_func=lambda x: next((a['name'] for a in active_awards if a['id'] == x), ''),
         index=[award['id'] for award in active_awards].index(st.session_state.current_award_id)
               if st.session_state.current_award_id in [award['id'] for award in active_awards] else 0,
-        key="award_selector"
+        key=f"award_selector{key_suffix}"
     )
 
     if selected_award != st.session_state.current_award_id:
         st.session_state.current_award_id = selected_award
         st.rerun()
+
+    if not show_details:
+        return
 
     # Show special callsign details if available
     current_award = next((a for a in active_awards if a['id'] == st.session_state.current_award_id), None)
