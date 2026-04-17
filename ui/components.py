@@ -527,6 +527,21 @@ def _cached_qso_stats(award_id, operator_callsign):
     return db.get_qso_stats(award_id, operator_callsign=operator_callsign)
 
 
+@st.cache_data(ttl=20, show_spinner=False)
+def _cached_qsos_by_date(award_id, operator_callsign):
+    return db.get_qsos_by_date(award_id, operator_callsign=operator_callsign)
+
+
+@st.cache_data(ttl=20, show_spinner=False)
+def _cached_qsos_by_hour(award_id, operator_callsign):
+    return db.get_qsos_by_hour(award_id, operator_callsign=operator_callsign)
+
+
+@st.cache_data(ttl=20, show_spinner=False)
+def _cached_qsos_band_mode_matrix(award_id, operator_callsign):
+    return db.get_qsos_band_mode_matrix(award_id, operator_callsign=operator_callsign)
+
+
 def render_stats_tab(t, award_id):
     """Render the dedicated Stats tab with operator activation statistics."""
     st.subheader(f"📊 {t.get('act_stats_title', 'Activation Statistics')}")
@@ -758,10 +773,10 @@ def _render_qso_charts(t, award_id, scoped_operator, stats):
             top_mode or "—",
         )
 
-    # --- Fetch chart data
-    by_date = db.get_qsos_by_date(award_id, operator_callsign=scoped_operator)
-    by_hour = db.get_qsos_by_hour(award_id, operator_callsign=scoped_operator)
-    bm_matrix = db.get_qsos_band_mode_matrix(award_id, operator_callsign=scoped_operator)
+    # --- Fetch chart data (cached, 20s TTL)
+    by_date = _cached_qsos_by_date(award_id, scoped_operator)
+    by_hour = _cached_qsos_by_hour(award_id, scoped_operator)
+    bm_matrix = _cached_qsos_band_mode_matrix(award_id, scoped_operator)
 
     # --- Insights row (computed from by_date and by_hour)
     if by_date:
@@ -794,45 +809,57 @@ def _render_qso_charts(t, award_id, scoped_operator, stats):
                 str(len(by_date)),
             )
 
-    # --- Timeline chart: daily QSOs + cumulative line
-    if by_date and len(by_date) > 1:
-        st.caption(t.get('qso_chart_activity', 'Activity over time'))
-        fig_timeline = create_qso_timeline_chart(by_date, t)
-        if fig_timeline:
-            st.plotly_chart(fig_timeline, use_container_width=True)
-
-    # --- Band × Mode heatmap
-    if bm_matrix:
-        st.caption(t.get('qso_chart_band_mode', 'QSOs by Band / Mode'))
-        fig_bm = create_qso_band_mode_heatmap(bm_matrix, t)
-        if fig_bm:
-            st.plotly_chart(fig_bm, use_container_width=True)
-
-    # --- Band + Mode charts (stacked for mobile responsiveness)
-    if stats['by_band']:
-        st.caption(t.get('qso_chart_bands', 'QSOs by Band'))
-        fig_band = create_qso_band_chart(stats['by_band'], t)
-        if fig_band:
-            st.plotly_chart(fig_band, use_container_width=True)
-    if stats['by_mode']:
-        st.caption(t.get('qso_chart_modes', 'QSOs by Mode'))
-        fig_mode = create_qso_mode_chart(stats['by_mode'], t)
-        if fig_mode:
-            st.plotly_chart(fig_mode, use_container_width=True)
-
-    # --- Hourly activity chart
-    if by_hour:
-        st.caption(t.get('qso_chart_hourly', 'Activity by hour (UTC)'))
-        fig_hourly = create_qso_hourly_chart(by_hour, t)
-        if fig_hourly:
-            st.plotly_chart(fig_hourly, use_container_width=True)
-
-    # --- Operator leaderboard (only in all-operators scope)
+    # --- Charts behind lazy sub-tabs so only the visible one renders.
+    # On mobile, rendering 5-6 Plotly figures at once is the main bottleneck.
+    chart_tab_labels = [
+        t.get('qso_chart_activity', 'Activity over time'),
+        t.get('qso_chart_band_mode', 'Band / Mode'),
+        t.get('qso_chart_bands', 'Bands'),
+        t.get('qso_chart_hourly', 'Hourly'),
+    ]
     if not scoped_operator and stats.get('by_operator'):
-        st.caption(t.get('qso_chart_operators', 'Operator Leaderboard'))
-        fig_ops = create_qso_operator_chart(stats['by_operator'], t)
-        if fig_ops:
-            st.plotly_chart(fig_ops, use_container_width=True)
+        chart_tab_labels.append(t.get('qso_chart_operators', 'Operators'))
+
+    chart_tabs = st.tabs(chart_tab_labels)
+    ct_idx = 0
+
+    with chart_tabs[ct_idx]:
+        if by_date and len(by_date) > 1:
+            fig_timeline = create_qso_timeline_chart(by_date, t)
+            if fig_timeline:
+                st.plotly_chart(fig_timeline, use_container_width=True)
+    ct_idx += 1
+
+    with chart_tabs[ct_idx]:
+        if bm_matrix:
+            fig_bm = create_qso_band_mode_heatmap(bm_matrix, t)
+            if fig_bm:
+                st.plotly_chart(fig_bm, use_container_width=True)
+        if stats['by_mode']:
+            fig_mode = create_qso_mode_chart(stats['by_mode'], t)
+            if fig_mode:
+                st.plotly_chart(fig_mode, use_container_width=True)
+    ct_idx += 1
+
+    with chart_tabs[ct_idx]:
+        if stats['by_band']:
+            fig_band = create_qso_band_chart(stats['by_band'], t)
+            if fig_band:
+                st.plotly_chart(fig_band, use_container_width=True)
+    ct_idx += 1
+
+    with chart_tabs[ct_idx]:
+        if by_hour:
+            fig_hourly = create_qso_hourly_chart(by_hour, t)
+            if fig_hourly:
+                st.plotly_chart(fig_hourly, use_container_width=True)
+    ct_idx += 1
+
+    if not scoped_operator and stats.get('by_operator'):
+        with chart_tabs[ct_idx]:
+            fig_ops = create_qso_operator_chart(stats['by_operator'], t)
+            if fig_ops:
+                st.plotly_chart(fig_ops, use_container_width=True)
 
 
 def _render_qso_upload_section(t, award_id, operator_callsign, award_name):
