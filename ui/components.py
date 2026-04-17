@@ -416,6 +416,17 @@ def render_activity_dashboard(t, award_id, callsign=None):
 
     all_blocks = _cached_all_blocks(award_id)
 
+    # Show summary statistics first (renders instantly, gives immediate feedback)
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric(t['total_blocks_label'], len(all_blocks))
+    with col2:
+        unique_operators = set(block['operator_callsign'] for block in all_blocks)
+        st.metric(t['active_operators_label'], len(unique_operators))
+    with col3:
+        unique_bands = set(block['band'] for block in all_blocks)
+        st.metric(t['bands_in_use_label'], len(unique_bands))
+
     # Skip the Plotly rebuild if nothing has actually changed since the last
     # fragment tick. Rebuilding the heatmap allocates ~90 annotation objects
     # for a 15x6 grid, which is wasted work every 5 seconds when idle.
@@ -450,7 +461,7 @@ def render_activity_dashboard(t, award_id, callsign=None):
         click_event=True,
         hover_event=False,
         select_event=False,
-        override_height=550,
+        override_height=430,
         override_width="100%",
         key=f"heatmap_events_{click_version}"
     )
@@ -494,23 +505,11 @@ def render_activity_dashboard(t, award_id, callsign=None):
     # DX Cluster spotting section
     _render_dx_cluster_spot_section(t, award_id, callsign)
 
-    # Show summary statistics
-    st.divider()
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric(t['total_blocks_label'], len(all_blocks))
-    with col2:
-        unique_operators = set(block['operator_callsign'] for block in all_blocks)
-        st.metric(t['active_operators_label'], len(unique_operators))
-    with col3:
-        unique_bands = set(block['band'] for block in all_blocks)
-        st.metric(t['bands_in_use_label'], len(unique_bands))
-
-    # Blocks by band chart
+    # Blocks by band chart (collapsed by default to save mobile rendering)
     if all_blocks:
-        st.subheader(t['blocks_by_band_label'])
-        fig_bar = create_blocks_by_band_chart(all_blocks, t)
-        st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
+        with st.expander(f"📊 {t['blocks_by_band_label']}", expanded=False):
+            fig_bar = create_blocks_by_band_chart(all_blocks, t)
+            st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
 
 @st.cache_data(ttl=5, show_spinner=False)
@@ -809,19 +808,17 @@ def _render_qso_charts(t, award_id, scoped_operator, stats):
         if fig_bm:
             st.plotly_chart(fig_bm, use_container_width=True)
 
-    # --- Two-column row: band bar chart + mode donut
-    if stats['by_band'] or stats['by_mode']:
-        bcol, mcol = st.columns(2)
-        with bcol:
-            st.caption(t.get('qso_chart_bands', 'QSOs by Band'))
-            fig_band = create_qso_band_chart(stats['by_band'], t)
-            if fig_band:
-                st.plotly_chart(fig_band, use_container_width=True)
-        with mcol:
-            st.caption(t.get('qso_chart_modes', 'QSOs by Mode'))
-            fig_mode = create_qso_mode_chart(stats['by_mode'], t)
-            if fig_mode:
-                st.plotly_chart(fig_mode, use_container_width=True)
+    # --- Band + Mode charts (stacked for mobile responsiveness)
+    if stats['by_band']:
+        st.caption(t.get('qso_chart_bands', 'QSOs by Band'))
+        fig_band = create_qso_band_chart(stats['by_band'], t)
+        if fig_band:
+            st.plotly_chart(fig_band, use_container_width=True)
+    if stats['by_mode']:
+        st.caption(t.get('qso_chart_modes', 'QSOs by Mode'))
+        fig_mode = create_qso_mode_chart(stats['by_mode'], t)
+        if fig_mode:
+            st.plotly_chart(fig_mode, use_container_width=True)
 
     # --- Hourly activity chart
     if by_hour:

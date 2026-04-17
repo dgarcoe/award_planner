@@ -100,7 +100,7 @@ def create_availability_heatmap(all_blocks, t):
                     text=text_values[i][j],
                     showarrow=False,
                     font=dict(
-                        size=11,  # Reduced from 13 for better mobile fit
+                        size=10,
                         color=text_colors[i][j],
                         family="Arial, sans-serif"
                     ),
@@ -109,20 +109,18 @@ def create_availability_heatmap(all_blocks, t):
                 )
             )
 
-    # Update layout with responsive height
     fig.update_layout(
         xaxis_title=t['mode_label'],
         yaxis_title=t['band_label'],
-        height=550,  # Increased for better touch targets on mobile
-        margin=dict(l=60, r=10, t=50, b=40),  # Tighter margins for mobile
-        font=dict(size=11, color='white'),  # White text for dark mode
+        height=420,
+        margin=dict(l=50, r=5, t=40, b=5),
+        font=dict(size=10, color='white'),
         plot_bgcolor=CHART_BACKGROUND,
         paper_bgcolor=CHART_BACKGROUND,
-        xaxis=dict(side='top', tickfont=dict(color='white'), title_font=dict(color='white'), fixedrange=True),
-        yaxis=dict(tickfont=dict(color='white'), title_font=dict(color='white'), fixedrange=True),
+        xaxis=dict(side='top', tickfont=dict(color='white', size=10), title_font=dict(color='white'), fixedrange=True),
+        yaxis=dict(tickfont=dict(color='white', size=10), title_font=dict(color='white'), fixedrange=True),
         autosize=True,
         annotations=annotations,
-        # Hide modebar (toolbar) on all devices
         modebar=dict(remove=['zoom', 'pan', 'select', 'lasso2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d', 'toImage'])
     )
 
@@ -155,14 +153,13 @@ def create_blocks_by_band_chart(all_blocks, t):
     fig.update_layout(
         xaxis_title=t['band_label'],
         yaxis_title=t['total_blocks_label'],
-        height=300,  # Reduced from 400 for better mobile experience
-        margin=dict(l=50, r=10, t=30, b=40),  # Tighter margins
-        font=dict(color='white'),  # White text for dark mode
+        height=220,
+        margin=dict(l=40, r=5, t=25, b=35),
+        font=dict(color='white', size=10),
         plot_bgcolor=CHART_BACKGROUND,
         paper_bgcolor=CHART_BACKGROUND,
-        xaxis=dict(type='category', tickfont=dict(color='white'), title_font=dict(color='white')),
-        yaxis=dict(tickfont=dict(color='white'), title_font=dict(color='white')),
-        # Hide modebar (toolbar) on all devices
+        xaxis=dict(type='category', tickfont=dict(color='white', size=10), title_font=dict(color='white', size=11)),
+        yaxis=dict(tickfont=dict(color='white', size=10), title_font=dict(color='white', size=11)),
         modebar=dict(remove=['zoom', 'pan', 'select', 'lasso2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d', 'toImage'])
     )
 
@@ -208,19 +205,19 @@ def create_qso_timeline_chart(by_date, t):
     ))
     fig.update_layout(
         **_QSO_LAYOUT,
-        height=300,
-        margin=dict(l=50, r=50, t=30, b=40),
+        height=220,
+        margin=dict(l=40, r=40, t=25, b=30),
         legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
-        xaxis=dict(tickfont=dict(color='white'), fixedrange=True),
+        xaxis=dict(tickfont=dict(color='white', size=10), fixedrange=True),
         yaxis=dict(
             title=t.get('qso_chart_daily', 'Daily'),
-            tickfont=dict(color='white'), title_font=dict(color='#4FC3F7'),
+            tickfont=dict(color='white', size=10), title_font=dict(color='#4FC3F7', size=11),
             fixedrange=True,
         ),
         yaxis2=dict(
             title=t.get('qso_chart_cumulative', 'Cumulative'),
             overlaying='y', side='right',
-            tickfont=dict(color='#FFD54F'), title_font=dict(color='#FFD54F'),
+            tickfont=dict(color='#FFD54F', size=10), title_font=dict(color='#FFD54F', size=11),
             fixedrange=True,
         ),
         bargap=0.15,
@@ -299,8 +296,8 @@ def create_qso_band_mode_heatmap(matrix, t):
 
     fig.update_layout(
         **_QSO_LAYOUT,
-        height=max(200, len(active_bands) * 35 + 80),
-        margin=dict(l=60, r=10, t=30, b=40),
+        height=max(150, len(active_bands) * 28 + 60),
+        margin=dict(l=50, r=5, t=25, b=5),
         xaxis=dict(
             side='top', tickfont=dict(color='white'),
             title_font=dict(color='white'), fixedrange=True,
@@ -345,15 +342,15 @@ def create_qso_hourly_chart(by_hour, t):
     ))
     fig.update_layout(
         **_QSO_LAYOUT,
-        height=250,
-        margin=dict(l=40, r=10, t=30, b=40),
+        height=200,
+        margin=dict(l=35, r=5, t=25, b=30),
         xaxis=dict(
             title='UTC',
-            tickfont=dict(color='white'), title_font=dict(color='white'),
+            tickfont=dict(color='white', size=10), title_font=dict(color='white', size=11),
             fixedrange=True, dtick=2,
         ),
         yaxis=dict(
-            tickfont=dict(color='white'), title_font=dict(color='white'),
+            tickfont=dict(color='white', size=10), title_font=dict(color='white'),
             fixedrange=True,
         ),
     )
@@ -397,14 +394,14 @@ def create_qso_band_chart(by_band, t):
     ))
     fig.update_layout(
         **_QSO_LAYOUT,
-        height=max(200, len(bands) * 28 + 60),
-        margin=dict(l=55, r=40, t=10, b=10),
+        height=max(150, len(bands) * 24 + 40),
+        margin=dict(l=50, r=35, t=5, b=5),
         xaxis=dict(
-            tickfont=dict(color='white'), fixedrange=True,
+            tickfont=dict(color='white', size=10), fixedrange=True,
             showgrid=False,
         ),
         yaxis=dict(
-            tickfont=dict(color='white'), fixedrange=True,
+            tickfont=dict(color='white', size=10), fixedrange=True,
             autorange='reversed',
         ),
     )
@@ -442,8 +439,8 @@ def create_qso_mode_chart(by_mode, t):
     ))
     fig.update_layout(
         **_QSO_LAYOUT,
-        height=280,
-        margin=dict(l=10, r=10, t=10, b=10),
+        height=220,
+        margin=dict(l=5, r=5, t=5, b=5),
         showlegend=False,
     )
     return fig
@@ -478,14 +475,14 @@ def create_qso_operator_chart(by_operator, t):
     ))
     fig.update_layout(
         **_QSO_LAYOUT,
-        height=max(200, len(callsigns) * 28 + 60),
-        margin=dict(l=80, r=40, t=10, b=10),
+        height=max(150, len(callsigns) * 24 + 40),
+        margin=dict(l=70, r=35, t=5, b=5),
         xaxis=dict(
-            tickfont=dict(color='white'), fixedrange=True,
+            tickfont=dict(color='white', size=10), fixedrange=True,
             showgrid=False,
         ),
         yaxis=dict(
-            tickfont=dict(color='white'), fixedrange=True,
+            tickfont=dict(color='white', size=10), fixedrange=True,
         ),
     )
     return fig
@@ -537,14 +534,14 @@ def create_activation_operator_chart(by_operator, t):
     ))
     fig.update_layout(
         **_QSO_LAYOUT,
-        height=max(200, len(callsigns) * 30 + 60),
-        margin=dict(l=80, r=80, t=10, b=10),
+        height=max(150, len(callsigns) * 24 + 40),
+        margin=dict(l=70, r=70, t=5, b=5),
         xaxis=dict(
             title=t.get('act_chart_hours', 'Hours'),
-            tickfont=dict(color='white'), title_font=dict(color='white'),
+            tickfont=dict(color='white', size=10), title_font=dict(color='white', size=11),
             fixedrange=True, showgrid=False,
         ),
-        yaxis=dict(tickfont=dict(color='white'), fixedrange=True),
+        yaxis=dict(tickfont=dict(color='white', size=10), fixedrange=True),
     )
     return fig
 
@@ -588,15 +585,15 @@ def create_activation_band_chart(by_band, t):
     ))
     fig.update_layout(
         **_QSO_LAYOUT,
-        height=max(200, len(bands) * 28 + 60),
-        margin=dict(l=55, r=80, t=10, b=10),
+        height=max(150, len(bands) * 24 + 40),
+        margin=dict(l=50, r=70, t=5, b=5),
         xaxis=dict(
             title=t.get('act_chart_hours', 'Hours'),
-            tickfont=dict(color='white'), title_font=dict(color='white'),
+            tickfont=dict(color='white', size=10), title_font=dict(color='white', size=11),
             fixedrange=True, showgrid=False,
         ),
         yaxis=dict(
-            tickfont=dict(color='white'), fixedrange=True,
+            tickfont=dict(color='white', size=10), fixedrange=True,
             autorange='reversed',
         ),
     )
@@ -638,8 +635,8 @@ def create_activation_mode_chart(by_mode, t):
     ))
     fig.update_layout(
         **_QSO_LAYOUT,
-        height=280,
-        margin=dict(l=10, r=10, t=10, b=10),
+        height=220,
+        margin=dict(l=5, r=5, t=5, b=5),
         showlegend=False,
     )
     return fig
@@ -679,19 +676,19 @@ def create_activation_timeline_chart(by_date, t):
     ))
     fig.update_layout(
         **_QSO_LAYOUT,
-        height=300,
-        margin=dict(l=50, r=50, t=30, b=40),
+        height=220,
+        margin=dict(l=40, r=40, t=25, b=30),
         legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
-        xaxis=dict(tickfont=dict(color='white'), fixedrange=True),
+        xaxis=dict(tickfont=dict(color='white', size=10), fixedrange=True),
         yaxis=dict(
             title=t.get('act_chart_hours', 'Hours'),
-            tickfont=dict(color='white'), title_font=dict(color='#4FC3F7'),
+            tickfont=dict(color='white', size=10), title_font=dict(color='#4FC3F7', size=11),
             fixedrange=True,
         ),
         yaxis2=dict(
             title=t.get('act_chart_activations', 'Activations'),
             overlaying='y', side='right',
-            tickfont=dict(color='#FFD54F'), title_font=dict(color='#FFD54F'),
+            tickfont=dict(color='#FFD54F', size=10), title_font=dict(color='#FFD54F', size=11),
             fixedrange=True,
         ),
         bargap=0.15,
@@ -730,15 +727,15 @@ def create_activation_hourly_chart(by_hour, t):
     ))
     fig.update_layout(
         **_QSO_LAYOUT,
-        height=250,
-        margin=dict(l=40, r=10, t=30, b=40),
+        height=200,
+        margin=dict(l=35, r=5, t=25, b=30),
         xaxis=dict(
             title='UTC',
-            tickfont=dict(color='white'), title_font=dict(color='white'),
+            tickfont=dict(color='white', size=10), title_font=dict(color='white', size=11),
             fixedrange=True, dtick=2,
         ),
         yaxis=dict(
-            tickfont=dict(color='white'), title_font=dict(color='white'),
+            tickfont=dict(color='white', size=10), title_font=dict(color='white'),
             fixedrange=True,
         ),
     )
