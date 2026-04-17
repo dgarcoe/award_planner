@@ -1153,6 +1153,66 @@ def render_manage_award_tab(t, callsign, is_admin=False):
 
     st.write(f"### 🏆 {full['name']}")
 
+    # Edit award details (first, so callsign info is prominent)
+    with st.expander(f"✏️ {t.get('edit_special_callsign', 'Edit award details')}", expanded=False):
+        edit_name = st.text_input(
+            t.get('special_callsign_name', 'Name'),
+            value=full['name'], max_chars=100, key=f"mgr_edit_name_{award_id}",
+        )
+        edit_description = st.text_area(
+            t.get('description', 'Description'),
+            value=full.get('description') or '', max_chars=500,
+            key=f"mgr_edit_desc_{award_id}",
+        )
+        dc1, dc2 = st.columns(2)
+        with dc1:
+            start_val = None
+            if full.get('start_date'):
+                try:
+                    start_val = datetime.strptime(full['start_date'], "%Y-%m-%d").date()
+                except ValueError:
+                    pass
+            edit_start = st.date_input(
+                t.get('start_date', 'Start date'),
+                value=start_val, key=f"mgr_edit_start_{award_id}",
+            )
+        with dc2:
+            end_val = None
+            if full.get('end_date'):
+                try:
+                    end_val = datetime.strptime(full['end_date'], "%Y-%m-%d").date()
+                except ValueError:
+                    pass
+            edit_end = st.date_input(
+                t.get('end_date', 'End date'),
+                value=end_val, key=f"mgr_edit_end_{award_id}",
+            )
+        edit_qrz = st.text_input(
+            t.get('qrz_link', 'QRZ link'),
+            value=full.get('qrz_link') or '',
+            key=f"mgr_edit_qrz_{award_id}",
+        )
+        if st.button(t.get('save_changes', 'Save changes'),
+                     key=f"mgr_save_{award_id}", type='primary'):
+            if not edit_name:
+                st.error(t.get('error_special_callsign_name_required',
+                               'Name is required'))
+            else:
+                start_str = edit_start.strftime("%Y-%m-%d") if edit_start else ""
+                end_str = edit_end.strftime("%Y-%m-%d") if edit_end else ""
+                ok, msg = db.update_award(
+                    award_id, edit_name, edit_description,
+                    start_str, end_str, edit_qrz,
+                )
+                if ok:
+                    st.cache_data.clear()
+                    st.success(t.get('changes_saved', 'Saved.'))
+                    st.rerun()
+                else:
+                    st.error(msg)
+
+    st.divider()
+
     # Restricted toggle
     is_restricted = bool(full.get('is_restricted'))
     new_restricted = st.checkbox(
@@ -1246,63 +1306,3 @@ def render_manage_award_tab(t, callsign, is_admin=False):
                         st.error(msg)
     else:
         st.caption(t.get('no_active_blocks', 'No active blocks.'))
-
-    st.divider()
-
-    # Edit award details
-    with st.expander(f"✏️ {t.get('edit_special_callsign', 'Edit award details')}", expanded=False):
-        edit_name = st.text_input(
-            t.get('special_callsign_name', 'Name'),
-            value=full['name'], max_chars=100, key=f"mgr_edit_name_{award_id}",
-        )
-        edit_description = st.text_area(
-            t.get('description', 'Description'),
-            value=full.get('description') or '', max_chars=500,
-            key=f"mgr_edit_desc_{award_id}",
-        )
-        dc1, dc2 = st.columns(2)
-        with dc1:
-            start_val = None
-            if full.get('start_date'):
-                try:
-                    start_val = datetime.strptime(full['start_date'], "%Y-%m-%d").date()
-                except ValueError:
-                    pass
-            edit_start = st.date_input(
-                t.get('start_date', 'Start date'),
-                value=start_val, key=f"mgr_edit_start_{award_id}",
-            )
-        with dc2:
-            end_val = None
-            if full.get('end_date'):
-                try:
-                    end_val = datetime.strptime(full['end_date'], "%Y-%m-%d").date()
-                except ValueError:
-                    pass
-            edit_end = st.date_input(
-                t.get('end_date', 'End date'),
-                value=end_val, key=f"mgr_edit_end_{award_id}",
-            )
-        edit_qrz = st.text_input(
-            t.get('qrz_link', 'QRZ link'),
-            value=full.get('qrz_link') or '',
-            key=f"mgr_edit_qrz_{award_id}",
-        )
-        if st.button(t.get('save_changes', 'Save changes'),
-                     key=f"mgr_save_{award_id}", type='primary'):
-            if not edit_name:
-                st.error(t.get('error_special_callsign_name_required',
-                               'Name is required'))
-            else:
-                start_str = edit_start.strftime("%Y-%m-%d") if edit_start else ""
-                end_str = edit_end.strftime("%Y-%m-%d") if edit_end else ""
-                ok, msg = db.update_award(
-                    award_id, edit_name, edit_description,
-                    start_str, end_str, edit_qrz,
-                )
-                if ok:
-                    st.cache_data.clear()
-                    st.success(t.get('changes_saved', 'Saved.'))
-                    st.rerun()
-                else:
-                    st.error(msg)

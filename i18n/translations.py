@@ -338,8 +338,8 @@ TRANSLATIONS = {
         # Stats tab
         'tab_stats': 'Stats',
         # Manage tab (per-award managers)
-        'tab_manage': 'Manage',
-        'manage_awards_title': 'Manage your awards',
+        'tab_manage': 'Manage Special Callsign',
+        'manage_awards_title': 'Manage Special Callsign',
         'manage_no_awards': 'You are not a manager of any award yet.',
         'manage_award_select': 'Select award to manage',
         'access_control': 'Access control',
@@ -771,8 +771,8 @@ TRANSLATIONS = {
         # Stats tab
         'tab_stats': 'Estadísticas',
         # Manage tab (per-award managers)
-        'tab_manage': 'Gestionar',
-        'manage_awards_title': 'Gestiona tus indicativos',
+        'tab_manage': 'Gestionar Indicativo Especial',
+        'manage_awards_title': 'Gestionar Indicativo Especial',
         'manage_no_awards': 'Aún no eres gestor de ningún indicativo.',
         'manage_award_select': 'Selecciona el indicativo a gestionar',
         'access_control': 'Control de acceso',
@@ -1204,8 +1204,8 @@ TRANSLATIONS = {
         # Stats tab
         'tab_stats': 'Estatísticas',
         # Manage tab (per-award managers)
-        'tab_manage': 'Xestionar',
-        'manage_awards_title': 'Xestiona os teus indicativos',
+        'tab_manage': 'Xestionar Indicativo Especial',
+        'manage_awards_title': 'Xestionar Indicativo Especial',
         'manage_no_awards': 'Aínda non es xestor de ningún indicativo.',
         'manage_award_select': 'Selecciona o indicativo a xestionar',
         'access_control': 'Control de acceso',
