@@ -259,6 +259,18 @@ def render_award_management_tab(t):
         label_visibility="collapsed"
     )
 
+    # Managers selection
+    all_ops = db.get_all_operators()
+    if all_ops:
+        selected_managers = st.multiselect(
+            t.get('managers_label', 'Managers'),
+            options=[op['callsign'] for op in all_ops],
+            format_func=lambda c: f"{c} — {next((op['operator_name'] for op in all_ops if op['callsign'] == c), '')}",
+            key="new_award_managers",
+        )
+    else:
+        selected_managers = []
+
     if st.button(t['create_special_callsign'], type="primary", key="create_award_btn"):
         if not award_name:
             st.error(t['error_special_callsign_name_required'])
@@ -283,6 +295,8 @@ def render_award_management_tab(t):
                 qrz_link=qrz_link
             )
             if success:
+                for mgr_callsign in selected_managers:
+                    db.add_manager(mgr_callsign, award_id)
                 st.cache_data.clear()
                 st.success(message)
                 st.rerun()
