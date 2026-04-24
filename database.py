@@ -10,6 +10,7 @@ from core.database import (
     get_connection,
     get_db,
     init_database,
+    reset_thread_connection,
     DATABASE_PATH,
 )
 
@@ -35,6 +36,7 @@ from features.blocks import (
     admin_unblock_band_mode,
     get_all_blocks,
     get_operator_blocks,
+    get_activation_stats,
 )
 
 from features.awards import (
@@ -74,6 +76,23 @@ from features.dx_cluster import (
     get_recent_spots,
 )
 
+from features.qso_log import (
+    ingest_adif_async,
+    ingest_adif_bytes,
+    parse_adif_stream,
+    export_qsos_to_adif,
+    get_qso_stats,
+    get_qsos_by_date,
+    get_qsos_by_hour,
+    get_qsos_band_mode_matrix,
+    get_qsos_page,
+    count_qsos,
+    get_upload_batches,
+    delete_batch,
+    delete_all_qsos_for_award,
+    MAX_ADIF_UPLOAD_BYTES,
+)
+
 from features.chat import (
     # Chat rooms
     get_chat_rooms,
@@ -84,6 +103,7 @@ from features.chat import (
     save_chat_message,
     get_chat_history,
     get_chat_history_by_room,
+    get_chat_histories_by_rooms,
     get_chat_history_global,
     get_chat_stats,
     get_chat_stats_by_user,
@@ -102,6 +122,23 @@ from features.settings import (
     get_app_setting,
     set_app_setting,
     get_feature_flags,
+)
+
+from features.award_access import (
+    is_manager,
+    is_member,
+    is_restricted,
+    can_block_on_award,
+    can_manage_award,
+    get_managers,
+    add_manager,
+    remove_manager,
+    get_managed_awards,
+    get_members,
+    add_member,
+    remove_member,
+    set_award_restricted,
+    filter_visible_awards,
 )
 
 __all__ = [
@@ -128,6 +165,7 @@ __all__ = [
     'admin_unblock_band_mode',
     'get_all_blocks',
     'get_operator_blocks',
+    'get_activation_stats',
     # Features - Awards
     'create_award',
     'get_all_awards',
@@ -157,6 +195,21 @@ __all__ = [
     'send_spot_to_cluster',
     'log_spot',
     'get_recent_spots',
+    # Features - QSO Log
+    'ingest_adif_async',
+    'ingest_adif_bytes',
+    'parse_adif_stream',
+    'export_qsos_to_adif',
+    'get_qso_stats',
+    'get_qsos_by_date',
+    'get_qsos_by_hour',
+    'get_qsos_band_mode_matrix',
+    'get_qsos_page',
+    'count_qsos',
+    'get_upload_batches',
+    'delete_batch',
+    'delete_all_qsos_for_award',
+    'MAX_ADIF_UPLOAD_BYTES',
     # Features - Chat rooms
     'get_chat_rooms',
     'create_chat_room',
@@ -166,6 +219,7 @@ __all__ = [
     'save_chat_message',
     'get_chat_history',
     'get_chat_history_by_room',
+    'get_chat_histories_by_rooms',
     'get_chat_history_global',
     'get_chat_stats',
     'get_chat_stats_by_user',
@@ -182,4 +236,19 @@ __all__ = [
     'get_app_setting',
     'set_app_setting',
     'get_feature_flags',
+    # Features - Award access
+    'is_manager',
+    'is_member',
+    'is_restricted',
+    'can_block_on_award',
+    'can_manage_award',
+    'get_managers',
+    'add_manager',
+    'remove_manager',
+    'get_managed_awards',
+    'get_members',
+    'add_member',
+    'remove_member',
+    'set_award_restricted',
+    'filter_visible_awards',
 ]

@@ -4,23 +4,63 @@ Core database module - base connection and initialization.
 import logging
 import sqlite3
 import os
+import threading
 from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
 DATABASE_PATH = os.getenv('DATABASE_PATH', 'ham_coordinator.db')
 
+# Thread-local storage for per-thread SQLite connections.
+# SQLite connections are cheap to create, but open/close on every query adds up
+# when operators poll every 5 seconds. Reusing a connection per thread avoids
+# that overhead and lets WAL mode amortize journaling across queries.
+_local = threading.local()
 
-def get_connection():
-    """Create and return a database connection."""
+
+def _new_connection():
+    """Create a fresh SQLite connection with performance PRAGMAs applied."""
     conn = sqlite3.connect(DATABASE_PATH, check_same_thread=False, timeout=30.0)
     conn.row_factory = sqlite3.Row
+    # WAL gives us better concurrent read/write characteristics - readers
+    # no longer block writers, which matters when many operators poll
+    # simultaneously while someone else is blocking a band/mode.
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
     return conn
+
+
+def get_connection():
+    """Return a thread-local database connection, creating one if needed."""
+    conn = getattr(_local, 'connection', None)
+    if conn is None:
+        conn = _new_connection()
+        _local.connection = conn
+    return conn
+
+
+def reset_thread_connection():
+    """Close and clear the thread-local connection (e.g. after restore).
+
+    The next call to get_connection() will open a fresh one. Safe to call
+    from any thread; only affects the calling thread's connection.
+    """
+    conn = getattr(_local, 'connection', None)
+    if conn is not None:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        _local.connection = None
 
 
 @contextmanager
 def get_db():
-    """Context manager for database connections. Auto-commits on success, rolls back on error."""
+    """Context manager yielding the thread-local connection.
+
+    Commits on success, rolls back on error. The connection itself is kept
+    alive for reuse by the next caller on this thread.
+    """
     conn = get_connection()
     try:
         yield conn
@@ -28,22 +68,19 @@ def get_db():
     except Exception:
         conn.rollback()
         raise
-    finally:
-        conn.close()
 
 
 def init_database():
     """Initialize the database with required tables and run all migrations."""
     conn = get_connection()
     cursor = conn.cursor()
-    try:
-        _create_tables(cursor)
-        _run_migrations(cursor, conn)
-        _seed_data(cursor)
-        _sync_chat_rooms(cursor)
-        conn.commit()
-    finally:
-        conn.close()
+    _create_tables(cursor)
+    _run_migrations(cursor, conn)
+    _seed_data(cursor)
+    _sync_chat_rooms(cursor)
+    conn.commit()
+    # Intentionally do not close: the connection is thread-local and will
+    # be reused by subsequent queries on this thread.
 
 
 # ---------------------------------------------------------------------------
@@ -70,8 +107,40 @@ def _create_tables(cursor):
             start_date TEXT,
             end_date TEXT,
             is_active INTEGER DEFAULT 1,
+            is_restricted INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS award_managers (
+            award_id INTEGER NOT NULL,
+            operator_callsign TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (award_id, operator_callsign),
+            FOREIGN KEY (award_id) REFERENCES awards (id) ON DELETE CASCADE,
+            FOREIGN KEY (operator_callsign) REFERENCES operators (callsign) ON DELETE CASCADE
+        )
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_award_managers_operator
+        ON award_managers(operator_callsign)
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS award_members (
+            award_id INTEGER NOT NULL,
+            operator_callsign TEXT NOT NULL,
+            added_by TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (award_id, operator_callsign),
+            FOREIGN KEY (award_id) REFERENCES awards (id) ON DELETE CASCADE,
+            FOREIGN KEY (operator_callsign) REFERENCES operators (callsign) ON DELETE CASCADE
+        )
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_award_members_operator
+        ON award_members(operator_callsign)
     ''')
 
     cursor.execute('''
@@ -87,6 +156,42 @@ def _create_tables(cursor):
             UNIQUE(award_id, band, mode)
         )
     ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_band_mode_blocks_award
+        ON band_mode_blocks(award_id)
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_band_mode_blocks_operator
+        ON band_mode_blocks(operator_callsign, award_id)
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS block_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            award_id INTEGER NOT NULL,
+            operator_callsign TEXT NOT NULL,
+            band TEXT NOT NULL,
+            mode TEXT NOT NULL,
+            blocked_at TIMESTAMP NOT NULL,
+            unblocked_at TIMESTAMP,
+            duration_seconds INTEGER,
+            FOREIGN KEY (award_id) REFERENCES awards (id),
+            FOREIGN KEY (operator_callsign) REFERENCES operators (callsign)
+        )
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_block_history_award
+        ON block_history(award_id, blocked_at DESC)
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_block_history_operator
+        ON block_history(operator_callsign, award_id, blocked_at DESC)
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_block_history_award_duration
+        ON block_history(award_id, duration_seconds)
+        WHERE duration_seconds IS NOT NULL
+    ''')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS announcements (
@@ -99,6 +204,10 @@ def _create_tables(cursor):
             FOREIGN KEY (created_by) REFERENCES operators (callsign)
         )
     ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_announcements_active
+        ON announcements(is_active, created_at)
+    ''')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS announcement_reads (
@@ -110,6 +219,14 @@ def _create_tables(cursor):
             FOREIGN KEY (operator_callsign) REFERENCES operators (callsign),
             UNIQUE(announcement_id, operator_callsign)
         )
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_announcement_reads_lookup
+        ON announcement_reads(announcement_id, operator_callsign)
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_announcement_reads_recipient
+        ON announcement_reads(operator_callsign, announcement_id)
     ''')
 
     cursor.execute('''
@@ -145,6 +262,11 @@ def _create_tables(cursor):
         CREATE INDEX IF NOT EXISTS idx_chat_notifications_recipient
         ON chat_notifications(recipient_callsign, is_read, created_at)
     ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_chat_notifications_unread
+        ON chat_notifications(recipient_callsign, is_read)
+        WHERE is_read = 0
+    ''')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS chat_rooms (
@@ -175,6 +297,10 @@ def _create_tables(cursor):
             FOREIGN KEY (award_id) REFERENCES awards (id)
         )
     ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_spot_log_award
+        ON spot_log(award_id, spotted_at DESC)
+    ''')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS telegram_links (
@@ -191,6 +317,68 @@ def _create_tables(cursor):
         )
     ''')
 
+    # QSO upload batches: one row per uploaded ADIF file.
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS qso_upload_batch (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            award_id INTEGER NOT NULL,
+            operator_callsign TEXT NOT NULL,
+            filename TEXT,
+            parsed INTEGER DEFAULT 0,
+            inserted INTEGER DEFAULT 0,
+            duplicates INTEGER DEFAULT 0,
+            errors INTEGER DEFAULT 0,
+            uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (award_id) REFERENCES awards (id),
+            FOREIGN KEY (operator_callsign) REFERENCES operators (callsign)
+        )
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_qso_upload_batch_award_op
+        ON qso_upload_batch(award_id, operator_callsign, uploaded_at DESC)
+    ''')
+
+    # QSO log. INSERT OR IGNORE against idx_qso_dedup gives us free
+    # deduplication at insert time - much cheaper than a pre-check query.
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS qso_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            award_id INTEGER NOT NULL,
+            operator_callsign TEXT NOT NULL,
+            batch_id INTEGER,
+            call TEXT NOT NULL,
+            band TEXT NOT NULL,
+            mode TEXT NOT NULL,
+            qso_date TEXT NOT NULL,
+            time_on TEXT NOT NULL,
+            rst_sent TEXT,
+            rst_rcvd TEXT,
+            freq REAL,
+            name TEXT,
+            qth TEXT,
+            gridsquare TEXT,
+            comment TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (award_id) REFERENCES awards (id),
+            FOREIGN KEY (operator_callsign) REFERENCES operators (callsign),
+            FOREIGN KEY (batch_id) REFERENCES qso_upload_batch (id)
+        )
+    ''')
+    cursor.execute('''
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_qso_dedup
+        ON qso_log(award_id, operator_callsign, call, band, mode, qso_date, time_on)
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_qso_award_op
+        ON qso_log(award_id, operator_callsign, qso_date DESC, time_on DESC)
+    ''')
+    # idx_qso_batch is created in _migrate_qso_log_batch_id to avoid
+    # failure when batch_id column doesn't exist in old databases.
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_qso_log_award_band_mode
+        ON qso_log(award_id, band, mode)
+    ''')
+
 
 # ---------------------------------------------------------------------------
 # Migrations
@@ -202,10 +390,12 @@ def _run_migrations(cursor, conn):
     _migrate_band_mode_blocks_award_id(cursor, conn)
     _migrate_awards_image_data(cursor)
     _migrate_awards_qrz_link(cursor)
+    _migrate_awards_is_restricted(cursor)
     _migrate_chat_messages_reply(cursor)
     _migrate_chat_messages_room_id(cursor)
     _migrate_chat_notifications_room_id(cursor)
     _migrate_chat_messages_system_source(cursor)
+    _migrate_qso_log_batch_id(cursor)
 
     # Create app_settings key-value table
     cursor.execute('''
@@ -282,6 +472,12 @@ def _migrate_awards_qrz_link(cursor):
         cursor.execute('ALTER TABLE awards ADD COLUMN qrz_link TEXT')
 
 
+def _migrate_awards_is_restricted(cursor):
+    """Add is_restricted column to awards if missing."""
+    if 'is_restricted' not in _get_column_names(cursor, 'awards'):
+        cursor.execute('ALTER TABLE awards ADD COLUMN is_restricted INTEGER DEFAULT 0')
+
+
 def _migrate_chat_messages_reply(cursor):
     """Add reply_to columns to chat_messages if missing."""
     if 'reply_to_id' not in _get_column_names(cursor, 'chat_messages'):
@@ -349,6 +545,16 @@ def _migrate_chat_messages_system_source(cursor):
         "UPDATE chat_messages SET source = 'system' "
         "WHERE operator_callsign = 'SYSTEM' AND source != 'system'"
     )
+
+
+def _migrate_qso_log_batch_id(cursor):
+    """Add batch_id column to qso_log if missing (old databases pre-ADIF upload)."""
+    if 'batch_id' not in _get_column_names(cursor, 'qso_log'):
+        cursor.execute('ALTER TABLE qso_log ADD COLUMN batch_id INTEGER REFERENCES qso_upload_batch(id)')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_qso_batch
+        ON qso_log(batch_id)
+    ''')
 
 
 # ---------------------------------------------------------------------------

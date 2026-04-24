@@ -19,6 +19,30 @@ BANDS = ['160m', '80m', '60m', '40m', '30m', '20m', '17m', '15m', '12m', '10m', 
 # Ham radio modes
 MODES = ['SSB', 'CW', 'FM', 'FT8', 'FT4', 'RTTY']
 
+# Modes legally usable per band (IARU R1 baseline). Edit per region as needed.
+BAND_MODES = {
+    '160m': ['SSB', 'CW', 'FT8', 'FT4', 'RTTY'],
+    '80m':  ['SSB', 'CW', 'FT8', 'FT4', 'RTTY'],
+    '60m':  ['CW', 'FT8', 'FT4', 'RTTY'],
+    '40m':  ['SSB', 'CW', 'FT8', 'FT4', 'RTTY'],
+    '30m':  ['CW', 'FT8', 'FT4', 'RTTY'],
+    '20m':  ['SSB', 'CW', 'FT8', 'FT4', 'RTTY'],
+    '17m':  ['SSB', 'CW', 'FT8', 'FT4', 'RTTY'],
+    '15m':  ['SSB', 'CW', 'FT8', 'FT4', 'RTTY'],
+    '12m':  ['SSB', 'CW', 'FT8', 'FT4', 'RTTY'],
+    '10m':  ['SSB', 'CW', 'FM', 'FT8', 'FT4', 'RTTY'],
+    '8m':   ['SSB', 'CW', 'FT8', 'FT4'],
+    '6m':   ['SSB', 'CW', 'FM', 'FT8', 'FT4', 'RTTY'],
+    '2m':   ['SSB', 'CW', 'FM', 'FT8', 'FT4', 'RTTY'],
+    '70cm': ['SSB', 'CW', 'FM', 'FT8', 'FT4', 'RTTY'],
+    'SAT':  ['SSB', 'CW', 'FM'],
+}
+
+
+def is_band_mode_legal(band: str, mode: str) -> bool:
+    """Return True if the given mode is legally usable on the given band."""
+    return mode in BAND_MODES.get(band, [])
+
 # Admin credentials from environment variables
 ADMIN_CALLSIGN = os.getenv('ADMIN_CALLSIGN', '').upper()
 _raw_admin_password = os.getenv('ADMIN_PASSWORD', '')

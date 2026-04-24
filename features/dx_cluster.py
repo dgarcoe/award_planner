@@ -4,6 +4,7 @@ DX Cluster integration for QuendAward.
 Sends spots to DX Cluster nodes via Telnet to announce special callsign activity.
 """
 
+import concurrent.futures
 import logging
 import socket
 import time
@@ -12,6 +13,42 @@ from typing import Tuple, List, Optional
 from core.database import get_db
 
 logger = logging.getLogger(__name__)
+
+
+# Dedicated executor so telnet I/O (up to 15 seconds) never blocks the Streamlit
+# script thread. Small pool - only one or two spots typically fly at a time.
+_spot_executor = concurrent.futures.ThreadPoolExecutor(
+    max_workers=2,
+    thread_name_prefix="dx_cluster_spot",
+)
+
+
+def send_spot_async(
+    host: str,
+    port: int,
+    login_callsign: str,
+    spotted_callsign: str,
+    frequency: float,
+    comment: str = "",
+    password: str = "",
+    timeout: int = 15,
+) -> concurrent.futures.Future:
+    """Submit a spot send to the background thread pool.
+
+    Returns a Future the caller can wait on with a timeout. The Streamlit UI
+    can then surface a spinner without holding up other reruns.
+    """
+    return _spot_executor.submit(
+        send_spot_to_cluster,
+        host,
+        port,
+        login_callsign,
+        spotted_callsign,
+        frequency,
+        comment,
+        password,
+        timeout,
+    )
 
 
 def send_spot_to_cluster(

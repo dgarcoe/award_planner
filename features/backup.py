@@ -8,7 +8,7 @@ import shutil
 import tempfile
 from typing import Tuple
 
-from core.database import get_connection, get_db, DATABASE_PATH
+from core.database import get_connection, get_db, DATABASE_PATH, reset_thread_connection
 
 logger = logging.getLogger(__name__)
 
@@ -20,16 +20,19 @@ def get_database_backup() -> bytes:
     Returns:
         bytes: The database file content
     """
-    conn = get_connection()
+    # Reuse the thread-local connection for the source. Do NOT close it -
+    # it is shared and will be used by subsequent queries.
+    source_conn = get_connection()
 
     with tempfile.NamedTemporaryFile(delete=False, suffix='.db') as tmp_file:
         tmp_path = tmp_file.name
 
     try:
         backup_conn = sqlite3.connect(tmp_path)
-        conn.backup(backup_conn)
-        backup_conn.close()
-        conn.close()
+        try:
+            source_conn.backup(backup_conn)
+        finally:
+            backup_conn.close()
 
         with open(tmp_path, 'rb') as f:
             backup_data = f.read()
@@ -78,6 +81,9 @@ def restore_database_from_backup(backup_data: bytes) -> Tuple[bool, str]:
             shutil.copy2(DATABASE_PATH, current_backup_path)
 
         try:
+            # Drop any cached connection that still points at the old file
+            # so subsequent queries re-open against the restored database.
+            reset_thread_connection()
             shutil.copy2(tmp_path, DATABASE_PATH)
             return True, "Database restored successfully"
         except Exception:

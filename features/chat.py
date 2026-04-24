@@ -126,16 +126,18 @@ def get_chat_history(award_id, limit=100):
     """
     with get_db() as conn:
         cursor = conn.execute(
-            '''SELECT id, award_id, room_id, operator_callsign, message, source, created_at,
-                      reply_to_id, reply_to_callsign, reply_to_text
-               FROM chat_messages
-               WHERE award_id = ?
-               ORDER BY created_at DESC
-               LIMIT ?''',
+            '''SELECT * FROM (
+                   SELECT id, award_id, room_id, operator_callsign, message, source, created_at,
+                          reply_to_id, reply_to_callsign, reply_to_text
+                   FROM chat_messages
+                   WHERE award_id = ?
+                   ORDER BY created_at DESC
+                   LIMIT ?
+               ) sub
+               ORDER BY created_at ASC''',
             (award_id, limit)
         )
-        rows = cursor.fetchall()
-        return [dict(row) for row in reversed(rows)]
+        return [dict(row) for row in cursor.fetchall()]
 
 
 def get_chat_history_by_room(room_id, limit=100):
@@ -151,31 +153,62 @@ def get_chat_history_by_room(room_id, limit=100):
     """
     with get_db() as conn:
         cursor = conn.execute(
-            '''SELECT id, room_id, operator_callsign, message, source, created_at,
-                      reply_to_id, reply_to_callsign, reply_to_text
-               FROM chat_messages
-               WHERE room_id = ?
-               ORDER BY created_at DESC
-               LIMIT ?''',
+            '''SELECT * FROM (
+                   SELECT id, room_id, operator_callsign, message, source, created_at,
+                          reply_to_id, reply_to_callsign, reply_to_text
+                   FROM chat_messages
+                   WHERE room_id = ?
+                   ORDER BY created_at DESC
+                   LIMIT ?
+               ) sub
+               ORDER BY created_at ASC''',
             (room_id, limit)
         )
-        rows = cursor.fetchall()
-        return [dict(row) for row in reversed(rows)]
+        return [dict(row) for row in cursor.fetchall()]
 
 
 def get_chat_history_global(limit=100):
     """Retrieve recent chat messages across all rooms."""
     with get_db() as conn:
         cursor = conn.execute(
-            '''SELECT id, room_id, operator_callsign, message, source, created_at,
-                      reply_to_id, reply_to_callsign, reply_to_text
-               FROM chat_messages
-               ORDER BY created_at DESC
-               LIMIT ?''',
+            '''SELECT * FROM (
+                   SELECT id, room_id, operator_callsign, message, source, created_at,
+                          reply_to_id, reply_to_callsign, reply_to_text
+                   FROM chat_messages
+                   ORDER BY created_at DESC
+                   LIMIT ?
+               ) sub
+               ORDER BY created_at ASC''',
             (limit,)
         )
-        rows = cursor.fetchall()
-        return [dict(row) for row in reversed(rows)]
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def get_chat_histories_by_rooms(room_ids, limit=100):
+    """Batch-fetch chat histories for multiple rooms using one connection.
+
+    Returns a dict {room_id: [messages...]} with messages ordered oldest-first.
+    Eliminates the N+1 open/close pattern when loading the chat tab.
+    """
+    histories = {}
+    if not room_ids:
+        return histories
+    with get_db() as conn:
+        for room_id in room_ids:
+            cursor = conn.execute(
+                '''SELECT * FROM (
+                       SELECT id, room_id, operator_callsign, message, source, created_at,
+                              reply_to_id, reply_to_callsign, reply_to_text
+                       FROM chat_messages
+                       WHERE room_id = ?
+                       ORDER BY created_at DESC
+                       LIMIT ?
+                   ) sub
+                   ORDER BY created_at ASC''',
+                (room_id, limit)
+            )
+            histories[room_id] = [dict(row) for row in cursor.fetchall()]
+    return histories
 
 
 def get_chat_stats():

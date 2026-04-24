@@ -131,11 +131,14 @@ def run_tests():
     print("=" * 50)
 
     # Cleanup
-    try:
-        os.remove('test_new_features.db')
-        print("\nTest database cleaned up.")
-    except FileNotFoundError:
-        print("\nTest database already cleaned up.")
+    cleaned = False
+    for suffix in ('', '-wal', '-shm'):
+        try:
+            os.remove(f'test_new_features.db{suffix}')
+            cleaned = True
+        except FileNotFoundError:
+            pass
+    print("\nTest database cleaned up." if cleaned else "\nTest database already cleaned up.")
 
 if __name__ == "__main__":
     try:

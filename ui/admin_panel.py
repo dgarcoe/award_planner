@@ -9,6 +9,16 @@ import database as db
 from core.validation import validate_password
 
 
+@st.cache_data(ttl=15, show_spinner=False)
+def _cached_all_awards():
+    return db.get_all_awards()
+
+
+@st.cache_data(ttl=10, show_spinner=False)
+def _cached_all_blocks(award_id=None):
+    return db.get_all_blocks(award_id)
+
+
 @st.dialog("Reset Password")
 def reset_password_dialog(callsign: str, t: dict):
     """Dialog for resetting an operator's password."""
@@ -64,6 +74,7 @@ def render_operators_tab(t):
             else:
                 success, message = db.create_operator(new_callsign, new_operator_name, new_password, is_admin)
                 if success:
+                    st.cache_data.clear()
                     st.success(message)
                     admin_text = f" ({t['admin_status']})" if is_admin else ""
                     st.info(f"**{t['credentials_to_provide']}**\n\n{t['callsign']}: `{new_callsign}`{admin_text}\n\n{t['password']}: `{new_password}`")
@@ -115,6 +126,7 @@ def render_operators_tab(t):
                         if st.button("⬇", key=f"demote_{op['callsign']}", help=t['demote']):
                             success, message = db.demote_from_admin(op['callsign'])
                             if success:
+                                st.cache_data.clear()
                                 st.success(message)
                                 st.rerun()
                             else:
@@ -123,6 +135,7 @@ def render_operators_tab(t):
                         if st.button("⬆", key=f"promote_{op['callsign']}", help=t['promote']):
                             success, message = db.promote_to_admin(op['callsign'])
                             if success:
+                                st.cache_data.clear()
                                 st.success(message)
                                 st.rerun()
                             else:
@@ -135,6 +148,7 @@ def render_operators_tab(t):
                     if st.button("🗑", key=f"delete_{op['callsign']}", help=t['delete_operator']):
                         success, message = db.delete_operator(op['callsign'])
                         if success:
+                            st.cache_data.clear()
                             st.success(message)
                             st.rerun()
                         else:
@@ -153,7 +167,7 @@ def render_manage_blocks_tab(t):
     st.info(t['manage_blocks_info'])
 
     # Special callsign filter for admin
-    all_awards_admin = db.get_all_awards()
+    all_awards_admin = _cached_all_awards()
     if all_awards_admin:
         selected_admin_award = st.selectbox(
             t['filter_by_special_callsign'],
@@ -161,7 +175,7 @@ def render_manage_blocks_tab(t):
             format_func=lambda x: next((a['name'] for a in all_awards_admin if a['id'] == x), ''),
             key="admin_award_filter"
         )
-        all_blocks = db.get_all_blocks(selected_admin_award)
+        all_blocks = _cached_all_blocks(selected_admin_award)
     else:
         all_blocks = []
         st.warning(t['no_special_callsigns_exist'])
@@ -182,6 +196,8 @@ def render_manage_blocks_tab(t):
                         admin_callsign=st.session_state.get('callsign', '')
                     )
                     if success:
+                        _cached_all_blocks.clear()
+                        st.session_state.pop('_blocks_fingerprint', None)
                         st.success(message)
                         st.rerun()
                     else:
@@ -194,7 +210,7 @@ def render_system_stats_tab(t):
     """Render the system statistics tab."""
     st.subheader(t['system_statistics'])
     operators = db.get_all_operators()
-    blocks = db.get_all_blocks()
+    blocks = _cached_all_blocks()
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -243,6 +259,18 @@ def render_award_management_tab(t):
         label_visibility="collapsed"
     )
 
+    # Managers selection
+    all_ops = db.get_all_operators()
+    if all_ops:
+        selected_managers = st.multiselect(
+            t.get('managers_label', 'Managers'),
+            options=[op['callsign'] for op in all_ops],
+            format_func=lambda c: f"{c} — {next((op['operator_name'] for op in all_ops if op['callsign'] == c), '')}",
+            key="new_award_managers",
+        )
+    else:
+        selected_managers = []
+
     if st.button(t['create_special_callsign'], type="primary", key="create_award_btn"):
         if not award_name:
             st.error(t['error_special_callsign_name_required'])
@@ -267,6 +295,9 @@ def render_award_management_tab(t):
                 qrz_link=qrz_link
             )
             if success:
+                for mgr_callsign in selected_managers:
+                    db.add_manager(mgr_callsign, award_id)
+                st.cache_data.clear()
                 st.success(message)
                 st.rerun()
             else:
@@ -276,7 +307,7 @@ def render_award_management_tab(t):
 
     # List and manage existing special callsigns
     st.subheader(t['existing_special_callsigns'])
-    awards = db.get_all_awards()
+    awards = _cached_all_awards()
 
     if awards:
         for award in awards:
@@ -349,6 +380,7 @@ def render_award_management_tab(t):
                         end_str = edit_end.strftime("%Y-%m-%d") if edit_end else ""
                         success, message = db.update_award(award['id'], edit_name, edit_description, start_str, end_str, edit_qrz)
                         if success:
+                            st.cache_data.clear()
                             st.success(t['changes_saved'])
                             st.rerun()
                         else:
@@ -380,6 +412,7 @@ def render_award_management_tab(t):
                                 img_type = new_image.type
                                 success, message = db.update_award_image(award['id'], img_data, img_type)
                                 if success:
+                                    st.cache_data.clear()
                                     st.success(t['image_updated'])
                                     st.rerun()
                                 else:
@@ -389,10 +422,75 @@ def render_award_management_tab(t):
                         if st.button(t['remove_image'], key=f"remove_image_{award['id']}", type="secondary"):
                             success, message = db.update_award_image(award['id'], None, None)
                             if success:
+                                st.cache_data.clear()
                                 st.success(t['image_removed'])
                                 st.rerun()
                             else:
                                 st.error(message)
+
+                # Access control: is_restricted toggle + managers list
+                st.write("---")
+                st.write(f"**{t.get('access_control', 'Access control')}**")
+                is_restricted = bool(award.get('is_restricted'))
+                new_restricted = st.checkbox(
+                    t.get('restricted_access_label', 'Restricted access (only members can block)'),
+                    value=is_restricted,
+                    key=f"restricted_{award['id']}",
+                    help=t.get('restricted_access_help',
+                               'When enabled, only approved members, managers, and admins can block bands on this award.'),
+                )
+                if new_restricted != is_restricted:
+                    ok, msg = db.set_award_restricted(award['id'], new_restricted)
+                    if ok:
+                        st.cache_data.clear()
+                        st.success(msg)
+                        st.rerun()
+                    else:
+                        st.error(msg)
+
+                # Managers list
+                st.write(f"**{t.get('managers_label', 'Managers')}**")
+                current_managers = db.get_managers(award['id'])
+                if current_managers:
+                    for mgr in current_managers:
+                        mcol1, mcol2 = st.columns([5, 1])
+                        with mcol1:
+                            st.write(f"👤 **{mgr['operator_callsign']}** — {mgr.get('operator_name') or ''}")
+                        with mcol2:
+                            if st.button("✖", key=f"rm_mgr_{award['id']}_{mgr['operator_callsign']}",
+                                         help=t.get('remove_manager', 'Remove manager')):
+                                ok, msg = db.remove_manager(mgr['operator_callsign'], award['id'])
+                                if ok:
+                                    st.success(msg)
+                                    st.rerun()
+                                else:
+                                    st.error(msg)
+                else:
+                    st.caption(t.get('no_managers', 'No managers yet.'))
+
+                # Add manager
+                all_ops = db.get_all_operators()
+                mgr_callsigns = {m['operator_callsign'] for m in current_managers}
+                candidates = [op for op in all_ops if op['callsign'] not in mgr_callsigns]
+                if candidates:
+                    add_col1, add_col2 = st.columns([4, 1])
+                    with add_col1:
+                        selected = st.selectbox(
+                            t.get('add_manager', 'Add manager'),
+                            options=[op['callsign'] for op in candidates],
+                            format_func=lambda c: f"{c} — {next((op['operator_name'] for op in candidates if op['callsign'] == c), '')}",
+                            key=f"add_mgr_sel_{award['id']}",
+                        )
+                    with add_col2:
+                        st.write("")
+                        if st.button("➕", key=f"add_mgr_btn_{award['id']}",
+                                     help=t.get('add_manager', 'Add manager')):
+                            ok, msg = db.add_manager(selected, award['id'])
+                            if ok:
+                                st.success(msg)
+                                st.rerun()
+                            else:
+                                st.error(msg)
 
                 st.write("---")
                 col1, col2 = st.columns(2)
@@ -400,6 +498,7 @@ def render_award_management_tab(t):
                     if st.button(t['toggle_status'], key=f"toggle_award_{award['id']}"):
                         success, message = db.toggle_award_status(award['id'])
                         if success:
+                            st.cache_data.clear()
                             st.success(message)
                             st.rerun()
                         else:
@@ -417,6 +516,7 @@ def render_award_management_tab(t):
                                 del st.session_state[pending_key]
                                 success, message = db.delete_award(award['id'])
                                 if success:
+                                    st.cache_data.clear()
                                     st.success(message)
                                 else:
                                     st.error(message)
@@ -785,9 +885,18 @@ def render_feature_visibility_tab(t):
         value=flags.get('feature_chat', True),
         key="fv_chat"
     )
+    new_qso_log = st.toggle(
+        t.get('tab_qso_log', 'QSO Log'),
+        value=flags.get('feature_qso_log', True),
+        key="fv_qso_log"
+    )
 
     if st.button(t.get('save_changes', 'Save Changes'), type="primary", key="fv_save"):
         db.set_app_setting('feature_announcements', '1' if new_announcements else '0')
         db.set_app_setting('feature_chat', '1' if new_chat else '0')
+        db.set_app_setting('feature_qso_log', '1' if new_qso_log else '0')
+        # Feature flags are cached at the app level; flush so operators
+        # see the change on their next rerun instead of up to 30s later.
+        st.cache_data.clear()
         st.success(t.get('changes_saved', 'Changes saved successfully'))
         st.rerun()
