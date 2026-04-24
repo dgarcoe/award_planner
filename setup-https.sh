@@ -91,21 +91,33 @@ EOF
 echo -e "${GREEN}Creating directories...${NC}"
 mkdir -p certbot/www certbot/conf data
 
-# Update nginx.conf with domain
-echo -e "${GREEN}Configuring nginx for domain: $DOMAIN${NC}"
-sed "s/\${DOMAIN}/$DOMAIN/g" nginx/nginx.conf > nginx/nginx.conf.tmp
-mv nginx/nginx.conf.tmp nginx/nginx.conf
+# Ensure the external Docker network exists
+echo -e "${GREEN}Ensuring ea1rfi-network exists...${NC}"
+docker network create ea1rfi-network 2>/dev/null || true
 
-# Step 1: Start with HTTP-only config to get initial certificate
-echo -e "${GREEN}Step 1: Starting nginx with HTTP-only config...${NC}"
-cp nginx/nginx-init.conf nginx/nginx-active.conf
+# Step 1: Start a temporary nginx with HTTP-only config for the ACME challenge.
+# We run a plain nginx container (not via compose) so we can mount the init
+# config directly without touching the compose file or the real nginx.conf.
+echo -e "${GREEN}Step 1: Starting temporary nginx for certificate challenge...${NC}"
+docker rm -f quendaward-nginx-init 2>/dev/null || true
+docker run -d \
+    --name quendaward-nginx-init \
+    -p 80:80 \
+    -v "$(pwd)/nginx/nginx-init.conf:/etc/nginx/nginx.conf:ro" \
+    -v "$(pwd)/certbot/www:/var/www/certbot:ro" \
+    nginx:alpine
 
-# Temporarily use init config
-$DOCKER_COMPOSE -f docker-compose-standalone.yml up -d nginx
-
-# Wait for nginx to start
 echo -e "${YELLOW}Waiting for nginx to start...${NC}"
-sleep 5
+sleep 3
+
+# Verify nginx is responding on port 80
+if ! curl -sf -o /dev/null http://localhost/; then
+    echo -e "${RED}Nginx is not responding on port 80. Check firewall settings.${NC}"
+    docker logs quendaward-nginx-init
+    docker rm -f quendaward-nginx-init
+    exit 1
+fi
+echo -e "${GREEN}Nginx is serving HTTP on port 80.${NC}"
 
 # Step 2: Get the certificate
 echo -e "${GREEN}Step 2: Requesting Let's Encrypt certificate...${NC}"
@@ -120,19 +132,20 @@ docker run --rm \
     --no-eff-email \
     -d "$DOMAIN"
 
+# Stop the temporary nginx
+docker rm -f quendaward-nginx-init
+
 # Check if certificate was created
 if [ ! -f "certbot/conf/live/$DOMAIN/fullchain.pem" ]; then
     echo -e "${RED}Certificate generation failed!${NC}"
     echo -e "${RED}Make sure your domain points to this server and port 80 is accessible.${NC}"
-    $DOCKER_COMPOSE -f docker-compose-standalone.yml down
     exit 1
 fi
 
 echo -e "${GREEN}Certificate obtained successfully!${NC}"
 
-# Step 3: Restart with full HTTPS config
-echo -e "${GREEN}Step 3: Restarting with HTTPS configuration...${NC}"
-$DOCKER_COMPOSE -f docker-compose-standalone.yml down
+# Step 3: Start the full stack with HTTPS
+echo -e "${GREEN}Step 3: Starting full stack with HTTPS...${NC}"
 $DOCKER_COMPOSE -f docker-compose-standalone.yml up -d
 
 echo ""
