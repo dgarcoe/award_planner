@@ -312,6 +312,8 @@ def _create_tables(cursor):
             notifications_enabled INTEGER DEFAULT 1,
             default_award_id INTEGER,
             language TEXT DEFAULT 'en',
+            notify_bands TEXT,
+            notify_modes TEXT,
             FOREIGN KEY (operator_callsign) REFERENCES operators (callsign),
             FOREIGN KEY (default_award_id) REFERENCES awards (id)
         )
@@ -396,6 +398,7 @@ def _run_migrations(cursor, conn):
     _migrate_chat_notifications_room_id(cursor)
     _migrate_chat_messages_system_source(cursor)
     _migrate_qso_log_batch_id(cursor)
+    _migrate_telegram_notify_filters(cursor)
 
     # Create app_settings key-value table
     cursor.execute('''
@@ -555,6 +558,15 @@ def _migrate_qso_log_batch_id(cursor):
         CREATE INDEX IF NOT EXISTS idx_qso_batch
         ON qso_log(batch_id)
     ''')
+
+
+def _migrate_telegram_notify_filters(cursor):
+    """Add notify_bands and notify_modes columns to telegram_links if missing."""
+    cols = _get_column_names(cursor, 'telegram_links')
+    if 'notify_bands' not in cols:
+        cursor.execute('ALTER TABLE telegram_links ADD COLUMN notify_bands TEXT')
+    if 'notify_modes' not in cols:
+        cursor.execute('ALTER TABLE telegram_links ADD COLUMN notify_modes TEXT')
 
 
 # ---------------------------------------------------------------------------

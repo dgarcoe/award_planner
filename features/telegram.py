@@ -157,6 +157,42 @@ def set_language(chat_id: int, language: str) -> Tuple[bool, str]:
         return False, "An unexpected error occurred"
 
 
+def set_notify_bands(chat_id: int, bands: Optional[List[str]]) -> Tuple[bool, str]:
+    """Set band filter for notifications. None means all bands."""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            value = ','.join(bands) if bands else None
+            cursor.execute(
+                'UPDATE telegram_links SET notify_bands = ? WHERE telegram_chat_id = ?',
+                (value, chat_id)
+            )
+            if cursor.rowcount == 0:
+                return False, "No linked account found"
+            return True, "Band filter updated"
+    except Exception:
+        logger.exception("Error setting notify bands")
+        return False, "An unexpected error occurred"
+
+
+def set_notify_modes(chat_id: int, modes: Optional[List[str]]) -> Tuple[bool, str]:
+    """Set mode filter for notifications. None means all modes."""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            value = ','.join(modes) if modes else None
+            cursor.execute(
+                'UPDATE telegram_links SET notify_modes = ? WHERE telegram_chat_id = ?',
+                (value, chat_id)
+            )
+            if cursor.rowcount == 0:
+                return False, "No linked account found"
+            return True, "Mode filter updated"
+    except Exception:
+        logger.exception("Error setting notify modes")
+        return False, "An unexpected error occurred"
+
+
 def get_all_linked_users_with_notifications() -> List[dict]:
     """Get all linked users with notifications enabled."""
     try:

@@ -72,6 +72,8 @@ BOT_TRANSLATIONS = {
             "/awards - List active awards\n"
             "/setaward <id> - Set your default award\n"
             "/notifications on|off - Toggle notifications\n"
+            "/setbands - Choose which bands trigger alerts\n"
+            "/setmodes - Choose which modes trigger alerts\n"
             "/lang en|es|gl - Set language\n"
             "/status - Show your account status"
         ),
@@ -111,6 +113,8 @@ BOT_TRANSLATIONS = {
             "Name: {name}\n"
             "Default Award: {award}\n"
             "Notifications: {notifications}\n"
+            "Alert bands: {bands}\n"
+            "Alert modes: {modes}\n"
             "Language: {language}"
         ),
         'notify_block': "🔴 {callsign} blocked {band}/{mode}",
@@ -122,6 +126,13 @@ BOT_TRANSLATIONS = {
         'cancel': "Cancel",
         'cancelled': "Operation cancelled.",
         'already_blocked': "⚠️ This band/mode is already blocked by {callsign}.",
+        'setbands_current': "Alert bands: {bands}\n\nTap to toggle. ✅ = alerts on, tap again to disable.",
+        'setbands_updated': "Alert bands updated: {bands}",
+        'setbands_all': "Receiving alerts for all bands.",
+        'setmodes_current': "Alert modes: {modes}\n\nTap to toggle. ✅ = alerts on, tap again to disable.",
+        'setmodes_updated': "Alert modes updated: {modes}",
+        'setmodes_all': "Receiving alerts for all modes.",
+        'done': "Done",
     },
     'es': {
         'welcome': (
@@ -142,6 +153,8 @@ BOT_TRANSLATIONS = {
             "/awards - Listar diplomas activos\n"
             "/setaward <id> - Establecer diploma predeterminado\n"
             "/notifications on|off - Activar/desactivar notificaciones\n"
+            "/setbands - Elegir bandas con alertas\n"
+            "/setmodes - Elegir modos con alertas\n"
             "/lang en|es|gl - Establecer idioma\n"
             "/status - Mostrar estado de tu cuenta"
         ),
@@ -181,6 +194,8 @@ BOT_TRANSLATIONS = {
             "Nombre: {name}\n"
             "Diploma predeterminado: {award}\n"
             "Notificaciones: {notifications}\n"
+            "Alertas bandas: {bands}\n"
+            "Alertas modos: {modes}\n"
             "Idioma: {language}"
         ),
         'notify_block': "🔴 {callsign} bloqueo {band}/{mode}",
@@ -192,6 +207,13 @@ BOT_TRANSLATIONS = {
         'cancel': "Cancelar",
         'cancelled': "Operacion cancelada.",
         'already_blocked': "⚠️ Esta banda/modo ya esta bloqueado por {callsign}.",
+        'setbands_current': "Bandas con alertas: {bands}\n\nToca para cambiar. ✅ = alertas activas, toca de nuevo para desactivar.",
+        'setbands_updated': "Bandas con alertas actualizadas: {bands}",
+        'setbands_all': "Recibiendo alertas para todas las bandas.",
+        'setmodes_current': "Modos con alertas: {modes}\n\nToca para cambiar. ✅ = alertas activas, toca de nuevo para desactivar.",
+        'setmodes_updated': "Modos con alertas actualizados: {modes}",
+        'setmodes_all': "Recibiendo alertas para todos los modos.",
+        'done': "Listo",
     },
     'gl': {
         'welcome': (
@@ -212,6 +234,8 @@ BOT_TRANSLATIONS = {
             "/awards - Listar diplomas activos\n"
             "/setaward <id> - Establecer diploma predeterminado\n"
             "/notifications on|off - Activar/desactivar notificacions\n"
+            "/setbands - Elixir bandas con alertas\n"
+            "/setmodes - Elixir modos con alertas\n"
             "/lang en|es|gl - Establecer idioma\n"
             "/status - Amosar estado da tua conta"
         ),
@@ -251,6 +275,8 @@ BOT_TRANSLATIONS = {
             "Nome: {name}\n"
             "Diploma predeterminado: {award}\n"
             "Notificacions: {notifications}\n"
+            "Alertas bandas: {bands}\n"
+            "Alertas modos: {modes}\n"
             "Idioma: {language}"
         ),
         'notify_block': "🔴 {callsign} bloqueou {band}/{mode}",
@@ -262,6 +288,13 @@ BOT_TRANSLATIONS = {
         'cancel': "Cancelar",
         'cancelled': "Operacion cancelada.",
         'already_blocked': "⚠️ Esta banda/modo xa esta bloqueado por {callsign}.",
+        'setbands_current': "Bandas con alertas: {bands}\n\nToca para cambiar. ✅ = alertas activas, toca de novo para desactivar.",
+        'setbands_updated': "Bandas con alertas actualizadas: {bands}",
+        'setbands_all': "Recibindo alertas para todas as bandas.",
+        'setmodes_current': "Modos con alertas: {modes}\n\nToca para cambiar. ✅ = alertas activas, toca de novo para desactivar.",
+        'setmodes_updated': "Modos con alertas actualizados: {modes}",
+        'setmodes_all': "Recibindo alertas para todos os modos.",
+        'done': "Feito",
     },
 }
 
@@ -528,6 +561,68 @@ async def lang_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(t('lang_set', new_lang))
 
 
+def _build_toggle_keyboard(items, selected, prefix, lang):
+    """Build an inline keyboard with toggle buttons for bands or modes."""
+    keyboard = []
+    row = []
+    for item in items:
+        label = f"✅ {item}" if item in selected else item
+        row.append(InlineKeyboardButton(label, callback_data=f"{prefix}:{item}"))
+        if len(row) == 4:
+            keyboard.append(row)
+            row = []
+    if row:
+        keyboard.append(row)
+    keyboard.append([
+        InlineKeyboardButton(t('done', lang), callback_data=f"{prefix}:done"),
+    ])
+    return InlineKeyboardMarkup(keyboard)
+
+
+async def setbands_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /setbands command — interactive band alert filter."""
+    from config import BANDS
+    chat_id = update.effective_chat.id
+    lang = get_user_lang(chat_id)
+
+    link = get_telegram_link_by_chat_id(chat_id)
+    if not link:
+        await update.message.reply_text(t('not_linked', lang))
+        return
+
+    current = set(link['notify_bands'].split(',')) if link.get('notify_bands') else set(BANDS)
+    context.user_data['setbands_selected'] = current
+
+    bands_str = ', '.join(b for b in BANDS if b in current) or "All"
+    reply_markup = _build_toggle_keyboard(BANDS, current, 'tb', lang)
+    await update.message.reply_text(
+        t('setbands_current', lang, bands=bands_str),
+        reply_markup=reply_markup,
+    )
+
+
+async def setmodes_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /setmodes command — interactive mode alert filter."""
+    from config import MODES
+    chat_id = update.effective_chat.id
+    lang = get_user_lang(chat_id)
+
+    link = get_telegram_link_by_chat_id(chat_id)
+    if not link:
+        await update.message.reply_text(t('not_linked', lang))
+        return
+
+    current = set(link['notify_modes'].split(',')) if link.get('notify_modes') else set(MODES)
+    context.user_data['setmodes_selected'] = current
+
+    modes_str = ', '.join(m for m in MODES if m in current) or "All"
+    reply_markup = _build_toggle_keyboard(MODES, current, 'tm', lang)
+    await update.message.reply_text(
+        t('setmodes_current', lang, modes=modes_str),
+        reply_markup=reply_markup,
+    )
+
+
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /status command."""
     chat_id = update.effective_chat.id
@@ -546,12 +641,16 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     notifications = "On" if link.get('notifications_enabled') else "Off"
     lang_names = {'en': 'English', 'es': 'Spanish', 'gl': 'Galician'}
+    bands_str = link.get('notify_bands') or "All"
+    modes_str = link.get('notify_modes') or "All"
 
     await update.message.reply_text(t('status', lang,
         callsign=link['operator_callsign'],
         name=link.get('operator_name', 'Unknown'),
         award=award_name,
         notifications=notifications,
+        bands=bands_str,
+        modes=modes_str,
         language=lang_names.get(link.get('language', 'en'), 'English')
     ))
 
@@ -570,6 +669,72 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "cancel":
         await query.edit_message_text(t('cancelled', lang))
+        return
+
+    # Toggle band alerts
+    if data.startswith("tb:"):
+        from config import BANDS
+        from features.telegram import set_notify_bands
+        value = data.split(":", 1)[1]
+        selected = context.user_data.get('setbands_selected', set(BANDS))
+
+        if value == 'done':
+            if selected == set(BANDS) or not selected:
+                set_notify_bands(chat_id, None)
+                await query.edit_message_text(t('setbands_all', lang))
+            else:
+                ordered = [b for b in BANDS if b in selected]
+                set_notify_bands(chat_id, ordered)
+                await query.edit_message_text(
+                    t('setbands_updated', lang, bands=', '.join(ordered))
+                )
+            return
+
+        if value in selected:
+            selected.discard(value)
+        else:
+            selected.add(value)
+        context.user_data['setbands_selected'] = selected
+
+        bands_str = ', '.join(b for b in BANDS if b in selected) or "All"
+        reply_markup = _build_toggle_keyboard(BANDS, selected, 'tb', lang)
+        await query.edit_message_text(
+            t('setbands_current', lang, bands=bands_str),
+            reply_markup=reply_markup,
+        )
+        return
+
+    # Toggle mode alerts
+    if data.startswith("tm:"):
+        from config import MODES
+        from features.telegram import set_notify_modes
+        value = data.split(":", 1)[1]
+        selected = context.user_data.get('setmodes_selected', set(MODES))
+
+        if value == 'done':
+            if selected == set(MODES) or not selected:
+                set_notify_modes(chat_id, None)
+                await query.edit_message_text(t('setmodes_all', lang))
+            else:
+                ordered = [m for m in MODES if m in selected]
+                set_notify_modes(chat_id, ordered)
+                await query.edit_message_text(
+                    t('setmodes_updated', lang, modes=', '.join(ordered))
+                )
+            return
+
+        if value in selected:
+            selected.discard(value)
+        else:
+            selected.add(value)
+        context.user_data['setmodes_selected'] = selected
+
+        modes_str = ', '.join(m for m in MODES if m in selected) or "All"
+        reply_markup = _build_toggle_keyboard(MODES, selected, 'tm', lang)
+        await query.edit_message_text(
+            t('setmodes_current', lang, modes=modes_str),
+            reply_markup=reply_markup,
+        )
         return
 
     if data.startswith("band:"):
@@ -721,6 +886,14 @@ class MQTTNotifier:
                 if user['operator_callsign'].upper() == callsign.upper():
                     continue
 
+                # Band/mode alert filters
+                user_bands = user.get('notify_bands')
+                if user_bands and band and band not in user_bands.split(','):
+                    continue
+                user_modes = user.get('notify_modes')
+                if user_modes and mode and mode not in user_modes.split(','):
+                    continue
+
                 lang = user.get('language', 'en')
                 chat_id = user['telegram_chat_id']
 
@@ -841,6 +1014,8 @@ def main():
     application.add_handler(CommandHandler("block", block_command))
     application.add_handler(CommandHandler("unblock", unblock_command))
     application.add_handler(CommandHandler("notifications", notifications_command))
+    application.add_handler(CommandHandler("setbands", setbands_command))
+    application.add_handler(CommandHandler("setmodes", setmodes_command))
     application.add_handler(CommandHandler("lang", lang_command))
     application.add_handler(CommandHandler("status", status_command))
 
