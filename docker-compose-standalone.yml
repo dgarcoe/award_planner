@@ -30,7 +30,7 @@ services:
     depends_on:
       - mosquitto
     networks:
-      - quendaward-network
+      - ea1rfi-network
 
   mosquitto:
     image: eclipse-mosquitto:2
@@ -44,7 +44,7 @@ services:
       - "9001"
     restart: unless-stopped
     networks:
-      - quendaward-network
+      - ea1rfi-network
 
   telegram-bot:
     build: .
@@ -61,7 +61,7 @@ services:
       - mosquitto
     restart: unless-stopped
     networks:
-      - quendaward-network
+      - ea1rfi-network
 
   nginx:
     image: nginx:alpine
@@ -81,7 +81,7 @@ services:
       - mosquitto
     restart: unless-stopped
     networks:
-      - quendaward-network
+      - ea1rfi-network
 
   certbot:
     image: certbot/certbot
@@ -91,12 +91,12 @@ services:
       - ./certbot/conf:/etc/letsencrypt
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
     networks:
-      - quendaward-network
+      - ea1rfi-network
 
 volumes:
   mosquitto_data:
   mosquitto_log:
 
 networks:
-  quendaward-network:
-    driver: bridge
+  ea1rfi-network:
+    external: true
